@@ -2,84 +2,87 @@
 <html lang="id">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Pemeliharaan Sistem - Kami Akan Segera Kembali</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+    <title>Pemeliharaan Sistem</title>
     <script src="https://cdn.tailwindcss.com"></script>
+
     <style>
         @keyframes gear-rotate {
-            0% { transform: rotate(0deg); }
-            100% { transform: rotate(360deg); }
+            from { transform: rotate(0deg); }
+            to { transform: rotate(360deg); }
         }
         @keyframes gear-rotate-reverse {
-            0% { transform: rotate(0deg); }
-            100% { transform: rotate(-360deg); }
+            from { transform: rotate(0deg); }
+            to { transform: rotate(-360deg); }
         }
-        .gear-1 { animation: gear-rotate 8s linear infinite; }
-        .gear-2 { animation: gear-rotate-reverse 6s linear infinite; }
-        
-        .floating {
-            animation: floating 3s ease-in-out infinite;
-        }
+        .gear-1 { animation: gear-rotate 10s linear infinite; }
+        .gear-2 { animation: gear-rotate-reverse 8s linear infinite; }
+
         @keyframes floating {
-            0%, 100% { transform: translateY(0); }
-            50% { transform: translateY(-15px); }
+            0%,100% { transform: translateY(0); }
+            50% { transform: translateY(-10px); }
         }
+        .floating { animation: floating 4s ease-in-out infinite; }
     </style>
 </head>
-<body class="bg-slate-50 text-slate-800 font-sans flex items-center justify-center min-h-screen p-6">
 
-    <div class="max-w-2xl w-full text-center">
-        <!-- Ilustrasi Animasi SVG -->
-        <div class="relative w-48 h-48 mx-auto mb-10 floating">
-            <!-- Gear Besar -->
-            <svg class="absolute top-0 left-4 w-28 h-28 text-blue-500 gear-1" fill="currentColor" viewBox="0 0 24 24">
-                <path d="M19.14,12.94c0.04-0.3,0.06-0.61,0.06-0.94c0-0.32-0.02-0.64-0.07-0.94l2.03-1.58c0.18-0.14,0.23-0.41,0.12-0.61 l-1.92-3.32c-0.12-0.22-0.37-0.29-0.59-0.22l-2.39,0.96c-0.5-0.38-1.03-0.7-1.62-0.94L14.4,2.81c-0.04-0.24-0.24-0.41-0.48-0.41 h-3.84c-0.24,0-0.43,0.17-0.47,0.41L9.25,5.35C8.66,5.59,8.13,5.91,7.63,6.29L5.24,5.33c-0.22-0.08-0.47,0-0.59,0.22L2.74,8.87 C2.62,9.08,2.66,9.34,2.86,9.48l2.03,1.58C4.84,11.36,4.8,11.69,4.8,12s0.02,0.64,0.07,0.94l-2.03,1.58 c-0.18,0.14-0.23,0.41-0.12,0.61l1.92,3.32c0.12,0.22,0.37,0.29,0.59,0.22l2.39-0.96c0.5,0.38,1.03,0.7,1.62,0.94l0.36,2.54 c0.05,0.24,0.24,0.41,0.48,0.41h3.84c0.24,0,0.44-0.17,0.47-0.41l0.36-2.54c0.59-0.24,1.13-0.56,1.62-0.94l2.39,0.96 c0.22,0.08,0.47,0,0.59-0.22l1.92-3.32c0.12-0.22,0.07-0.47-0.12-0.61L19.14,12.94z M12,15.6c-1.98,0-3.6-1.62-3.6-3.6 s1.62-3.6,3.6-3.6s3.6,1.62,3.6,3.6S13.98,15.6,12,15.6z"></path>
-            </svg>
-            <!-- Gear Kecil -->
-            <svg class="absolute bottom-4 right-4 w-20 h-20 text-slate-300 gear-2" fill="currentColor" viewBox="0 0 24 24">
-                <path d="M19.14,12.94c0.04-0.3,0.06-0.61,0.06-0.94c0-0.32-0.02-0.64-0.07-0.94l2.03-1.58c0.18-0.14,0.23-0.41,0.12-0.61 l-1.92-3.32c-0.12-0.22-0.37-0.29-0.59-0.22l-2.39,0.96c-0.5-0.38-1.03-0.7-1.62-0.94L14.4,2.81c-0.04-0.24-0.24-0.41-0.48-0.41 h-3.84c-0.24,0-0.43,0.17-0.47,0.41L9.25,5.35C8.66,5.59,8.13,5.91,7.63,6.29L5.24,5.33c-0.22-0.08-0.47,0-0.59,0.22L2.74,8.87 C2.62,9.08,2.66,9.34,2.86,9.48l2.03,1.58C4.84,11.36,4.8,11.69,4.8,12s0.02,0.64,0.07,0.94l-2.03,1.58 c-0.18,0.14-0.23,0.41-0.12,0.61l1.92,3.32c0.12,0.22,0.37,0.29,0.59,0.22l2.39-0.96c0.5,0.38,1.03,0.7,1.62,0.94l0.36,2.54 c0.05,0.24,0.24,0.41,0.48,0.41h3.84c0.24,0,0.44-0.17,0.47-0.41l0.36-2.54c0.59-0.24,1.13-0.56,1.62-0.94l2.39,0.96 c0.22,0.08,0.47,0,0.59-0.22l1.92-3.32c0.12-0.22,0.07-0.47-0.12-0.61L19.14,12.94z M12,15.6c-1.98,0-3.6-1.62-3.6-3.6 s1.62-3.6,3.6-3.6s3.6,1.62,3.6,3.6S13.98,15.6,12,15.6z"></path>
-            </svg>
+<body class="bg-slate-50 text-slate-800 min-h-screen flex items-center justify-center px-4 py-6">
+
+<div class="w-full max-w-md text-center">
+
+    <!-- Ilustrasi -->
+    <div class="relative w-36 h-36 mx-auto mb-6 floating">
+        <svg class="absolute top-0 left-6 w-24 h-24 text-blue-500 gear-1" fill="currentColor" viewBox="0 0 24 24">
+            <path d="M19.14,12.94c0.04-0.3,0.06-0.61,0.06-0.94s-0.02-0.64-0.07-0.94l2.03-1.58c0.18-0.14,0.23-0.41,0.12-0.61l-1.92-3.32c-0.12-0.22-0.37-0.29-0.59-0.22l-2.39,0.96c-0.5-0.38-1.03-0.7-1.62-0.94L14.4,2.81c-0.04-0.24-0.24-0.41-0.48-0.41h-3.84c-0.24,0-0.43,0.17-0.47,0.41L9.25,5.35C8.66,5.59,8.13,5.91,7.63,6.29L5.24,5.33c-0.22-0.08-0.47,0-0.59,0.22L2.74,8.87c-0.12,0.21-0.08,0.47,0.12,0.61l2.03,1.58c-0.05,0.3-0.09,0.63-0.09,0.94s0.02,0.64,0.07,0.94l-2.03,1.58c-0.18,0.14-0.23,0.41-0.12,0.61l1.92,3.32c0.12,0.22,0.37,0.29,0.59,0.22l2.39-0.96c0.5,0.38,1.03,0.7,1.62,0.94l0.36,2.54c0.05,0.24,0.24,0.41,0.48,0.41h3.84c0.24,0,0.44-0.17,0.47-0.41l0.36-2.54c0.59-0.24,1.13-0.56,1.62-0.94l2.39,0.96c0.22,0.08,0.47,0,0.59-0.22l1.92-3.32c0.12-0.22,0.07-0.47-0.12-0.61l-2.03-1.58z"/>
+        </svg>
+
+        <svg class="absolute bottom-4 right-4 w-16 h-16 text-slate-300 gear-2" fill="currentColor" viewBox="0 0 24 24">
+            <path d="M12,8.4A3.6,3.6,0,1,0,15.6,12,3.6,3.6,0,0,0,12,8.4Z"/>
+        </svg>
+    </div>
+
+    <!-- Teks -->
+    <h1 class="text-2xl font-extrabold text-slate-900 mb-3">
+        Sedang Dalam Pemeliharaan
+    </h1>
+
+    <p class="text-sm text-slate-600 leading-relaxed mb-6">
+        Kami sedang meningkatkan sistem.  
+        Aplikasi sementara tidak dapat diakses dan akan segera kembali.
+    </p>
+
+    <!-- Progress -->
+    <div class="bg-white p-4 rounded-xl shadow border border-slate-200 mb-8">
+        <div class="flex justify-between text-xs mb-2">
+            <span class="font-semibold text-blue-600">Progres</span>
+            <span class="text-slate-500">15%</span>
         </div>
-
-        <!-- Teks Informasi -->
-        <h1 class="text-4xl md:text-5xl font-extrabold text-slate-900 mb-4">
-            Sedang Dalam Pemeliharaan
-        </h1>
-        <p class="text-lg text-slate-600 mb-8 leading-relaxed px-4">
-            Kami sedang melakukan beberapa peningkatan untuk memberikan pengalaman terbaik bagi Anda. 
-            Aplikasi untuk sementara tidak dapat diakses, namun kami akan segera kembali online.
-        </p>
-
-        <!-- Progress/Status -->
-        <div class="bg-white p-6 rounded-2xl shadow-sm border border-slate-200 inline-block w-full sm:w-auto min-w-[320px]">
-            <div class="flex items-center justify-between mb-2 px-2">
-                <span class="text-sm font-semibold text-blue-600">Progres Pembaruan</span>
-                <span class="text-sm font-medium text-slate-500">15%</span>
-            </div>
-            <div class="w-full bg-slate-100 rounded-full h-3 mb-4">
-                <div class="bg-blue-500 h-3 rounded-full transition-all duration-1000" style="width: 85%"></div>
-            </div>
-            <p class="text-sm text-slate-500 italic">
-                Estimasi selesai: <span class="font-bold text-slate-700"> 21 Januari 2030 14:00 WIB</span>
-            </p>
+        <div class="w-full bg-slate-100 h-2 rounded-full mb-3">
+            <div class="bg-blue-500 h-2 rounded-full" style="width:15%"></div>
         </div>
-
-        <!-- Tombol Kontak / Support -->
-        <div class="mt-12 flex flex-col sm:flex-row items-center justify-center gap-4">
-            <button onclick="window.location.reload()" class="px-6 py-3 bg-slate-900 text-white font-medium rounded-lg hover:bg-slate-800 transition-colors flex items-center gap-2">
-                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h0.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-0.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path></svg>
-                Cek Lagi
-            </button>
-            <a href="dbsmkpgri2kdd@gmail.com" class="px-6 py-3 border border-slate-300 text-slate-700 font-medium rounded-lg hover:bg-slate-100 transition-colors">
-                Hubungi Dukungan
-            </a>
-        </div>
-
-        <!-- Footer -->
-        <p class="mt-16 text-slate-400 text-sm">
-            &copy; 2026 PRIDA Mobile. Terima kasih atas kesabaran Anda.
+        <p class="text-xs text-slate-500">
+            Estimasi selesai: <b>21 Jan 2030 • 14:00 WIB</b>
         </p>
     </div>
 
+    <!-- Tombol -->
+    <div class="space-y-3">
+        <button onclick="window.location.reload()"
+            class="w-full py-3 bg-slate-900 text-white rounded-lg font-medium active:scale-95 transition">
+            Cek Lagi
+        </button>
+
+        <a href="mailto:dbsmkpgri2kdd@gmail.com"
+           class="block w-full py-3 border border-slate-300 rounded-lg text-slate-700">
+            Hubungi Dukungan
+        </a>
+    </div>
+
+    <!-- Footer -->
+    <p class="mt-10 text-xs text-slate-400">
+        © 2026 PRIDA Mobile
+    </p>
+
+</div>
 </body>
 </html>

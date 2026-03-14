@@ -12,7 +12,9 @@
 <body>
 
     <button id="btnInstall">📲 Install Aplikasi</button>
+
     <div id="examTimer">⏱️ 00:00</div>
+
     <div class="toast" id="toast"></div>
 
     <div id="login-screen">
@@ -22,7 +24,7 @@
             <p>Solusi Akademik Digital Terpadu</p>
             <div class="input-group">
                 <i class="fa-solid fa-circle-user"></i>
-                <input type="text" id="usernameInput" placeholder="Nama Pengguna">
+                <input type="text" id="usernameInput" placeholder="Nama Pengguna" autocomplete="off">
             </div>
             <div class="input-group">
                 <i class="fa-solid fa-shield-halved"></i>
@@ -35,12 +37,23 @@
     <div id="main-app">
         <div class="sidebar-overlay" id="sidebarOverlay" onclick="toggleSidebar()"></div>
         <div class="sidebar" id="sidebar">
-            <div class="sidebar-header" style="padding: 20px;">
-                <div id="mainLogo" class="logo-box"></div>
-                <h4>PRIDA SCHOOL</h4>
+            <div style="margin-bottom: 35px; padding: 0 10px;">
+                <div id="mainLogo" style="width: 55px; height: 55px; background: rgba(255,255,255,0.15); border-radius: 16px; margin-bottom: 15px; display: flex; align-items: center; justify-content: center; overflow: hidden;">
+                    <i class="fa-solid fa-school-flag" style="color: var(--white); font-size: 24px;"></i>
+                </div>
+                <h4 style="font-size: 18px; font-weight: 800; color: var(--white);">PRIDA SCHOOL</h4>
+                <p style="font-size: 11px; color: rgba(255,255,255,0.5);">Excellence in Technology</p>
             </div>
-            <div class="sidebar-menu">
-                <div class="sidebar-item active" onclick="showSection('profil', this)"><i class="fa-solid fa-house-user"></i> Beranda</div>
+            <div style="display: flex; flex-direction: column; gap: 4px;">
+                <div class="sidebar-item active" onclick="document.querySelectorAll('.sidebar-item').forEach(i=>i.classList.remove('active'));this.classList.add('active');showSection('profil', document.querySelector('.nav-item'));toggleSidebar()">
+                    <i class="fa-solid fa-house-user"></i> Beranda Utama
+                </div>
+                <div class="sidebar-item" onclick="document.querySelectorAll('.sidebar-item').forEach(i=>i.classList.remove('active'));this.classList.add('active');toggleSidebar()">
+                    <i class="fa-solid fa-user-gear"></i> Pengaturan
+                </div>
+                <div class="sidebar-item" onclick="document.querySelectorAll('.sidebar-item').forEach(i=>i.classList.remove('active'));this.classList.add('active');toggleSidebar()">
+                    <i class="fa-solid fa-bell"></i> Notifikasi
+                </div>
                 <div class="sidebar-item" onclick="handleLogout()"><i class="fa-solid fa-power-off"></i> Logout</div>
             </div>
         </div>
@@ -54,12 +67,14 @@
                 <div class="user-info-container">
                     <div class="text-info">
                         <strong id="displayUserName">User</strong>
-                        <div id="networkStatus" class="profile-network online">Online</div>
+                        <div id="networkStatus" class="profile-network online">
+                            <i class="fa-solid fa-circle" style="font-size: 7px;"></i> Online
+                        </div>
                     </div>
                     <label for="fileInput" class="avatar" id="userAvatar">
-                        <i class="fa-solid fa-user-tie"></i>
+                        <i class="fa-solid fa-user-tie" id="placeholderIcon" style="color: var(--primary);"></i>
                     </label>
-                    <input type="file" id="fileInput" hidden onchange="previewImage(event)">
+                    <input type="file" id="fileInput" accept="image/*" style="display:none" onchange="previewImage(event)">
                 </div>
             </div>
         </div>
@@ -68,30 +83,88 @@
             <div class="section-title">Kelembagaan</div>
             <div class="menu-grid" id="grid-lembaga">
                 <div class="menu-card static-item" onclick="openDynamicContent('Sejarah Lembaga')">
-                    <div class="icon-box"><i class="fa-solid fa-clock-rotate-left"></i></div>
-                    <span>Sejarah</span>
+                    <div class="icon-box" style="background: #eef2ff; color: #4338ca;"><i class="fa-solid fa-clock-rotate-left"></i></div>
+                    <span>Sejarah Lembaga</span>
                 </div>
+                <div class="menu-card static-item" onclick="openDynamicContent('Identitas Sekolah')">
+                    <div class="icon-box" style="background: #e0f2fe; color: #0369a1;"><i class="fa-solid fa-school"></i></div>
+                    <span>Identitas Sekolah</span>
                 </div>
+                <div class="menu-card static-item" onclick="fetchAndShowPTK()">
+                    <div class="icon-box" style="background: #ecfdf5; color: #047857;"><i class="fa-solid fa-chalkboard-user"></i></div>
+                    <span>Daftar PTK</span>
+                </div>
+                <div class="menu-card static-item" onclick="openDynamicContent('Jurusan SMK')">
+                    <div class="icon-box" style="background: #fff7ed; color: #b45309;"><i class="fa-solid fa-microchip"></i></div>
+                    <span>Jurusan SMK</span>
+                </div>
+            </div>
+
+            <div class="section-title">Akademik & Siswa</div>
+            <div class="menu-grid" id="grid-profil">
+                <div class="menu-card static-item" onclick="openExamMenu('Ujian (Exambro)')">
+                    <div class="icon-box"><i class="fa-solid fa-laptop-code"></i></div>
+                    <span>Ujian (Exambro)</span>
+                </div>
+                <div class="menu-card static-item" onclick="openDynamicContent('Tracer Alumni')">
+                    <div class="icon-box"><i class="fa-solid fa-location-dot"></i></div>
+                    <span>Tracer Alumni</span>
+                </div>
+                <div class="menu-card static-item" onclick="openPengumuman()">
+                    <div class="icon-box"><i class="fa-solid fa-bullhorn"></i></div>
+                    <span>Pengumuman</span>
+                </div>
+            </div>
+            
+            <div class="section-title">Game Edukasi</div>
+            <div class="menu-grid" id="grid-game"></div>
         </div>
-        
+
+        <div class="section" id="layanan">
+            <div class="section-title">Layanan Publik</div>
+            <div class="menu-grid" id="grid-layanan"></div>
+        </div>
+
+        <div class="section" id="literasi">
+            <div class="section-title">Literasi Digital</div>
+            <div class="menu-grid" id="grid-literasi"></div>
+        </div>
+
+        <div class="section" id="media">
+            <div class="section-title">Media Sosial</div>
+            <div class="menu-grid" id="grid-media"></div>
+            <div class="section-title">Galeri Video</div>
+            <div class="video-list" id="video-profil"></div>
+        </div>
+
+        <div class="swipe-indicator" id="swipeIndicator">
+            <div class="swipe-dot active"></div>
+            <div class="swipe-dot"></div>
+            <div class="swipe-dot"></div>
+            <div class="swipe-dot"></div>
+        </div>
+
         <div class="nav-wrapper">
             <div class="bottom-nav">
                 <a href="#" class="nav-item active" onclick="showSection('profil', this)"><i class="fa-solid fa-house"></i><span>Beranda</span></a>
                 <a href="#" class="nav-item" onclick="showSection('layanan', this)"><i class="fa-solid fa-briefcase"></i><span>Layanan</span></a>
+                <a href="#" class="nav-item" onclick="showSection('literasi', this)"><i class="fa-solid fa-book-open"></i><span>Literasi</span></a>
+                <a href="#" class="nav-item" onclick="showSection('media', this)"><i class="fa-solid fa-at"></i><span>Media</span></a>
             </div>
         </div>
     </div>
 
-    <div id="contentModal">
+<div id="contentModal">
         <div class="modal-content">
             <div class="modal-header">
                 <h2 id="modalTitle">Judul</h2>
-                <div class="close-modal" onclick="closeModal()"><i class="fa-solid fa-arrow-left"></i></div>
+                <div class="close-modal" onclick="closeModal()">
+                    <i class="fa-solid fa-arrow-left"></i> </div>
             </div>
             <div class="modal-body" id="modalBody"></div>
         </div>
     </div>
-
+    
     <script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
     <script src="js/api.js"></script>
     <script src="js/ui.js"></script>

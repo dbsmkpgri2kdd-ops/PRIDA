@@ -2,494 +2,102 @@
 <html lang="id">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>BioScan GPS v1.4.2</title>
-    
-    <meta name="theme-color" content="#1d4ed8">
-    <meta name="mobile-web-app-capable" content="yes">
-    <link rel="manifest" id="pwa-manifest">
-
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+    <title>Pemeliharaan Sistem</title>
     <script src="https://cdn.tailwindcss.com"></script>
-    <script>
-        tailwind.config = {
-            darkMode: 'class',
-        }
-    </script>
-    
-    <script src="https://cdn.jsdelivr.net/npm/@vladmandic/face-api/dist/face-api.js"></script>
-    
+
     <style>
-        .video-container { position: relative; width: 100%; max-width: 640px; margin: auto; }
-        canvas { position: absolute; top: 0; left: 0; width: 100% !important; height: auto !important; }
-        .tab-content { display: none; }
-        .tab-content.active { display: block; }
-        
-        /* Transisi halus saat ganti tema */
-        html, body {
-            transition: background-color 0.4s ease, color 0.4s ease;
+        @keyframes gear-rotate {
+            from { transform: rotate(0deg); }
+            to { transform: rotate(360deg); }
         }
-        
-        #log-content::-webkit-scrollbar { width: 4px; }
-        #log-content::-webkit-scrollbar-thumb { background: #334155; border-radius: 10px; }
+        @keyframes gear-rotate-reverse {
+            from { transform: rotate(0deg); }
+            to { transform: rotate(-360deg); }
+        }
+        .gear-1 { animation: gear-rotate 10s linear infinite; }
+        .gear-2 { animation: gear-rotate-reverse 8s linear infinite; }
+
+        @keyframes floating {
+            0%,100% { transform: translateY(0); }
+            50% { transform: translateY(-10px); }
+        }
+        .floating { animation: floating 4s ease-in-out infinite; }
     </style>
 </head>
-<body class="bg-gray-50 dark:bg-slate-950 min-h-screen font-sans text-slate-900 dark:text-slate-100">
 
-    <nav class="bg-white dark:bg-slate-900 border-b border-gray-100 dark:border-slate-800 p-4 sticky top-0 z-50">
-        <div class="container mx-auto flex justify-between items-center px-2 md:px-4">
-            <div class="flex items-center space-x-2">
-                <svg class="w-7 h-7 text-blue-700" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
-                    <path d="M6.827 6.175A2.31 2.31 0 015.186 7.23c-.38.054-.757.112-1.134.175C2.999 7.58 2.25 8.507 2.25 9.574V18a2.25 2.25 0 002.25 2.25h15a2.25 2.25 0 002.25-2.25V9.574c0-1.067-.75-1.994-1.802-2.169a47.865 47.865 0 00-1.134-.175 2.31 2.31 0 01-1.64-1.055l-.822-1.316a2.192 2.192 0 00-1.736-1.039 48.774 48.774 0 00-5.232 0 2.192 2.192 0 00-1.736 1.039l-.821 1.316z"></path>
-                </svg>
-                <h1 class="text-lg font-black text-blue-900 dark:text-white uppercase tracking-tighter">BIOSCANGPS <span class="text-orange-500">PRIDA</span></h1>
-            </div>
-            
-            <div class="flex items-center gap-2">
-                <button id="install-pwa" onclick="installApp()" class="bg-orange-500 text-white px-3 py-2 rounded-lg text-[10px] font-bold animate-bounce">INSTALL APP</button>
-                
-                <button id="theme-toggle" onclick="toggleDarkMode()" class="p-2.5 rounded-xl bg-gray-100 dark:bg-slate-800 hover:ring-2 ring-blue-400 transition-all">
-                    <span id="theme-icon-sun" class="hidden dark:block text-xl">☀️</span>
-                    <span id="theme-icon-moon" class="block dark:hidden text-xl">🌙</span>
-                </button>
+<body class="bg-slate-50 text-slate-800 min-h-screen flex items-center justify-center px-4 py-6">
 
-                <button onclick="toggleMenu()" class="text-gray-600 dark:text-gray-300 text-2xl p-2 focus:outline-none">
-                    <span id="menu-icon">☰</span>
-                </button>
-            </div>
+<div class="w-full max-w-md text-center">
+
+        <!-- Ilustrasi Gir -->
+        <div class="relative w-36 h-36 mx-auto mb-6 floating">
+
+            <!-- Gir Besar -->
+            <svg
+                class="absolute top-2 left-2 w-24 h-24 text-blue-500 gear-1"
+                viewBox="0 0 24 24"
+                fill="currentColor"
+                style="transform-origin: center;"
+            >
+                <path d="M19.14,12.94c0.04-0.3,0.06-0.61,0.06-0.94s-0.02-0.64-0.07-0.94l2.03-1.58c0.18-0.14,0.23-0.41,0.12-0.61l-1.92-3.32c-0.12-0.22-0.37-0.29-0.59-0.22l-2.39,0.96c-0.5-0.38-1.03-0.7-1.62-0.94L14.4,2.81c-0.04-0.24-0.24-0.41-0.48-0.41h-3.84c-0.24,0-0.43,0.17-0.47,0.41L9.25,5.35C8.66,5.59,8.13,5.91,7.63,6.29L5.24,5.33c-0.22-0.08-0.47,0-0.59,0.22L2.74,8.87c-0.12,0.21-0.08,0.47,0.12,0.61l2.03,1.58c-0.05,0.3-0.09,0.63-0.09,0.94s0.02,0.64,0.07,0.94l-2.03,1.58c-0.18,0.14-0.23,0.41-0.12,0.61l1.92,3.32c0.12,0.22,0.37,0.29,0.59,0.22l2.39-0.96c0.5,0.38,1.03,0.7,1.62,0.94l0.36,2.54c0.05,0.24,0.24,0.41,0.48,0.41h3.84c0.24,0,0.44-0.17,0.47-0.41l0.36-2.54c0.59-0.24,1.13-0.56,1.62-0.94l2.39,0.96c0.22,0.08,0.47,0,0.59-0.22l1.92-3.32c0.12-0.22,0.07-0.47-0.12-0.61l-2.03-1.58z"/>
+            </svg>
+
+            <!-- Gir Kecil -->
+            <svg
+                class="absolute bottom-4 right-4 w-16 h-16 text-slate-400 gear-2"
+                viewBox="0 0 24 24"
+                fill="currentColor"
+                style="transform-origin: center;"
+            >
+                <path d="M19.14,12.94c0.04-0.3,0.06-0.61,0.06-0.94s-0.02-0.64-0.07-0.94l2.03-1.58c0.18-0.14,0.23-0.41,0.12-0.61l-1.92-3.32c-0.12-0.22-0.37-0.29-0.59-0.22l-2.39,0.96c-0.5-0.38-1.03-0.7-1.62-0.94L14.4,2.81c-0.04-0.24-0.24-0.41-0.48-0.41h-3.84c-0.24,0-0.43,0.17-0.47,0.41L9.25,5.35C8.66,5.59,8.13,5.91,7.63,6.29L5.24,5.33c-0.22-0.08-0.47,0-0.59,0.22L2.74,8.87c-0.12,0.21-0.08,0.47,0.12,0.61l2.03,1.58c-0.05,0.3-0.09,0.63-0.09,0.94s0.02,0.64,0.07,0.94l-2.03,1.58c-0.18,0.14-0.23,0.41-0.12,0.61l1.92,3.32c0.12,0.22,0.37,0.29,0.59,0.22l2.39-0.96c0.5,0.38,1.03,0.7,1.62,0.94l0.36,2.54c0.05,0.24,0.24,0.41,0.48,0.41h3.84c0.24,0,0.44-0.17,0.47-0.41l0.36-2.54c0.59-0.24,1.13-0.56,1.62-0.94l2.39,0.96c0.22,0.08,0.47,0,0.59-0.22l1.92-3.32c0.12-0.22,0.07-0.47-0.12-0.61l-2.03-1.58z"/>
+            </svg>
+
         </div>
 
-        <div id="mobile-menu" class="hidden absolute left-0 right-0 top-full bg-white dark:bg-slate-900 border-b border-gray-100 dark:border-slate-800 shadow-xl p-4 flex flex-col gap-2">
-            <button onclick="switchTab('absensi'); toggleMenu()" class="text-left px-4 py-3 rounded-xl hover:bg-blue-50 dark:hover:bg-blue-900/30 text-gray-700 dark:text-gray-200 font-bold text-sm">Absensi</button>
-            <button onclick="switchTab('pengaturan'); toggleMenu()" class="text-left px-4 py-3 rounded-xl hover:bg-blue-50 dark:hover:bg-blue-900/30 text-gray-700 dark:text-gray-200 font-bold text-sm">Pengaturan</button>
-            <hr class="border-gray-100 dark:border-slate-800 my-1">
-            <button onclick="window.location.href='piket.html'" class="bg-blue-700 text-white px-6 py-3 rounded-xl font-bold text-sm transition active:scale-95 text-center">Login Piket</button>
+
+    <!-- Teks -->
+    <h1 class="text-2xl font-extrabold text-slate-900 mb-3">
+        Sedang Dalam Pemeliharaan
+    </h1>
+
+    <p class="text-sm text-slate-600 leading-relaxed mb-6">
+        Kami sedang meningkatkan sistem.  
+        Aplikasi sementara tidak dapat diakses dan akan segera kembali.
+    </p>
+
+    <!-- Progress -->
+    <div class="bg-white p-4 rounded-xl shadow border border-slate-200 mb-8">
+        <div class="flex justify-between text-xs mb-2">
+            <span class="font-semibold text-blue-600">Progres</span>
+            <span class="text-slate-500">15%</span>
         </div>
-    </nav>
-
-    <main class="container mx-auto p-4 pb-20">
-        
-        <div id="absensi" class="tab-content active">
-            <header class="mb-8">
-                <div class="bg-gradient-to-br from-blue-700 to-blue-900 rounded-[2rem] md:rounded-[3rem] p-8 md:p-14 text-white shadow-2xl relative overflow-hidden">
-                    <div class="absolute top-0 right-0 w-64 h-64 bg-white opacity-5 rounded-full -mr-20 -mt-20"></div>
-                    <div class="relative z-10 max-w-2xl">
-                        <span class="bg-orange-500 text-white text-[10px] font-black px-3 py-1 rounded-full uppercase tracking-widest">Sistem Presensi v1.4.1</span>
-                        <h2 class="text-3xl md:text-5xl font-extrabold mt-4 leading-tight">Membangun Kedisiplinan Dengan Teknologi.</h2>
-                        <p class="text-blue-100 mt-4 text-sm md:text-base opacity-90">Pastikan wajah terlihat jelas dan berada di dalam jangkauan GPS sekolah.</p>
-                    </div>
-                </div>
-            </header>
-
-            <div class="max-w-2xl mx-auto bg-white dark:bg-slate-900 rounded-3xl shadow-lg p-5 md:p-8 border border-gray-100 dark:border-slate-800">
-                <div class="flex justify-center space-x-3 mb-6">
-                    <label class="flex-1 flex items-center justify-center space-x-2 cursor-pointer p-4 bg-blue-50 dark:bg-blue-900/20 rounded-2xl border border-blue-100 dark:border-blue-800">
-                        <input type="radio" name="absensi-type" value="Masuk" checked class="w-4 h-4 text-blue-600">
-                        <span class="text-xs font-black text-blue-700 dark:text-blue-400 uppercase">Masuk</span>
-                    </label>
-                    <label class="flex-1 flex items-center justify-center space-x-2 cursor-pointer p-4 bg-red-50 dark:bg-red-900/20 rounded-2xl border border-red-100 dark:border-red-800">
-                        <input type="radio" name="absensi-type" value="Pulang" class="w-4 h-4 text-red-600">
-                        <span class="text-xs font-black text-red-700 dark:text-red-400 uppercase">Pulang</span>
-                    </label>
-                </div>
-
-                <div id="gps-status" class="mb-4 p-3 rounded-xl text-center font-bold bg-yellow-50 dark:bg-yellow-900/20 text-yellow-700 dark:text-yellow-400 border border-yellow-200 dark:border-yellow-800 text-[10px] uppercase">
-                    Menunggu GPS...
-                </div>
-
-                <div class="video-container bg-black rounded-2xl overflow-hidden border-4 border-gray-100 dark:border-slate-800 aspect-video shadow-inner">
-                    <video id="video" class="w-full h-full object-cover" autoplay muted playsinline></video>
-                </div>
-
-                <div class="mt-6 p-4 bg-gray-950 rounded-2xl border border-slate-800">
-                    <h3 class="text-blue-500 font-mono text-[10px] uppercase mb-2 tracking-widest flex justify-between">
-                        Log Aktivitas <span>System Live</span>
-                    </h3>
-                    <div id="log-content" class="text-[11px] font-mono text-gray-400 h-28 overflow-y-auto space-y-1">
-                        <div>> Sistem diinisialisasi...</div>
-                    </div>
-                </div>
-            </div>
+        <div class="w-full bg-slate-100 h-2 rounded-full mb-3">
+            <div class="bg-blue-500 h-2 rounded-full" style="width:15%"></div>
         </div>
+        <p class="text-xs text-slate-500">
+            Estimasi selesai: <b>21 Jan 2030 • 14:00 WIB</b>
+        </p>
+    </div>
 
-        <div id="pengaturan" class="tab-content">
-            <div class="max-w-5xl mx-auto space-y-6">
-                <div class="bg-white dark:bg-slate-900 p-6 md:p-8 rounded-3xl shadow-sm border border-gray-100 dark:border-slate-800">
-                    <h2 class="text-xl font-bold mb-6 text-orange-600 flex items-center"><span class="mr-2">👤</span> Pendaftaran Wajah Siswa</h2>
-                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4 items-start">
-                        <div class="space-y-4">
-                            <div>
-                                <label class="text-[10px] font-bold text-gray-400 uppercase ml-1">Pilih Kelas</label>
-                                <select id="reg-kelas" onchange="updateRegNama()" class="w-full p-3 border dark:border-slate-700 rounded-xl outline-none text-sm bg-gray-50 dark:bg-slate-800 dark:text-white">
-                                    <option value="">-- Pilih Kelas --</option>
-                                </select>
-                            </div>
-                            <div>
-                                <label class="text-[10px] font-bold text-gray-400 uppercase ml-1">Pilih Nama Siswa</label>
-                                <select id="reg-siswa" class="w-full p-3 border dark:border-slate-700 rounded-xl outline-none text-sm bg-gray-50 dark:bg-slate-800 dark:text-white">
-                                    <option value="">-- Pilih Nama --</option>
-                                </select>
-                            </div>
-                        </div>
-                        <div class="bg-orange-50 dark:bg-orange-900/10 border-2 border-dashed border-orange-200 dark:border-orange-800 p-6 text-center rounded-2xl">
-                            <button onclick="registerFace()" class="w-full bg-orange-500 text-white px-6 py-4 rounded-xl font-black shadow-lg hover:bg-orange-600 transition transform active:scale-95 text-xs uppercase">
-                                Ambil Data Wajah
-                            </button>
-                            <div id="reg-status" class="mt-4 font-bold text-sm min-h-[1.5rem]"></div>
-                        </div>
-                    </div>
-                </div>
+    <!-- Tombol -->
+    <div class="space-y-3">
+        <button onclick="window.location.reload()"
+            class="w-full py-3 bg-slate-900 text-white rounded-lg font-medium active:scale-95 transition">
+            Cek Lagi
+        </button>
 
-                <div class="bg-white dark:bg-slate-900 p-6 md:p-8 rounded-3xl shadow-sm border border-gray-100 dark:border-slate-800">
-                    <h2 class="text-xl font-bold mb-6 text-blue-700 flex items-center"><span class="mr-2">⚙️</span> Konfigurasi Sistem</h2>
-                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                        <div class="space-y-4">
-                            <div>
-                                <label class="block text-[10px] font-bold text-gray-400 uppercase">Link CSV G-Sheets</label>
-                                <div class="flex gap-2">
-                                    <input type="text" id="csv-url" class="flex-1 p-3 border dark:border-slate-700 rounded-xl outline-none text-sm dark:bg-slate-800 dark:text-white" placeholder="https://...">
-                                    <button onclick="fetchSiswa()" class="bg-green-600 text-white px-4 rounded-xl text-[10px] font-bold hover:bg-green-700 transition">SINKRON</button>
-                                </div>
-                            </div>
-                            <div>
-                                <label class="block text-[10px] font-bold text-blue-500 uppercase">URL Apps Script Backend</label>
-                                <input type="text" id="endpoint-url" class="w-full p-3 border border-blue-200 dark:border-blue-900/50 rounded-xl outline-none text-sm dark:bg-slate-800 dark:text-white" placeholder="https://script.google.com/...">
-                            </div>
-                        </div>
-                        
-                        <div class="space-y-4">
-                            <div class="grid grid-cols-2 gap-3">
-                                <div>
-                                    <label class="block text-[10px] font-bold text-gray-400 uppercase">Latitude</label>
-                                    <input type="number" id="target-lat" class="w-full p-3 border dark:border-slate-700 rounded-xl text-sm dark:bg-slate-800 dark:text-white" step="any">
-                                </div>
-                                <div>
-                                    <label class="block text-[10px] font-bold text-gray-400 uppercase">Longitude</label>
-                                    <input type="number" id="target-lng" class="w-full p-3 border dark:border-slate-700 rounded-xl text-sm dark:bg-slate-800 dark:text-white" step="any">
-                                </div>
-                            </div>
-                            <div class="flex gap-3">
-                                <div class="flex-1">
-                                    <label class="block text-[10px] font-bold text-gray-400 uppercase">Radius (Meter)</label>
-                                    <input type="number" id="target-radius" class="w-full p-3 border dark:border-slate-700 rounded-xl text-sm dark:bg-slate-800 dark:text-white" value="50">
-                                </div>
-                                <button onclick="setCurrentLocation()" class="mt-5 bg-gray-100 dark:bg-slate-800 text-blue-600 px-4 rounded-xl text-[10px] font-bold uppercase">Set GPS</button>
-                            </div>
-                        </div>
-                    </div>
-                    <button onclick="saveSettings()" class="w-full bg-slate-900 dark:bg-blue-700 text-white py-4 rounded-2xl font-bold hover:bg-black dark:hover:bg-blue-800 shadow-md mt-8 transition uppercase tracking-widest text-sm">
-                        Simpan Semua Pengaturan
-                    </button>
-                </div>
-            </div>
-        </div>
-    </main>
+        <a href="mailto:dbsmkpgri2kdd@gmail.com"
+           class="block w-full py-3 border border-slate-300 rounded-lg text-slate-700">
+            Hubungi Dukungan
+        </a>
+    </div>
 
-    <script>
-        // --- PWA LOGIC ---
-        const manifest = {
-            "name": "BioScan GPS Prida",
-            "short_name": "BioScan",
-            "start_url": ".",
-            "display": "standalone",
-            "background_color": "#0f172a",
-            "theme_color": "#1d4ed8",
-            "icons": [{ "src": "https://cdn-icons-png.flaticon.com/512/3064/3064197.png", "sizes": "512x512", "type": "image/png" }]
-        };
-        document.getElementById('pwa-manifest').setAttribute('href', 'data:application/manifest+json;base64,' + btoa(JSON.stringify(manifest)));
+    <!-- Footer -->
+    <p class="mt-10 text-xs text-slate-400">
+        © 2026 PRIDA Mobile
+    </p>
 
-        let deferredPrompt;
-        window.addEventListener('beforeinstallprompt', (e) => {
-            e.preventDefault();
-            deferredPrompt = e;
-            document.getElementById('install-pwa').style.display = 'block';
-        });
-
-        async function installApp() {
-            if (deferredPrompt) {
-                deferredPrompt.prompt();
-                const { outcome } = await deferredPrompt.userChoice;
-                if (outcome === 'accepted') document.getElementById('install-pwa').style.display = 'none';
-                deferredPrompt = null;
-            }
-        }
-
-        // --- UI LOGIC ---
-        function toggleMenu() {
-            const menu = document.getElementById('mobile-menu');
-            const icon = document.getElementById('menu-icon');
-            menu.classList.toggle('hidden');
-            icon.innerText = menu.classList.contains('hidden') ? '☰' : '✕';
-        }
-
-        function toggleDarkMode() {
-            const isDark = document.documentElement.classList.toggle('dark');
-            const icon = document.getElementById('theme-icon');
-            icon.innerText = isDark ? '☀️' : '🌙';
-            localStorage.setItem('theme', isDark ? 'dark' : 'light');
-        }
-
-        function switchTab(id) {
-            document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active'));
-            document.getElementById(id).classList.add('active');
-            document.getElementById('mobile-menu').classList.add('hidden');
-            document.getElementById('menu-icon').innerText = '☰';
-        }
-
-        // --- SYSTEM LOGIC ---
-        let siswaData = [];
-        let settings = { csvUrl: "", endpointUrl: "", lat: 0, lng: 0, radius: 50 };
-        let isLocationValid = false;
-        let faceMatcher = null;
-        let lastAttendance = {};
-
-        const video = document.getElementById('video');
-        const logContent = document.getElementById('log-content');
-        const gpsStatus = document.getElementById('gps-status');
-
-        window.onload = async () => {
-            if (localStorage.getItem('theme') === 'dark') {
-                document.documentElement.classList.add('dark');
-                document.getElementById('theme-icon').innerText = '☀️';
-            }
-            loadLocalSettings();
-            await loadModels();
-            startVideo();
-            startGpsTracking();
-            if (settings.endpointUrl) await syncFaceDatabase();
-            initFaceDetection();
-        };
-
-        async function loadModels() {
-            addLog("Memuat AI Face Recognition...");
-            const MODEL_URL = 'https://cdn.jsdelivr.net/npm/@vladmandic/face-api/model/';
-            try {
-                await Promise.all([
-                    faceapi.nets.tinyFaceDetector.loadFromUri(MODEL_URL),
-                    faceapi.nets.faceLandmark68Net.loadFromUri(MODEL_URL),
-                    faceapi.nets.faceRecognitionNet.loadFromUri(MODEL_URL)
-                ]);
-                addLog("AI siap digunakan.");
-            } catch (e) { addLog("Gagal memuat AI."); }
-        }
-
-        function startVideo() {
-            navigator.mediaDevices.getUserMedia({ video: { facingMode: "user" } })
-                .then(s => video.srcObject = s)
-                .catch(e => addLog("Kamera tidak aktif/diizinkan."));
-        }
-
-        async function syncFaceDatabase() {
-            if(!settings.endpointUrl) return;
-            try {
-                addLog("Singkron database wajah...");
-                const res = await fetch(`${settings.endpointUrl}?action=getBiometrics`);
-                const data = await res.json();
-                if (data && data.length > 0) {
-                    const labeledDescriptors = data.map(d => {
-                        const desc = new Float32Array(JSON.parse(d.descriptor));
-                        return new faceapi.LabeledFaceDescriptors(d.nama, [desc]);
-                    });
-                    faceMatcher = new faceapi.FaceMatcher(labeledDescriptors, 0.45);
-                    addLog(`${data.length} wajah aktif terdeteksi.`);
-                }
-            } catch (e) { addLog("Database wajah kosong/error."); }
-        }
-
-        async function fetchSiswa() {
-            const url = document.getElementById('csv-url').value;
-            if (!url) return alert("Masukkan link CSV!");
-            try {
-                const res = await fetch(url);
-                const text = await res.text();
-                const lines = text.split(/\r?\n/).filter(l => l.trim() !== "");
-                
-                // Parsing CSV (NIS, Nama, Kelas, Sesi)
-                siswaData = lines.slice(1).map(line => {
-                    const cols = line.split(',').map(c => c.trim().replace(/"/g, ''));
-                    return { nis: cols, nama: cols, kelas: cols, sesi: cols };
-                }).filter(s => s.nama && s.nis);
-
-                const listKelas = [...new Set(siswaData.map(s => s.kelas))].sort();
-                const selKelas = document.getElementById('reg-kelas');
-                selKelas.innerHTML = '<option value="">-- Pilih Kelas --</option>';
-                listKelas.forEach(k => {
-                    const opt = document.createElement('option');
-                    opt.value = k; opt.textContent = k;
-                    selKelas.appendChild(opt);
-                });
-                
-                alert(`Sinkron Berhasil! ${siswaData.length} siswa.`);
-                saveSettings();
-            } catch (e) { alert("Gagal sinkron CSV!"); }
-        }
-
-        function updateRegNama() {
-            const kls = document.getElementById('reg-kelas').value;
-            const selNama = document.getElementById('reg-siswa');
-            selNama.innerHTML = '<option value="">-- Pilih Nama --</option>';
-            siswaData.filter(s => s.kelas === kls).forEach(s => {
-                const opt = document.createElement('option');
-                opt.value = s.nama;
-                opt.textContent = `${s.nama} (${s.nis})`;
-                selNama.appendChild(opt);
-            });
-        }
-
-        async function registerFace() {
-            const nama = document.getElementById('reg-siswa').value;
-            const infoSiswa = siswaData.find(s => s.nama === nama);
-            if (!infoSiswa || !settings.endpointUrl) return alert("Lengkapi data dan URL Backend!");
-
-            const st = document.getElementById('reg-status');
-            st.className = "mt-4 font-bold text-blue-600 animate-pulse";
-            st.innerText = "⏳ MEMINDAI... HARAP DIAM";
-
-            const det = await faceapi.detectSingleFace(video, new faceapi.TinyFaceDetectorOptions())
-                .withFaceLandmarks().withFaceDescriptor();
-
-            if (det) {
-                try {
-                    await fetch(settings.endpointUrl, {
-                        method: 'POST',
-                        mode: 'no-cors',
-                        body: JSON.stringify({ 
-                            action: 'enroll', 
-                            nama: infoSiswa.nama,
-                            nis: infoSiswa.nis,
-                            biometric: JSON.stringify(Array.from(det.descriptor)),
-                            kelas: infoSiswa.kelas,
-                            timestamp: new Date().toLocaleString()
-                        })
-                    });
-                    st.className = "mt-4 font-bold text-green-600 uppercase";
-                    st.innerText = "✅ WAJAH BERHASIL DIDAFTARKAN!";
-                    addLog(`Pendaftaran wajah: ${infoSiswa.nama}`);
-                    setTimeout(() => syncFaceDatabase(), 2000);
-                } catch (e) { st.innerText = "❌ Gagal Terhubung!"; }
-            } else { 
-                st.innerText = "⚠️ Wajah tidak jelas!"; 
-                st.className = "mt-4 font-bold text-red-500";
-            }
-        }
-
-        async function recordAttendance(nama) {
-            const now = Date.now();
-            if (lastAttendance[nama] && (now - lastAttendance[nama] < 300000)) return; 
-
-            const type = document.querySelector('input[name="absensi-type"]:checked').value;
-            const infoSiswa = siswaData.find(s => s.nama === nama);
-            lastAttendance[nama] = now;
-
-            if (settings.endpointUrl) {
-                try {
-                    await fetch(settings.endpointUrl, {
-                        method: 'POST',
-                        mode: 'no-cors',
-                        body: JSON.stringify({ 
-                            action: 'attendance', 
-                            nama: nama, 
-                            nis: infoSiswa ? infoSiswa.nis : "-",
-                            kelas: infoSiswa ? infoSiswa.kelas : "-",
-                            type: type,
-                            timestamp: new Date().toLocaleString('id-ID')
-                        })
-                    });
-                    addLog(`✅ BERHASIL ${type.toUpperCase()}: ${nama}`);
-                } catch (e) { addLog(`❌ GAGAL KIRIM: ${nama}`); }
-            }
-        }
-
-        function initFaceDetection() {
-            video.addEventListener('play', () => {
-                const canvas = faceapi.createCanvasFromMedia(video);
-                document.querySelector('.video-container').append(canvas);
-                const size = { width: video.clientWidth, height: video.clientHeight };
-                faceapi.matchDimensions(canvas, size);
-
-                setInterval(async () => {
-                    if (!isLocationValid) { 
-                        canvas.getContext('2d').clearRect(0,0,canvas.width,canvas.height); 
-                        return; 
-                    }
-                    const dets = await faceapi.detectAllFaces(video, new faceapi.TinyFaceDetectorOptions()).withFaceLandmarks().withFaceDescriptors();
-                    const resized = faceapi.resizeResults(dets, size);
-                    canvas.getContext('2d').clearRect(0,0,canvas.width,canvas.height);
-                    
-                    if (faceMatcher && resized.length > 0) {
-                        resized.forEach(d => {
-                            const res = faceMatcher.findBestMatch(d.descriptor);
-                            const box = d.detection.box;
-                            const drawBox = new faceapi.draw.DrawBox(box, { label: res.label });
-                            drawBox.draw(canvas);
-                            if (res.label !== 'unknown' && res.distance < 0.45) recordAttendance(res.label);
-                        });
-                    }
-                }, 600);
-            });
-        }
-
-        function startGpsTracking() {
-            if (!navigator.geolocation) return addLog("GPS Tidak didukung.");
-            navigator.geolocation.watchPosition(pos => {
-                const dist = calculateDistance(pos.coords.latitude, pos.coords.longitude, settings.lat, settings.lng);
-                isLocationValid = dist <= settings.radius;
-                
-                if(isLocationValid) {
-                    gpsStatus.className = "mb-4 p-3 rounded-xl text-center font-bold bg-green-50 dark:bg-green-900/20 text-green-700 dark:text-green-400 border border-green-200 dark:border-green-800 text-[10px] tracking-widest uppercase";
-                    gpsStatus.innerText = `LOKASI SESUAI (${Math.round(dist)}m)`;
-                } else {
-                    gpsStatus.className = "mb-4 p-3 rounded-xl text-center font-bold bg-red-50 dark:bg-red-900/20 text-red-700 dark:text-red-400 border border-red-200 dark:border-red-800 text-[10px] tracking-widest uppercase";
-                    gpsStatus.innerText = `DILUAR RADIUS (${Math.round(dist)}m)`;
-                }
-            }, e => addLog("GPS Error: " + e.message), { enableHighAccuracy: true });
-        }
-
-        function calculateDistance(lat1, lon1, lat2, lon2) {
-            const R = 6371e3;
-            const dLat = (lat2-lat1) * Math.PI/180;
-            const dLon = (lon2-lon1) * Math.PI/180;
-            const a = Math.sin(dLat/2)**2 + Math.cos(lat1*Math.PI/180)*Math.cos(lat2*Math.PI/180)*Math.sin(dLon/2)**2;
-            return R * (2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a)));
-        }
-
-        function saveSettings() {
-            settings = {
-                csvUrl: document.getElementById('csv-url').value,
-                endpointUrl: document.getElementById('endpoint-url').value,
-                lat: parseFloat(document.getElementById('target-lat').value) || 0,
-                lng: parseFloat(document.getElementById('target-lng').value) || 0,
-                radius: parseInt(document.getElementById('target-radius').value) || 50
-            };
-            localStorage.setItem('presensi_v14_final', JSON.stringify(settings));
-            alert("Pengaturan disimpan!");
-            syncFaceDatabase();
-        }
-
-        function loadLocalSettings() {
-            const saved = localStorage.getItem('presensi_v14_final');
-            if (saved) {
-                settings = JSON.parse(saved);
-                document.getElementById('csv-url').value = settings.csvUrl || "";
-                document.getElementById('endpoint-url').value = settings.endpointUrl || "";
-                document.getElementById('target-lat').value = settings.lat || 0;
-                document.getElementById('target-lng').value = settings.lng || 0;
-                document.getElementById('target-radius').value = settings.radius || 50;
-            }
-        }
-
-        function setCurrentLocation() {
-            navigator.geolocation.getCurrentPosition(p => {
-                document.getElementById('target-lat').value = p.coords.latitude;
-                document.getElementById('target-lng').value = p.coords.longitude;
-                alert("Lokasi terkini dikunci!");
-            });
-        }
-
-        function addLog(m) {
-            const div = document.createElement('div');
-            div.textContent = `> [${new Date().toLocaleTimeString()}] ${m}`;
-            logContent.prepend(div);
-        }
-    </script>
+</div>
 </body>
 </html>

@@ -56,6 +56,14 @@
         }
     </script>
 
+
+
+
+
+
+
+
+
     <style>
         :root {
             --primary: #001d3d;
@@ -373,38 +381,77 @@
         }
         .video-info { padding: 12px; font-size: 13px; font-weight: 700; }
 
-        /* --- MODAL SYSTEM --- */
+/* --- MODAL SYSTEM FULLSCREEN --- */
         #contentModal {
             position: fixed;
             top: 0;
             left: 0;
             width: 100%;
             height: 100%;
-            background: rgba(0, 29, 61, 0.6);
-            backdrop-filter: blur(8px);
-            z-index: 10000;
-            display: none;
-            align-items: flex-end;
-            justify-content: center;
+            background: var(--white); /* Latar belakang putih solid */
+            z-index: 99999; /* Sangat tinggi agar menutupi segalanya */
+            display: none; /* Sembunyi secara default */
+            flex-direction: column;
         }
 
         .modal-content {
-            width: 100%;
-            max-width: 500px;
+            width: 100% !important;
+            height: 100% !important;
+            max-width: none !important; /* Menghilangkan batas lebar */
+            max-height: none !important; /* Menghilangkan batas tinggi */
             background: var(--white);
-            border-radius: 28px 28px 0 0;
-            max-height: calc(100vh - 120px);
+            border-radius: 0 !important; /* Menghilangkan lengkungan sudut */
             display: flex;
             flex-direction: column;
-            animation: slideUp 0.35s ease-out;
+            margin: 0 !important;
+            padding: 0 !important;
+            animation: slideInRight 0.3s ease-out; /* Animasi seperti buka halaman baru */
         }
 
-        .modal-header { padding: 20px 24px; flex-shrink: 0; border-bottom: 1px solid #eee; }
-        .modal-body { flex: 1; overflow-y: auto; padding: 20px 24px; padding-bottom: calc(100px + env(safe-area-inset-bottom)); }
-        #modalBody select, #modalBody input { width: 100%; padding: 14px; margin-top: 10px; border-radius: 12px; border: 1.5px solid #eee; background: #f8f9fa; font-size: 14px; outline: none; }
-        #modalBody select:focus { border-color: var(--secondary); }
+        .modal-header { 
+            padding: 15px 20px; 
+            flex-shrink: 0; 
+            border-bottom: 1px solid #eee;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background: var(--primary); /* Header biru agar kontras */
+            color: white;
+            height: 70px;
+        }
 
-        @keyframes slideUp { from { transform: translateY(100%); } to { transform: translateY(0); } }
+        #modalTitle { 
+            font-size: 16px; 
+            font-weight: 700; 
+            color: white !important; 
+        }
+
+        .modal-body { 
+            flex: 1; 
+            overflow-y: auto; 
+            padding: 20px; 
+            -webkit-overflow-scrolling: touch; /* Scroll halus di iOS */
+            line-height: 1.7;
+            color: #333;
+            font-size: 15px;
+        }
+
+        .close-modal { 
+            width: 40px; 
+            height: 40px; 
+            display: flex; 
+            align-items: center; 
+            justify-content: center; 
+            cursor: pointer;
+            font-size: 22px;
+            color: white;
+        }
+
+        /* Animasi Masuk dari Kanan */
+        @keyframes slideInRight {
+            from { transform: translateX(100%); }
+            to { transform: translateX(0); }
+        }
 
         /* --- OTHER UI --- */
         .swipe-indicator { position: fixed; bottom: 85px; left: 50%; transform: translateX(-50%); display: flex; gap: 6px; z-index: 1200; }
@@ -472,17 +519,91 @@
         #qrReader video { width: 100% !important; height: 100% !important; object-fit: cover !important; }
 
         @media print { body { display: none !important; } }
+
+
+/* --- EXAMBRO STYLING --- */
+.exambro-container {
+    padding: 10px;
+}
+
+.exambro-card {
+    background: white;
+    border-radius: 15px;
+    padding: 20px;
+    box-shadow: 0 4px 15px rgba(0,0,0,0.05);
+    margin-bottom: 20px;
+}
+
+.exambro-label {
+    font-weight: 600;
+    font-size: 14px;
+    color: #444;
+    margin-bottom: 10px;
+    display: block;
+}
+
+/* Memperbaiki Dropdown & Input */
+.exambro-select, .exambro-input {
+    width: 100%;
+    padding: 12px 15px;
+    border: 1.5px solid #e0e0e0;
+    border-radius: 10px;
+    margin-bottom: 15px;
+    font-size: 14px;
+    transition: all 0.3s ease;
+    outline: none;
+    appearance: none; /* Hilangkan arrow default */
+    background-color: #f9f9f9;
+}
+
+.exambro-select:focus, .exambro-input:focus {
+    border-color: var(--primary);
+    background-color: #fff;
+    box-shadow: 0 0 0 3px rgba(0, 86, 179, 0.1);
+}
+
+/* Tombol Variasi */
+.btn-exam {
+    width: 100%;
+    padding: 14px;
+    border-radius: 12px;
+    font-weight: 700;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    border: none;
+    transition: transform 0.2s;
+}
+
+.btn-exam:active {
+    transform: scale(0.98);
+}
+
+.btn-primary-exam {
+    background: linear-gradient(135deg, #004a99, #0066cc);
+    color: white;
+    box-shadow: 0 4px 12px rgba(0, 74, 153, 0.3);
+}
+
+.btn-outline-exam {
+    background: white;
+    color: var(--primary);
+    border: 2px solid var(--primary);
+    margin: 15px 0;
+}
+
+
+
     </style>
 </head>
+<audio id="alarmCheat" loop><source src="https://actions.google.com/sounds/v1/alarms/alarm_clock_beeping.ogg" type="audio/ogg"><source src="https://actions.google.com/sounds/v1/alarms/beep_short.ogg" type="audio/mpeg"></audio>
 
 <body>
 
     <button id="btnInstall">📲 Install Aplikasi</button>
-
     <div id="examTimer">⏱️ 00:00</div>
-
     <div class="toast" id="toast"></div>
-
     <div id="login-screen">
         <div class="login-card">
             <div class="login-logo"><i class="fa-solid fa-graduation-cap"></i></div>
@@ -568,6 +689,10 @@
 
             <div class="section-title">Akademik & Siswa</div>
             <div class="menu-grid" id="grid-profil">
+<div class="menu-card static-item" onclick="window.location.href='exambro.html'">
+    <div class="icon-box"><i class="fa-solid fa-laptop-code"></i></div>
+    <span>Ujian (Exambro)</span>
+</div>
                 <div class="menu-card static-item" onclick="openExamMenu('Ujian (Exambro)')">
                     <div class="icon-box"><i class="fa-solid fa-laptop-code"></i></div>
                     <span>Ujian (Exambro)</span>
@@ -620,11 +745,24 @@
         </div>
     </div>
 
-    <div id="contentModal" onclick="if(event.target==this) closeModal()">
+
+
+
+
+
+
+
+
+
+
+
+
+<div id="contentModal">
         <div class="modal-content">
-            <div class="modal-header" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
-                <h2 id="modalTitle" style="font-size: 18px; color: var(--primary);">Judul Konten</h2>
-                <div class="close-modal" onclick="closeModal()" style="cursor:pointer; font-size: 20px;"><i class="fa-solid fa-xmark"></i></div>
+            <div class="modal-header">
+                <h2 id="modalTitle">Judul</h2>
+                <div class="close-modal" onclick="closeModal()">
+                    <i class="fa-solid fa-arrow-left"></i> </div>
             </div>
             <div class="modal-body" id="modalBody"></div>
         </div>
@@ -676,45 +814,8 @@
                 </ul>`
         };
 
-        let ujianData = [];
-        let ujianSedangBerjalan = false;
-        let ujianAktif = null;
-        let examEndTime = 0;
-        let examTimerInterval = null;
-        let html5Qr = null;
-        let currentTabIndex = 0;
-        const sectionIds = ['profil', 'layanan', 'literasi', 'media'];
 
-        // --- AUTH SYSTEM ---
-        function handleLogin() {
-            const user = document.getElementById('usernameInput').value;
-            const pass = document.getElementById('passwordInput').value;
-            if (user.trim() !== "" && pass === "12345") {
-                localStorage.setItem('isLoggedIn', 'true');
-                localStorage.setItem('currentUserName', user);
-                initApp();
-            } else {
-                alert("Nama pengguna atau password salah");
-            }
-        }
 
-        function handleLogout() {
-            localStorage.removeItem('isLoggedIn');
-            localStorage.removeItem('currentUserName');
-            location.reload();
-        }
-
-        function initApp() {
-            if (localStorage.getItem('isLoggedIn') === 'true') {
-                document.getElementById('login-screen').style.display = 'none';
-                document.getElementById('main-app').style.display = 'block';
-                document.getElementById('displayUserName').innerText = localStorage.getItem('currentUserName');
-                const savedAvatar = localStorage.getItem('userProfileAvatar');
-                if (savedAvatar) updateAvatarUI(savedAvatar);
-                fetchSpreadsheetData();
-                updateNetwork();
-            }
-        }
 
         // --- FETCHING DATA ---
         async function fetchSpreadsheetData() {
@@ -798,6 +899,54 @@
             } catch (e) { document.getElementById('modalBody').innerHTML = 'Gagal memuat data.'; }
         }
 
+
+
+
+
+
+        let ujianData = [];
+        let ujianSedangBerjalan = false;
+        let ujianAktif = null;
+        let examEndTime = 0;
+        let examTimerInterval = null;
+        let html5Qr = null;
+        let currentTabIndex = 0;
+        const sectionIds = ['profil', 'layanan', 'literasi', 'media'];
+
+
+
+        // --- AUTH SYSTEM ---
+        function handleLogin() {
+            const user = document.getElementById('usernameInput').value;
+            const pass = document.getElementById('passwordInput').value;
+            if (user.trim() !== "" && pass === "12345") {
+                localStorage.setItem('isLoggedIn', 'true');
+                localStorage.setItem('currentUserName', user);
+                initApp();
+            } else {
+                alert("Nama pengguna atau password salah");
+            }
+        }
+
+        function handleLogout() {
+            localStorage.removeItem('isLoggedIn');
+            localStorage.removeItem('currentUserName');
+            location.reload();
+        }
+
+        function initApp() {
+            if (localStorage.getItem('isLoggedIn') === 'true') {
+                document.getElementById('login-screen').style.display = 'none';
+                document.getElementById('main-app').style.display = 'block';
+                document.getElementById('displayUserName').innerText = localStorage.getItem('currentUserName');
+                const savedAvatar = localStorage.getItem('userProfileAvatar');
+                if (savedAvatar) updateAvatarUI(savedAvatar);
+                fetchSpreadsheetData();
+                updateNetwork();
+            }
+        }
+
+
         // --- NAVIGATION & UI LOGIC ---
         function showSection(id, el, direction = 'left') {
             const newIndex = sectionIds.indexOf(id);
@@ -829,14 +978,24 @@
             document.getElementById('contentModal').style.display = 'flex';
         }
 
-        function closeModal() { document.getElementById('contentModal').style.display = 'none'; }
+	function openDynamicContent(title) {
+            const modal = document.getElementById('contentModal');
+            const modalTitle = document.getElementById('modalTitle');
+            const modalBody = document.getElementById('modalBody');
 
-        function openDynamicContent(key) { openModal(key, DYNAMIC_DATA[key] || "Konten tidak ditemukan."); }
+            modalTitle.innerText = title;
+            modalBody.innerHTML = DYNAMIC_DATA[title] || '<p>Konten tidak ditemukan.</p>';
+            
+            modal.style.display = 'flex';
+            // Sembunyikan scrollbar body utama saat modal fullscreen aktif
+            document.body.style.overflow = 'hidden';
+        }
 
-        function showToast(msg) {
-            const t = document.getElementById('toast');
-            t.innerText = msg; t.style.display = 'block';
-            setTimeout(() => t.style.display = 'none', 2500);
+        function closeModal() {
+            const modal = document.getElementById('contentModal');
+            modal.style.display = 'none';
+            // Kembalikan scrollbar body utama
+            document.body.style.overflow = 'auto';
         }
 
         function updateNetwork() {
@@ -857,184 +1016,292 @@
 
         function updateAvatarUI(src) { document.getElementById('userAvatar').innerHTML = `<img src="${src}">`; }
 
-        // --- EXAM SYSTEM (EXAMBRO) ---
-        function openExamMenu() {
-            openModal('Ujian (Exambro)', `
-                <div style="display: flex; flex-direction: column; gap: 12px;">
-                    <h4>Jadwal Ujian</h4>
-                    <select id="selectHari" onchange="onHariChange()"><option value="">Pilih Hari</option></select>
-                    <select id="selectKelas" disabled onchange="onKelasChange()"><option value="">Pilih Kelas</option></select>
-                    <select id="selectMapel" disabled><option value="">Pilih Mata Pelajaran</option></select>
-                    <button class="login-btn" onclick="startExam()">Mulai Ujian</button>
-                    <p style="font-size: 9px">*hanya dapat diakses jika jadwal telah dimuat oleh panitia ujian</p>
-                    <hr style="margin:15px 0; border: 0; border-top: 1px solid #eee;">
-                    <h4>Ulangan Harian / Lainnya</h4>
-                    <div id="qrScannerBox" style="display:none; margin-top:15px;"><div id="qrReader"></div></div>
-                    <button class="login-btn" onclick="scanBarcode()"><i class="fa-solid fa-qrcode"></i> Scan Barcode</button>
-                    <p style="text-align:center;">atau</p>
-                    <input id="manualLink" type="text" placeholder="Input URL / Token Ujian">
-                    <button class="login-btn" onclick="openManualLink()">Masuk Ujian</button>
-                </div>
-            `);
-            if (ujianData.length === 0) { showToast('Memuat jadwal...'); setTimeout(populateHari, 500); } else { populateHari(); }
-        }
 
-        function populateHari() {
-            const selectHari = document.getElementById('selectHari');
-            selectHari.innerHTML = '<option value="">Pilih Hari</option>';
-            ujianData.filter(d => d.JenisUjian === 'SAS').forEach(d => {
-                const status = getExamStatus(d.Tanggal);
-                const label = status === 'AKTIF' ? '🟢 AKTIF' : status === 'SUSULAN' ? '🟡 SUSULAN' : '🔴 BELUM';
-                const opt = document.createElement('option');
-                opt.value = d.Hari;
-                opt.textContent = `${d.Hari} (${label})`;
-                selectHari.appendChild(opt);
-            });
-        }
 
-        function onHariChange() {
-            const hari = document.getElementById('selectHari').value;
-            const kSelect = document.getElementById('selectKelas');
-            kSelect.disabled = !hari;
-            kSelect.innerHTML = '<option value="">Pilih Kelas</option>';
-            if (!hari) return;
-            [...new Set(ujianData.filter(d => d.Hari === hari && d.JenisUjian === 'SAS').map(d => d.Kelas))].forEach(k => kSelect.innerHTML += `<option value="${k}">${k}</option>`);
-        }
 
-        function onKelasChange() {
-            const hari = document.getElementById('selectHari').value;
-            const kelas = document.getElementById('selectKelas').value;
-            const mSelect = document.getElementById('selectMapel');
-            mSelect.disabled = !kelas;
-            mSelect.innerHTML = '<option value="">Pilih Mata Pelajaran</option>';
-            if (!kelas) return;
-            [...new Set(ujianData.filter(d => d.Hari === hari && d.Kelas === kelas && d.JenisUjian === 'SAS').map(d => d.Mapel))].forEach(m => mSelect.innerHTML += `<option value="${m}">${m}</option>`);
-        }
 
-        function startExam() {
-            const hari = document.getElementById('selectHari').value;
-            const kelas = document.getElementById('selectKelas').value;
-            const mapel = document.getElementById('selectMapel').value;
-            ujianAktif = ujianData.find(u => u.JenisUjian === 'SAS' && u.Hari === hari && u.Kelas === kelas && u.Mapel === mapel);
-            if (!ujianAktif) return showToast('Data tidak ditemukan');
-            if (getExamStatus(ujianAktif.Tanggal) === 'BELUM') return showToast('Belum dapat diakses');
-            confirmExamStart();
-        }
 
-        function confirmExamStart() {
-            openModal('PERINGATAN UJIAN', `
-                <p><b>PERHATIAN!</b></p>
-                    <p>Selama ujian berlangsung peserta:</p>
-                    <ul style="padding-left:18px;">
-                        <li>Dilarang meninggalkan halaman ujian</li>
-                        <li>Dilarang screenshot atau rekam layar</li>
-                        <li>Dilarang membuka aplikasi lain</li>
-                        <li>Dilarang bekerjasama dengan peserta lain</li>
-                        <li>Jika keluar, ujian dianggap selesai</li>
-                        <li>Mematuhi tata terteib ujian lainya.</li>
-                    </ul>
-                <label style="display:flex; gap:8px; margin-top:10px;"><input type="checkbox" id="agreeExam"> Saya mengerti</label>
-                <button class="login-btn" onclick="handleConfirmExam()">MULAI UJIAN</button>
-            `);
-        }
 
-        function handleConfirmExam() {
-            if (!document.getElementById('agreeExam').checked) return showToast('Centang persetujuan');
-            if (!ujianAktif.LinkSoal) return alert('Link soal belum tersedia');
-            closeModal();
-            ujianSedangBerjalan = true;
-            enterExamMode();
-            setTimeout(() => { window.location.href = ujianAktif.LinkSoal; }, 300);
-        }
 
-        async function enterExamMode() {
-            const el = document.documentElement;
-            if (el.requestFullscreen) await el.requestFullscreen();
-            if (screen.orientation && screen.orientation.lock) try { await screen.orientation.lock('portrait'); } catch (e) {}
-        }
+// --- EXAM SYSTEM (EXAMBRO) MASTER SETTINGS ---
 
-        function startExamTimer(durationMinutes) {
-            if (examTimerInterval) clearInterval(examTimerInterval);
-            const now = Date.now();
-            examEndTime = localStorage.getItem('examEndTime') ? parseInt(localStorage.getItem('examEndTime')) : now + durationMinutes * 60 * 1000;
-            localStorage.setItem('examEndTime', examEndTime);
-            const timerEl = document.getElementById('examTimer');
-            timerEl.style.display = 'block';
-            examTimerInterval = setInterval(() => {
-                const remaining = examEndTime - Date.now();
-                if (remaining <= 0) { clearInterval(examTimerInterval); selesaiUjianKarenaWaktu(); return; }
-                const min = Math.floor(remaining / 60000);
-                const sec = Math.floor((remaining % 60000) / 1000);
-                timerEl.textContent = `⏱️ ${String(min).padStart(2, '0')}:${String(sec).padStart(2, '0')}`;
-            }, 1000);
-        }
+// --- 1. MODAL UTAMA & UI ---
+function openExamMenu() {
+    openModal('Ujian (Exambro)', `
+        <div style="display: flex; flex-direction: column; gap: 12px; font-family: sans-serif;">
+            <div style="background: #f8f9fa; padding: 10px; border-radius: 8px; border: 1px solid #ddd;">
+                <h4 style="margin-top:0;"><i class="fa-solid fa-calendar-days"></i> Jadwal Ujian Resmi</h4>
+                <select id="selectHari" onchange="onHariChange()" class="exam-select"><option value="">Pilih Hari</option></select>
+                <select id="selectKelas" disabled onchange="onKelasChange()" class="exam-select"><option value="">Pilih Kelas</option></select>
+                <select id="selectMapel" disabled class="exam-select"><option value="">Pilih Mata Pelajaran</option></select>
+                <button class="login-btn" onclick="startExam()" style="width:100%; margin-top:8px; background:#27ae60;">Mulai Ujian</button>
+            </div>
 
-        function selesaiUjianKarenaWaktu() { ujianSedangBerjalan = false; localStorage.removeItem('examEndTime'); alert('Waktu habis.'); location.reload(); }
+            <div style="text-align:center; font-size:11px; color:#999;">— ATAU —</div>
 
-async function scanBarcode() {
-  const box = document.getElementById('qrScannerBox');
-  box.style.display = 'block';
+            <div style="background: #f8f9fa; padding: 10px; border-radius: 8px; border: 1px solid #ddd;">
+                <h4><i class="fa-solid fa-qrcode"></i> Ulangan / Scan QR</h4>
+                <div id="qrScannerBox" style="display:none; margin-bottom:10px;"><div id="qrReader"></div></div>
+                <button class="login-btn" id="btnScan" onclick="scanBarcode()" style="width:100%; background:#3498db;"><i class="fa-solid fa-camera"></i> Scan Barcode</button>
+                
+                <input id="manualLink" type="text" placeholder="Input URL atau Token" class="exam-select" style="margin-top:10px;">
+                <button class="login-btn" onclick="openManualLink()" style="width:100%; margin-top:5px; background:#34495e;">Masuk via Link/Token</button>
+            </div>
+        </div>
+    `);
+    
+    if (ujianData.length === 0) { 
+        showToast('Memuat jadwal...'); 
+        setTimeout(populateHari, 800); 
+    } else { 
+        populateHari(); 
+    }
+}
 
-  if (html5Qr) {
-    try {
-      await html5Qr.stop();
-      html5Qr.clear();
-    } catch (e) {}
-  }
+// --- 2. LOGIKA FILTER DATA (SUPPORT SPASI KOLOM) ---
+function populateHari() {
+    const selectHari = document.getElementById('selectHari');
+    if (!selectHari) return;
+    selectHari.innerHTML = '<option value="">Pilih Hari</option>';
+    
+    // Mendukung kolom "Jenis Ujian" atau "JenisUjian"
+    const dataSAS = ujianData.filter(d => (d['Jenis Ujian'] === 'SAS' || d.JenisUjian === 'SAS'));
+    
+    const hariUnik = [...new Set(dataSAS.map(d => d.Hari))];
+    hariUnik.forEach(hari => {
+        const d = dataSAS.find(x => x.Hari === hari);
+        const status = getExamStatus(d.Tanggal);
+        const label = status === 'AKTIF' ? '🟢 AKTIF' : status === 'SUSULAN' ? '🟡 SUSULAN' : '🔴 BELUM';
+        const opt = document.createElement('option');
+        opt.value = hari;
+        opt.textContent = `${hari} (${label})`;
+        selectHari.appendChild(opt);
+    });
+}
 
-  html5Qr = new Html5Qrcode("qrReader");
+function onHariChange() {
+    const hari = document.getElementById('selectHari').value;
+    const kSelect = document.getElementById('selectKelas');
+    kSelect.disabled = !hari;
+    kSelect.innerHTML = '<option value="">Pilih Kelas</option>';
+    if (!hari) return;
+    [...new Set(ujianData.filter(d => d.Hari === hari).map(d => d.Kelas))].forEach(k => kSelect.innerHTML += `<option value="${k}">${k}</option>`);
+}
 
-  html5Qr.start(
-    { facingMode: "environment" }, // JANGAN pakai exact
-    {
-      fps: 10,
-      qrbox: 220,
-      rememberLastUsedCamera: true,
-      supportedScanTypes: [Html5QrcodeScanType.SCAN_TYPE_CAMERA]
-    },
-    onQrSuccess,
-    () => {}
-  ).catch(err => {
-    console.error(err);
-    showToast("Kamera tidak tersedia / izin ditolak");
-  });
+function onKelasChange() {
+    const hari = document.getElementById('selectHari').value;
+    const kelas = document.getElementById('selectKelas').value;
+    const mSelect = document.getElementById('selectMapel');
+    mSelect.disabled = !kelas;
+    mSelect.innerHTML = '<option value="">Pilih Mata Pelajaran</option>';
+    if (!kelas) return;
+    ujianData.filter(d => d.Hari === hari && d.Kelas === kelas).forEach(m => {
+        mSelect.innerHTML += `<option value="${m.Mapel}">${m.Mapel}</option>`;
+    });
+}
+
+// --- 3. VALIDASI & PELUNCURAN UJIAN ---
+function startExam() {
+    const hari = document.getElementById('selectHari').value;
+    const kelas = document.getElementById('selectKelas').value;
+    const mapel = document.getElementById('selectMapel').value;
+    
+    ujianAktif = ujianData.find(u => u.Hari === hari && u.Kelas === kelas && u.Mapel === mapel);
+    if (!ujianAktif) return showToast('Jadwal tidak ditemukan');
+    
+    if (getExamStatus(ujianAktif.Tanggal) === 'BELUM') return showToast('Belum dapat diakses');
+    
+    confirmExamStart();
+}
+
+function confirmExamStart() {
+    const durasi = ujianAktif.Waktu || 90;
+    openModal('PERINGATAN KEAMANAN', `
+        <div style="text-align:left;">
+            <p><b>Mata Pelajaran:</b> ${ujianAktif.Mapel}</p>
+            <p><b>Durasi:</b> ${durasi} Menit</p>
+            <hr>
+            <p style="font-size:12px; color:red;">* Layar akan dikunci (Fullscreen).<br>* Dilarang pindah aplikasi/tab.<br>* Pelanggaran akan dicatat sistem.</p>
+            
+            ${ujianAktif.Token ? `
+                <p style="margin-bottom:5px;"><b>Token Ujian:</b></p>
+                <input id="tokenInput" type="text" placeholder="Masukkan Token" class="exam-select" style="text-align:center; font-weight:bold; border:2px solid #3498db;">
+            ` : ''}
+            
+            <label style="display:flex; gap:8px; margin-top:15px; cursor:pointer;">
+                <input type="checkbox" id="agreeExam"> Saya Mengerti & Siap Jujur
+            </label>
+            <button class="login-btn" onclick="launchUjian()" style="width:100%; margin-top:15px; background:#e74c3c;">MULAI SEKARANG</button>
+        </div>
+    `);
+}
+
+async function launchUjian() {
+    const isAgree = document.getElementById('agreeExam').checked;
+    if (!isAgree) return showToast('Centang persetujuan dahulu');
+
+    // "Pancing" audio agar bisa dimainkan otomatis nanti
+    soundAlarm.play().then(() => {
+        soundAlarm.pause();
+        soundAlarm.currentTime = 0;
+    }).catch(() => {});
+
+    // ... sisa kode launchUjian yang sebelumnya ...
+    closeModal();
+    ujianSedangBerjalan = true;
+    
+    await enterExamMode();
+    aktifkanAntiCheat();
+    startExamTimer(parseInt(ujianAktif.Waktu) || 90);
+
+    showToast("Membuka soal...");
+    setTimeout(() => { window.location.href = ujianAktif['Link Soal'] || ujianAktif.LinkSoal; }, 800);
 }
 
 
+async function enterExamMode() {
+    const el = document.documentElement;
+    if (el.requestFullscreen) await el.requestFullscreen();
+    if (screen.orientation && screen.orientation.lock) {
+        try { await screen.orientation.lock('portrait'); } catch (e) {}
+    }
+}
 
+// --- 5. TIMER & UTILITAS ---
+function startExamTimer(menit) {
+    if (examTimerInterval) clearInterval(examTimerInterval);
+    const endTime = Date.now() + (menit * 60 * 1000);
+    localStorage.setItem('examEndTime', endTime);
 
-         function onQrSuccess(qrText) {
-            if (!qrText) return;
+    const timerEl = document.getElementById('examTimer');
+    if (timerEl) timerEl.style.display = 'block';
 
-            showToast("QR terbaca");
+    examTimerInterval = setInterval(() => {
+        const remaining = endTime - Date.now();
+        if (remaining <= 0) {
+            clearInterval(examTimerInterval);
+            ujianSedangBerjalan = false;
+            localStorage.removeItem('examEndTime');
+            alert('Waktu habis!');
+            location.reload();
+        } else if (timerEl) {
+            const m = Math.floor(remaining / 60000);
+            const s = Math.floor((remaining % 60000) / 1000);
+            timerEl.textContent = `⏱️ ${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`;
+        }
+    }, 1000);
+}
 
-            if (html5Qr) {
-              html5Qr.stop().then(() => html5Qr.clear());
+function getExamStatus(tgl) {
+    const today = new Date().toISOString().slice(0, 10);
+    return tgl === today ? 'AKTIF' : (tgl < today ? 'SUSULAN' : 'BELUM');
+}
+
+// --- 6. SCANNER & MANUAL ---
+async function scanBarcode() {
+    const box = document.getElementById('qrScannerBox');
+    box.style.display = 'block';
+    document.getElementById('btnScan').style.display = 'none';
+    
+    html5Qr = new Html5Qrcode("qrReader");
+    html5Qr.start({ facingMode: "environment" }, { fps: 10, qrbox: 250 }, (txt) => {
+        if (html5Qr) html5Qr.stop().then(() => {
+            document.getElementById('qrScannerBox').style.display = 'none';
+            document.getElementById('btnScan').style.display = 'block';
+            // Cek apakah teks QR adalah Token yang ada di database
+            const found = ujianData.find(u => u.Token === txt || (u['Link Soal'] || u.LinkSoal) === txt);
+            if (found) {
+                ujianAktif = found;
+                confirmExamStart();
+            } else {
+                ujianAktif = { Mapel: 'QR Ujian', LinkSoal: txt, Waktu: 60 };
+                confirmExamStart();
             }
+        });
+    }, () => {}).catch(() => showToast("Kamera ditolak/error"));
+}
 
-            setTimeout(() => {
-              ujianSedangBerjalan = true;
-              enterExamMode();
-              startExamTimer(60);
-              window.location.href = qrText;
-            }, 400);
-          }
+function openManualLink() {
+    const val = document.getElementById('manualLink').value;
+    if (!val) return showToast('Masukkan link atau token');
+    
+    const found = ujianData.find(u => u.Token === val);
+    if (found) {
+        ujianAktif = found;
+        confirmExamStart();
+    } else if (val.startsWith('http')) {
+        ujianAktif = { Mapel: 'Link Manual', LinkSoal: val, Waktu: 60 };
+        confirmExamStart();
+    } else {
+        showToast('Token tidak dikenali');
+    }
+}
 
+// --- STATE TAMBAHAN ---
+const soundAlarm = document.getElementById('alarmCheat');
 
-
-        function openManualLink() {
-            const link = document.getElementById('manualLink').value;
-            if (!link) return showToast('Masukkan link/token');
-            ujianSedangBerjalan = true;
-            enterExamMode();
-            startExamTimer(60);
-            window.location.href = link;
+// --- PERBAIKAN FUNGSI ANTI-CHEAT ---
+function aktifkanAntiCheat() {
+    // 1. Deteksi Pindah Tab / Tutup Browser
+    document.addEventListener("visibilitychange", () => {
+        if (document.hidden && ujianSedangBerjalan) {
+            triggerAlarmPelanggaran("Pindah Tab / Buka Aplikasi");
         }
+    });
 
-        function getExamStatus(tanggal) {
-            const today = new Date().toISOString().slice(0, 10);
-            return tanggal === today ? 'AKTIF' : (tanggal < today ? 'SUSULAN' : 'BELUM');
+    // 2. Deteksi Keluar dari Fullscreen
+    document.addEventListener("fullscreenchange", () => {
+        if (!document.fullscreenElement && ujianSedangBerjalan) {
+            triggerAlarmPelanggaran("Keluar dari Mode Fullscreen");
         }
+    });
+
+    // 3. Blokir Tombol Fisik & Mouse
+    document.oncontextmenu = () => false;
+    document.oncopy = () => false;
+    document.onpaste = () => false;
+    
+    // Cegah Navigasi Back
+    window.history.pushState(null, null, window.location.href);
+    window.onpopstate = () => window.history.go(1);
+}
+
+// --- FUNGSI TRIGGER ALARM ---
+function triggerAlarmPelanggaran(jenis) {
+    if (!ujianSedangBerjalan) return;
+
+    // Putar Suara Alarm (Volume Maksimal)
+    soundAlarm.volume = 1.0;
+    soundAlarm.play().catch(e => console.log("Izin audio diperlukan"));
+
+    // Tampilkan Modal Peringatan yang Menutup Layar
+    openModal('<span style="color:red;">🚨 PELANGGARAN TERDETEKSI! 🚨</span>', `
+        <div style="text-align:center; padding:10px;">
+            <p style="font-size:16px; font-weight:bold; color:#c0392b;">
+                ANDA TERDETEKSI: ${jenis.toUpperCase()}
+            </p>
+            <p>Alarm tidak akan mati sampai Anda menekan tombol di bawah dan kembali ke layar penuh.</p>
+            <button onclick="matikanAlarm()" style="background:#2d3436; color:white; padding:15px; border:none; border-radius:8px; width:100%; font-weight:bold; cursor:pointer;">
+                SAYA BERJANJI TIDAK MENGULANGI
+            </button>
+        </div>
+    `);
+}
+
+function matikanAlarm() {
+    soundAlarm.pause();
+    soundAlarm.currentTime = 0; // Reset ke awal
+    closeModal();
+    
+    // Paksa masuk fullscreen lagi jika keluar
+    if (!document.fullscreenElement) {
+        enterExamMode();
+    }
+    
+    showToast("Pelanggaran telah dicatat oleh sistem!");
+}
+
+
 
         // --- PENGUMUMAN & KELULUSAN ---
         function openPengumuman() {
@@ -1125,6 +1392,52 @@ async function scanBarcode() {
         window.addEventListener('DOMContentLoaded', () => { initApp(); fetchJadwalUjian(); });
         window.addEventListener('online', () => { updateNetwork(); showToast('Kembali Online'); });
         window.addEventListener('offline', () => { updateNetwork(); showToast('Mode Offline'); });
+
+
+
+
+
+
+// --- NAVIGASI & SIDEBAR ---
+function toggleSidebar() {
+    const sidebar = document.getElementById('sidebar');
+    const overlay = document.getElementById('sidebarOverlay');
+    const isActive = sidebar.classList.contains('active');
+    
+    if (isActive) {
+        sidebar.classList.remove('active');
+        overlay.style.display = 'none';
+    } else {
+        sidebar.classList.add('active');
+        overlay.style.display = 'block';
+    }
+}
+
+function showSection(sectionId, element) {
+    // Navigasi Bottom Bar
+    document.querySelectorAll('.nav-item').forEach(nav => nav.classList.remove('active'));
+    element.classList.add('active');
+
+    // Transisi Antar Section
+    document.querySelectorAll('.section').forEach(sec => {
+        if (sec.id === sectionId) {
+            sec.classList.add('active');
+            sec.classList.remove('exit-left', 'exit-right');
+        } else {
+            sec.classList.remove('active');
+        }
+    });
+
+    // Update Indikator Swipe (Dot)
+    const dots = document.querySelectorAll('.swipe-dot');
+    const index = sectionIds.indexOf(sectionId);
+    dots.forEach((dot, i) => {
+        dot.classList.toggle('active', i === index);
+    });
+    
+    currentTabIndex = index;
+}
+
     </script>
 </body>
 </html>

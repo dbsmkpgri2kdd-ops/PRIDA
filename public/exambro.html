@@ -48,7 +48,31 @@
 
 
 <script>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 // --- FIREBASE CONFIGURATION ---
+// Pastikan config ini sudah benar sesuai project Firebase Anda
 const firebaseConfig = {
   apiKey: "AIzaSyDOkyWxtvVpwir6nbhEB3MNd44Caz_RWJU",
   authDomain: "studio-4448301263-a6cd9.firebaseapp.com",
@@ -72,26 +96,32 @@ let isExamActive = false;
 let examTimer = null;
 let timeLeft = 0;
 let violationCount = 0;
+let questionBank = [];
 
-const apiKey = "MASUKKAN_KUNCI_API_ANDA_DISINI";
+// Ganti variabel API Key
+const geminiApiKey = "AIzaSyAVzWySOLBozBegOk3txJ5cAOyhZoL1tNc";
 
 // --- DATA SYNC ---
 function initDataSync() {
+    // Sync Ujian
     db.collection("exams").orderBy("createdAt", "desc").onSnapshot(snap => {
         exams = snap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
         currentRole === 'admin' ? renderAdminExams() : renderStudentExams();
     });
 
+    // Sync Siswa
     db.collection("students").onSnapshot(snap => {
         students = snap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
         if(currentRole === 'admin') renderAdminStudents();
     });
 
+    // Sync Bank Soal (Penting agar renderQuestionBank tidak error)
     db.collection("questions").orderBy("createdAt", "desc").onSnapshot(snap => {
         questionBank = snap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
         if(currentRole === 'admin') renderQuestionBank();
     });
 
+    // Sync Monitor
     db.collection("monitor").onSnapshot(snap => {
         snap.forEach(doc => { monitorData[doc.id] = doc.data(); });
         if(currentRole === 'admin') renderMonitor();
@@ -99,22 +129,51 @@ function initDataSync() {
 }
 
 // --- AUTH & NAVIGATION ---
-function setRole(r) {currentRole = r; const isStd = r === 'student';
-    document.getElementById('role-std').className = isStd ? "flex-1 py-3 text-xs font-bold rounded-xl bg-white shadow-sm text-blue-600 transition-all" : "flex-1 py-3 text-xs font-bold rounded-xl text-slate-400 transition-all";
-    document.getElementById('role-adm').className = !isStd ? "flex-1 py-3 text-xs font-bold rounded-xl bg-white shadow-sm text-blue-600 transition-all" : "flex-1 py-3 text-xs font-bold rounded-xl text-slate-400 transition-all";
+function setRole(r) {
+    currentRole = r; 
+    const isStd = r === 'student';
+    document.getElementById('role-std').className = isStd ? "flex-1 py-3 text-xs font-bold rounded-xl bg-white shadow-sm text-blue-600" : "flex-1 py-3 text-xs font-bold rounded-xl text-slate-400";
+    document.getElementById('role-adm').className = !isStd ? "flex-1 py-3 text-xs font-bold rounded-xl bg-white shadow-sm text-blue-600" : "flex-1 py-3 text-xs font-bold rounded-xl text-slate-400";
 }
 
 async function handleLogin() {
-    const id = document.getElementById('user-id').value.trim();
+    const id = document.getElementById('user-id').value.trim(); // Ini adalah NIS
     const pwd = document.getElementById('user-pwd').value;
+
+    if(currentRole === 'admin') {
+        if(id === "admin" && pwd === "admin123") {
+            showPage('admin-page');
+            switchTab('exam');
+        } else { alert("Login Admin Gagal!"); }
+        return;
+    }
+
     try {
+        // Login menggunakan NIS yang diformat menjadi email palsu agar diterima Firebase Auth
         const userCred = await auth.signInWithEmailAndPassword(id + "@exambro.com", pwd);
+        
+        // Ambil data profil dari Firestore berdasarkan UID
         const doc = await db.collection("students").doc(userCred.user.uid).get();
-        if (!doc.exists) throw "Data tidak ditemukan";
-        loggedInUser = doc.data();
+        
+        if (!doc.exists) {
+            throw new Error("Data profil tidak ditemukan di database.");
+        }
+
+        loggedInUser = { id: userCred.user.uid, ...doc.data() };
+        
+        // Tampilkan Nama Siswa di Header
+        document.getElementById('display-std-name').innerText = loggedInUser.nama;
+        
         showPage('student-page');
         renderStudentExams();
-    } catch (err) { alert("Login gagal: " + err.message); }
+        
+        // Update status awal di monitor
+        updateStudentStatus(loggedInUser.nis, 'Online');
+        
+    } catch (err) { 
+        alert("Login gagal: Periksa kembali NIS dan Password Anda."); 
+        console.error(err.message);
+    }
 }
 
 function showPage(id) {
@@ -124,27 +183,277 @@ function showPage(id) {
 
 function switchTab(tab) {
     document.querySelectorAll('main > div').forEach(div => div.classList.add('hidden-element'));
-    document.getElementById('section-' + tab).classList.remove('hidden-element');
+    const target = document.getElementById('section-' + tab);
+    if(target) target.classList.remove('hidden-element');
+    
     document.querySelectorAll('aside nav button').forEach(btn => {
         btn.className = "w-full flex items-center space-x-4 p-4 rounded-2xl text-slate-400 font-bold text-sm hover:bg-slate-50";
     });
-    document.getElementById('tab-' + tab).className = "w-full flex items-center space-x-4 p-4 rounded-2xl sidebar-active font-bold text-sm";
-    
-    if(tab === 'student') renderAdminStudents();
-    if(tab === 'bank') renderQuestionBank();
-    if(tab === 'monitor') renderMonitor();
+    const activeTab = document.getElementById('tab-' + tab);
+    if(activeTab) activeTab.className = "w-full flex items-center space-x-4 p-4 rounded-2xl sidebar-active font-bold text-sm";
 }
 
+// --- MANAJEMEN UJIAN ---
+async function saveExam() {
+    const data = {
+        mapel: document.getElementById('ex-mapel').value,
+        kelas: document.getElementById('ex-kelas').value || "-",
+        tanggal: document.getElementById('ex-date').value,
+        link: document.getElementById('ex-link').value,
+        duration: parseInt(document.getElementById('ex-duration').value) || 60,
+        token: document.getElementById('ex-token').value.toUpperCase(),
+        pinPengawas: document.getElementById('ex-pin-pengawas').value,
+        createdAt: firebase.firestore.FieldValue.serverTimestamp()
+    };
 
+    if(!data.mapel || !data.token || !data.link) return alert("Mohon lengkapi Mapel, Token, dan Link!");
 
+    await db.collection("exams").add(data);
+    alert("Paket ujian berhasil diaktifkan!");
+    closeExamModal();
+}
 
+function renderAdminExams() {
+    const cont = document.getElementById('admin-exam-list');
+    if (exams.length === 0) {
+        cont.innerHTML = `<div class="col-span-full text-center p-10 bg-white rounded-[2rem] text-slate-400 font-bold border-2 border-dashed">Belum ada paket ujian.</div>`;
+        return;
+    }
+    cont.innerHTML = exams.map(ex => `
+        <div class="bg-white p-8 rounded-[2.5rem] border-2 border-slate-100 relative group shadow-sm">
+            <div class="mb-4">
+                <span class="bg-indigo-100 text-indigo-600 text-[9px] font-black px-2 py-1 rounded-md uppercase mb-2 inline-block">${ex.kelas || 'Semua Kelas'}</span>
+                <h4 class="text-xl font-black text-slate-900">${ex.mapel}</h4>
+            </div>
+            <div class="grid grid-cols-2 gap-3 mt-6">
+                <div class="bg-yellow-50 p-4 rounded-2xl"><p class="text-[9px] font-black text-yellow-600 uppercase">Token</p><p class="font-mono font-black text-yellow-700">${ex.token}</p></div>
+                <div class="bg-red-50 p-4 rounded-2xl"><p class="text-[9px] font-black text-red-600 uppercase">PIN</p><p class="font-mono font-black text-red-700">${ex.pinPengawas}</p></div>
+            </div>
+            <div class="absolute top-6 right-6 flex space-x-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                <button onclick="openEditExam('${ex.id}')" class="p-2 bg-blue-50 text-blue-600 rounded-lg hover:bg-blue-100">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/></svg>
+                </button>
+                <button onclick="deleteExam('${ex.id}')" class="p-2 bg-red-50 text-red-600 rounded-lg hover:bg-red-100">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
+                </button>
+            </div>
+        </div>`).join('');
+}
 
+// --- STUDENT FLOW ---
+function renderStudentExams() {
+    const cont = document.getElementById('student-exam-list');
+    if (!loggedInUser) return;
 
+    const availableExams = exams.filter(ex => 
+        ex.kelas === loggedInUser.kelas || ex.kelas === "-" || ex.kelas === "Semua Kelas"
+    );
 
+    cont.innerHTML = availableExams.map(ex => `
+        <div class="bg-white p-8 rounded-[2.5rem] border-2 border-slate-100 shadow-xl">
+            <h4 class="text-2xl font-black text-slate-900 mb-6">${ex.mapel}</h4>
+            <input type="text" id="tk-${ex.id}" placeholder="TOKEN" class="w-full bg-slate-50 p-5 rounded-2xl mb-4 text-center font-black uppercase">
+            <button onclick="attemptExam('${ex.id}')" class="w-full bg-blue-600 text-white py-5 rounded-2xl font-black">MULAI</button>
+        </div>
+    `).join('');
+}
 
+async function attemptExam(id) {
+    const ex = exams.find(e => e.id === id);
+    const inputToken = document.getElementById(`tk-${id}`).value.toUpperCase();
+    
+    if (inputToken !== ex.token) return alert("Token Salah!");
 
+    try {
+        const stream = await navigator.mediaDevices.getUserMedia({ video: true });
+        document.getElementById('self-video').srcObject = stream;
+        
+        isExamActive = true;
+        violationCount = 0;
+        showPage('exam-viewer');
+        
+        document.getElementById('view-mapel').innerText = ex.mapel;
+        document.getElementById('exam-frame-container').innerHTML = `<iframe src="${ex.link}" allow="camera; microphone"></iframe>`;
+        
+        timeLeft = ex.duration * 60;
+        startTimer();
+        enterFullscreen();
+        updateStudentStatus(loggedInUser.nis, 'Mengerjakan', ex.mapel);
+    } catch (err) { 
+        alert("Akses kamera wajib diizinkan untuk memulai ujian!"); 
+    }
+}
 
+// --- SECURITY & MONITORING ---
+const triggerLock = () => {
+    if(!isExamActive) return;
+    violationCount++;
+    if (violationCount >= 3) {
+        isExamActive = false;
+        document.getElementById('lock-screen').classList.remove('hidden-element');
+        if (document.fullscreenElement) document.exitFullscreen();
+    } else {
+        alert(`Peringatan ${violationCount}/3: Jangan tinggalkan halaman ujian!`);
+    }
+};
 
+function unlockApp() {
+    const inputPin = document.getElementById('unlock-pwd').value;
+    const activeMapel = document.getElementById('view-mapel').innerText;
+    const currentExam = exams.find(ex => ex.mapel === activeMapel);
+
+    if (currentExam && inputPin === currentExam.pinPengawas) {
+        document.getElementById('lock-screen').classList.add('hidden-element');
+        document.getElementById('unlock-pwd').value = "";
+        violationCount = 0;
+        isExamActive = true;
+        enterFullscreen();
+    } else { alert("PIN Pengawas Salah!"); }
+}
+
+async function updateStudentStatus(nis, status, mapel = '-') {
+    await db.collection("monitor").doc(nis).set({
+        nama: loggedInUser.nama,
+        kelas: loggedInUser.kelas,
+        status, 
+        mapel, 
+        lastUpdate: new Date().toLocaleTimeString()
+    }, {merge: true});
+}
+
+// --- UTILS ---
+function startTimer() {
+    if(examTimer) clearInterval(examTimer);
+    examTimer = setInterval(() => {
+        timeLeft--;
+        if(timeLeft <= 0) finishExam();
+        const m = Math.floor(timeLeft/60);
+        const s = timeLeft % 60;
+        document.getElementById('exam-timer').innerText = `${m.toString().padStart(2,'0')}:${s.toString().padStart(2,'0')}`;
+    }, 1000);
+}
+
+function finishExam() {
+    isExamActive = false;
+    clearInterval(examTimer);
+    updateStudentStatus(loggedInUser.nis, 'Selesai');
+    alert("Ujian Selesai!");
+    location.reload();
+}
+
+async function deleteExam(id) { if(confirm("Hapus ujian ini?")) await db.collection("exams").doc(id).delete(); }
+async function deleteStudent(id) { if(confirm("Hapus siswa ini?")) await db.collection("students").doc(id).delete(); }
+function enterFullscreen() {const el = document.documentElement;if (el.requestFullscreen) el.requestFullscreen();else if (el.webkitRequestFullscreen) el.webkitRequestFullscreen();}
+
+// --- MANAJEMEN BANK SOAL ---
+function renderQuestionBank() {
+    const cont = document.getElementById('question-list');
+    if (questionBank.length === 0) {
+        cont.innerHTML = `<div class="bg-white p-10 rounded-[2.5rem] text-center border-2 border-dashed border-slate-200 text-slate-400">Belum ada soal tersimpan.</div>`;
+        return;
+    }
+    cont.innerHTML = questionBank.map(q => `
+        <div class="bg-white p-6 rounded-3xl border border-slate-100 shadow-sm relative group">
+            <p class="text-[10px] font-black text-indigo-600 mb-2 uppercase">${q.subject} | ${q.difficulty}</p>
+            <p class="font-bold text-slate-800 mb-4">${q.questionText}</p>
+            <div class="grid grid-cols-2 gap-2">
+                ${q.options.map(opt => `<div class="text-xs p-2 bg-slate-50 rounded-lg border ${opt === q.correctAnswer ? 'border-emerald-500 bg-emerald-50' : 'border-transparent'}">${opt}</div>`).join('')}
+            </div>
+            <button onclick="deleteQuestion('${q.id}')" class="absolute top-4 right-4 opacity-0 group-hover:opacity-100 text-red-400 transition-all">Hapus</button>
+        </div>
+    `).join('');
+}
+
+async function deleteQuestion(id) {
+    if(confirm("Hapus soal ini dari bank soal?")) {
+        await db.collection("questions").doc(id).delete();
+    }
+}
+
+function openExamModal() {
+    // Reset form ke default untuk "Buat Paket"
+    document.getElementById('ex-mapel').value = "";
+    document.getElementById('ex-kelas').value = "";
+    document.getElementById('ex-duration').value = "60";
+    document.getElementById('ex-date').value = "";
+    document.getElementById('ex-token').value = "";
+    document.getElementById('ex-link').value = "";
+    document.getElementById('ex-pin-pengawas').value = "";
+    
+    const saveBtn = document.querySelector('#modal-exam button[onclick*="updateExam"], #modal-exam button[onclick*="saveExam"]');
+    saveBtn.setAttribute('onclick', 'saveExam()');
+    saveBtn.innerText = "AKTIFKAN PAKET";
+    
+    document.getElementById('modal-exam').classList.remove('hidden-element');
+}
+
+// Tambahkan pencegahan refresh/tutup tab saat ujian
+window.onbeforeunload = function() {
+    if (isExamActive) {
+        return "Ujian sedang berlangsung. Apakah Anda yakin ingin keluar?";
+    }
+};
+
+// --- EDIT PAKET UJIAN ---
+async function openEditExam(id) {
+    const ex = exams.find(e => e.id === id);
+    if (!ex) return;
+
+    // Mengisi data ke modal (menggunakan referensi Edit Exam.html)[cite: 1]
+    document.getElementById('ex-mapel').value = ex.mapel;
+    document.getElementById('ex-kelas').value = ex.kelas;
+    document.getElementById('ex-duration').value = ex.duration;
+    document.getElementById('ex-date').value = ex.tanggal;
+    document.getElementById('ex-token').value = ex.token;
+    document.getElementById('ex-link').value = ex.link;
+    document.getElementById('ex-pin-pengawas').value = ex.pinPengawas;
+
+    // Mengubah fungsi tombol simpan menjadi update
+    const saveBtn = document.querySelector('#modal-exam button[onclick="saveExam()"]');
+    saveBtn.setAttribute('onclick', `updateExam('${id}')`);
+    saveBtn.innerText = "SIMPAN PERUBAHAN";
+    
+    openExamModal();
+}
+
+async function updateExam(id) {
+    const data = {
+        mapel: document.getElementById('ex-mapel').value,
+        kelas: document.getElementById('ex-kelas').value,
+        tanggal: document.getElementById('ex-date').value,
+        link: document.getElementById('ex-link').value,
+        duration: parseInt(document.getElementById('ex-duration').value),
+        token: document.getElementById('ex-token').value.toUpperCase(),
+        pinPengawas: document.getElementById('ex-pin-pengawas').value
+    };
+
+    await db.collection("exams").doc(id).update(data);
+    alert("Perubahan berhasil disimpan!");
+    location.reload(); // Refresh untuk reset state tombol
+}
+
+// --- ADVANCED PROTECTION ---
+function preventCheating() {
+    // Blokir Klik Kanan
+    document.addEventListener('contextmenu', e => e.preventDefault());
+
+    // Blokir Shortcut Keyboard (Ctrl+U, Ctrl+Shift+I, F12)
+    document.onkeydown = function(e) {
+        if (e.keyCode == 123) return false; // F12
+        if (e.ctrlKey && e.shiftKey && e.keyCode == 'I'.charCodeAt(0)) return false;
+        if (e.ctrlKey && e.shiftKey && e.keyCode == 'C'.charCodeAt(0)) return false;
+        if (e.ctrlKey && e.shiftKey && e.keyCode == 'J'.charCodeAt(0)) return false;
+        if (e.ctrlKey && e.keyCode == 'U'.charCodeAt(0)) return false;
+    };
+
+    // Deteksi Pergantian Tab dengan Suara/Alert Peringatan
+    document.addEventListener("visibilitychange", () => {
+        if (document.hidden && isExamActive) {
+            triggerLock();
+            console.warn("User mencoba berpindah tab!");
+        }
+    });
+}
 
 // --- DATA SISWA (TAMBAHAN KELAS) ---
 async function importStudentCSV(event) {
@@ -155,24 +464,37 @@ async function importStudentCSV(event) {
     reader.onload = async (e) => {
         const text = e.target.result;
         const rows = text.split('\n').filter(row => row.trim() !== '');
-        const dataRows = rows.slice(1); 
+        const dataRows = rows.slice(1); // Mengabaikan header jika ada
         const batch = db.batch();
         let count = 0;
 
-        dataRows.forEach(row => {
-            const [nama, nis, pwd, kelas] = row.split(',').map(s => s?.trim());
-            if (nama && nis && pwd) {
-                const docRef = db.collection("students").doc();
-                batch.set(docRef, { 
-                    nis, nama, kelas: kelas || "-",  pwd, 
-                    createdAt: firebase.firestore.FieldValue.serverTimestamp() 
-                });
-                count++;
+        for (const row of dataRows) {
+            const [nis, nama, kelas, pwd] = row.split(',').map(s => s?.trim());
+            
+            if (nis && nama && pwd) {
+                try {
+                    // 1. Buat Akun Auth (untuk sistem login Firebase)
+                    const userCred = await auth.createUserWithEmailAndPassword(nis + "@exambro.com", pwd);
+                    
+                    // 2. Simpan Data Profil ke Firestore
+                    const docRef = db.collection("students").doc(userCred.user.uid);
+                    batch.set(docRef, { 
+                        nis, 
+                        nama, 
+                        kelas: kelas || "-",  
+                        pwd, // Menyimpan sandi teks asli untuk referensi Admin
+                        createdAt: firebase.firestore.FieldValue.serverTimestamp() 
+                    });
+                    count++;
+                } catch (err) {
+                    console.error(`Gagal mengimpor NIS ${nis}:`, err.message);
+                }
             }
-        });
+        }
 
         await batch.commit();
         alert(`Berhasil mengimpor ${count} siswa!`);
+        location.reload();
     };
     reader.readAsText(file);
 }
@@ -185,20 +507,24 @@ async function saveStudent() {
     const pwd = document.getElementById('std-pwd').value.trim();
 
     try {
+        // Mendaftarkan akun ke Firebase Auth
         const userCred = await auth.createUserWithEmailAndPassword(nis + "@exambro.com", pwd);
 
+        // Menyimpan data tambahan ke Firestore
         await db.collection("students").doc(userCred.user.uid).set({
-            nis, nama, kelas,
+            nis, 
+            nama, 
+            kelas, 
+            pwd, // Disimpan agar admin bisa melihat jika siswa lupa
             createdAt: firebase.firestore.FieldValue.serverTimestamp()
         });
 
-        alert("Siswa berhasil dibuat!");
+        alert("Siswa berhasil ditambahkan!");
         closeStudentModal();
     } catch (err) {
-        alert(err.message);
+        alert("Gagal menambah siswa: " + err.message);
     }
 }
-
 function renderAdminStudents() {
     const list = document.getElementById('admin-student-list');
     if (students.length === 0) {
@@ -218,125 +544,82 @@ function renderAdminStudents() {
     `).join('');
 }
 
+
+
 async function generateAIQuestions() {
-  const prompt = document.getElementById('ai-prompt').value;
+    const promptInput = document.getElementById('ai-prompt').value;
+    const count = document.getElementById('ai-count').value || 5;
+    const diff = document.getElementById('ai-diff').value;
+    const btn = document.getElementById('ai-btn');
+    const loading = document.getElementById('ai-loading');
 
-  const res = await fetch("https://api.openai.com/v1/chat/completions", {
-    method: "POST",
-    headers: {
-      "Authorization": "Bearer " + apiKey,
-      "Content-Type": "application/json"
-    },
-    body: JSON.stringify({
-      model: "gpt-4o-mini",
-      messages: [{ role: "user", content: prompt }]
-    })
-  });
+    if(!promptInput) return alert("Masukkan topik soal!");
 
-  const data = await res.json();
-  console.log(data);
-}
+    btn.disabled = true;
+    loading.classList.remove('hidden-element');
 
-// --- MANAJEMEN UJIAN (TAMBAHAN KELAS) ---
-async function saveExam() {
-    const mapel = document.getElementById('ex-mapel').value;
-    const kelas = document.getElementById('ex-kelas').value; // Pastikan ID ini ada di modal
-    const date = document.getElementById('ex-date').value;
-    const link = document.getElementById('ex-link').value;
-    const duration = document.getElementById('ex-duration').value || 60;
-    const token = document.getElementById('ex-token').value.toUpperCase();
-    const pin = document.getElementById('ex-pin-pengawas').value;
+    // Instruksi khusus agar outputnya murni JSON array
+    const finalPrompt = `Buatlah ${count} soal pilihan ganda tentang topik: ${promptInput}. 
+    Tingkat kesulitan: ${diff}.
+    Berikan output HANYA dalam format JSON array tanpa backticks atau teks markdown.
+    Struktur JSON: [{"question": "...", "options": ["A", "B", "C", "D"], "answer": "isi jawaban yang benar"}]`;
 
-    if(!mapel || !token || !date || !pin) return alert("Lengkapi data!");
-
-    await db.collection("exams").add({
-        mapel, kelas, tanggal: date, link, duration, token, pinPengawas: pin,
-        createdAt: firebase.firestore.FieldValue.serverTimestamp()
-    });
-    alert("Paket ujian berhasil dibuat!");
-    closeExamModal();
-}
-
-// --- STUDENT FLOW ---
-function renderStudentExams() {
-    const cont = document.getElementById('student-exam-list');
-    if (!loggedInUser) return;
-
-    // Filter: Tampilkan ujian yang kelasnya cocok dengan siswa atau diset "Semua Kelas"
-    const availableExams = exams.filter(ex => 
-        ex.kelas.toLowerCase() === loggedInUser.kelas.toLowerCase() || 
-        ex.kelas === "-" || ex.kelas === ""
-    );
-
-    if (availableExams.length === 0) {
-        cont.innerHTML = '<div class="col-span-full text-center p-10 bg-white rounded-3xl text-slate-400 font-bold">Tidak ada ujian untuk kelas Anda.</div>';
-        return;
-    }
-
-    cont.innerHTML = availableExams.map(ex => `
-        <div class="bg-white p-8 rounded-[2.5rem] border-2 border-slate-100 shadow-xl shadow-slate-200/50">
-            <div class="flex justify-between items-start mb-4">
-                <span class="text-[10px] font-black text-blue-600 uppercase">MAPEL</span>
-                <span class="bg-blue-50 text-blue-600 px-3 py-1 rounded-lg text-[9px] font-black">${ex.duration} MIN</span>
-            </div>
-            <h4 class="text-2xl font-black text-slate-900 mb-6">${ex.mapel}</h4>
-            <div class="space-y-4">
-                <input type="text" id="tk-${ex.id}" placeholder="INPUT TOKEN" class="w-full bg-slate-50 p-5 rounded-2xl border-2 border-transparent focus:border-blue-500 outline-none font-black text-center uppercase tracking-widest">
-                <button onclick="attemptExam('${ex.id}')" class="w-full bg-blue-600 text-white py-5 rounded-2xl font-black shadow-lg hover:bg-blue-700 transition-all">MULAI UJIAN</button>
-            </div>
-        </div>`).join('');
-}
-
-function renderAdminExams() {
-    const cont = document.getElementById('admin-exam-list');
-    if (exams.length === 0) {
-        cont.innerHTML = `<div class="col-span-full text-center p-10 bg-white rounded-[2rem] text-slate-400 font-bold border-2 border-dashed">Belum ada paket ujian.</div>`;
-        return;
-    }
-    cont.innerHTML = exams.map(ex => `
-        <div class="bg-white p-8 rounded-[2.5rem] border-2 border-slate-100 relative group shadow-sm">
-            <div class="mb-4">
-                <span class="bg-indigo-100 text-indigo-600 text-[9px] font-black px-2 py-1 rounded-md uppercase mb-2 inline-block">${ex.kelas || 'Semua Kelas'}</span>
-                <h4 class="text-xl font-black text-slate-900">${ex.mapel}</h4>
-                <div class="flex items-center space-x-2 mt-1">
-                    <span class="bg-blue-100 text-blue-600 text-[10px] font-black px-2 py-1 rounded-md uppercase">${ex.tanggal}</span>
-                    <span class="bg-slate-100 text-slate-500 text-[10px] font-black px-2 py-1 rounded-md uppercase">${ex.duration} Menit</span>
-                </div>
-            </div>
-            <div class="grid grid-cols-2 gap-3 mt-6">
-                <div class="bg-yellow-50 p-4 rounded-2xl"><p class="text-[9px] font-black text-yellow-600 uppercase">Token</p><p class="font-mono font-black text-yellow-700">${ex.token}</p></div>
-                <div class="bg-red-50 p-4 rounded-2xl"><p class="text-[9px] font-black text-red-600 uppercase">PIN</p><p class="font-mono font-black text-red-700">${ex.pinPengawas}</p></div>
-            </div>
-            <button onclick="deleteExam('${ex.id}')" class="absolute top-8 right-8 text-slate-300 hover:text-red-500 transition-colors">
-                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
-            </button>
-        </div>`).join('');
-}
-
-async function deleteExam(id) {
-    if(confirm("Hapus paket ujian?")) await db.collection("exams").doc(id).delete();
-}
-
-
-async function attemptExam(id) {
-    const ex = exams.find(e => e.id === id);
-    if (document.getElementById(`tk-${id}`).value.toUpperCase() !== ex.token) return alert("Token Salah!");
     try {
-        const stream = await navigator.mediaDevices.getUserMedia({ video: true });
-        document.getElementById('self-video').srcObject = stream;
-        await enterFullscreen();
-        await updateStudentStatus(loggedInUser.nis, 'Mengerjakan', ex.mapel);
-        isExamActive = true;
-        violationCount = 0; // Reset saat mulai
-        showPage('exam-viewer');
-        document.getElementById('view-mapel').innerText = ex.mapel;
-        document.getElementById('exam-frame-container').innerHTML = `<iframe src="${ex.link}"></iframe>`;
-        timeLeft = ex.duration * 60;
-        startTimer();
-    } catch (err) { alert("Izin kamera diperlukan!"); }
+        const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${geminiApiKey}`, {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json"
+            },
+            body: JSON.stringify({
+                contents: [{
+                    parts: [{ text: finalPrompt }]
+                }]
+            })
+        });
+
+        const data = await res.json();
+        
+        if (data.error) throw new Error(data.error.message);
+
+        // Mengambil teks respons dari struktur data Gemini
+        let text = data.candidates[0].content.parts[0].text.trim();
+        
+        // Membersihkan jika AI menyertakan ```json ... ```
+        text = text.replace(/```json|
+```/g, "");
+
+        let parsed;
+        try {
+            parsed = JSON.parse(text);
+        } catch (e) {
+            console.error("Format raw dari AI:", text);
+            throw new Error("Format data tidak valid. Silakan coba lagi.");
+        }
+
+        const batch = db.batch();
+        parsed.forEach(q => {
+            const ref = db.collection("questions").doc();
+            batch.set(ref, {
+                subject: promptInput,
+                difficulty: diff,
+                questionText: q.question,
+                options: q.options,
+                correctAnswer: q.answer,
+                createdAt: firebase.firestore.FieldValue.serverTimestamp()
+            });
+        });
+
+        await batch.commit();
+        alert(`Berhasil menambahkan ${parsed.length} soal ke bank soal menggunakan Gemini AI!`);
+        closeAIModal();
+
+    } catch (err) {
+        alert("Gagal generate soal: " + err.message);
+    } finally {
+        btn.disabled = false;
+        loading.classList.add('hidden-element');
+    }
 }
-
-
 
 // --- MONITORING ---
 function renderMonitor() {
@@ -369,47 +652,23 @@ function renderMonitor() {
     }).join('');
 }
 
-function unlockApp() {
-    const inputPin = document.getElementById('unlock-pwd').value;
-    const activeExam = exams.find(ex => ex.mapel === document.getElementById('view-mapel').innerText);
-    if (activeExam && inputPin === activeExam.pinPengawas) {
-        document.getElementById('lock-screen').classList.add('hidden-element');
-        document.getElementById('unlock-pwd').value = ""; violationCount = 0; isExamActive = true; enterFullscreen();
-    } else { alert("PIN Salah!"); }
-}
-
-const triggerLock = () => {
-    violationCount++;
-    if (violationCount >= 3) {
-        isExamActive = false;
-        document.getElementById('lock-screen').classList.remove('hidden-element');
-    } else {
-        alert(`Peringatan ${violationCount}: Jangan meninggalkan ujian!`);
-        if (!document.fullscreenElement) enterFullscreen();
-    }
-};
-
-// --- OTHER UTILS ---
-function startTimer(){if(examTimer)clearInterval(examTimer);examTimer=setInterval(()=>{timeLeft--;const h=Math.floor(timeLeft/3600).toString().padStart(2,'0');const m=Math.floor((timeLeft%3600)/60).toString().padStart(2,'0');const s=(timeLeft%60).toString().padStart(2,'0');document.getElementById('exam-timer').innerText=`${h}:${m}:${s}`;if(timeLeft<=0)finishExam(true);},1000);}
-async function finishExam(auto=false){isExamActive=false;clearInterval(examTimer);const stream=document.getElementById('self-video').srcObject;if(stream)stream.getTracks().forEach(t=>t.stop());await updateStudentStatus(loggedInUser.nis,'Selesai');location.reload();}
-async function updateStudentStatus(nis, status, mapel = '-') {await db.collection("monitor").doc(nis).set({status, mapel, lastUpdate: new Date().toLocaleTimeString()}, {merge: true});}
-async function enterFullscreen() {const elem = document.documentElement;if (elem.requestFullscreen) {await elem.requestFullscreen();}}
 
 // Modal Triggers
 function openStudentModal(){document.getElementById('modal-student').classList.remove('hidden-element');}
 function closeStudentModal(){document.getElementById('modal-student').classList.add('hidden-element');}
-function openExamModal(){document.getElementById('modal-exam').classList.remove('hidden-element');}
 function closeExamModal(){document.getElementById('modal-exam').classList.add('hidden-element');}
 function openAIModal(){document.getElementById('modal-ai').classList.remove('hidden-element');}
 function closeAIModal(){document.getElementById('modal-ai').classList.add('hidden-element');}
 
 
+
+
 // --- SECURITY EVENTS
 window.addEventListener('blur', () => isExamActive && triggerLock());
-document.addEventListener("visibilitychange", () => document.hidden && isExamActive && triggerLock());
 document.addEventListener("fullscreenchange", () => !document.fullscreenElement && isExamActive && triggerLock());
 document.addEventListener('keydown', e => (e.key === "F12" || (e.ctrlKey && e.shiftKey && ["I","J","C"].includes(e.key)) || (e.ctrlKey && ["U","S","P"].includes(e.key))) && e.preventDefault());['copy', 'paste', 'cut', 'contextmenu', 'dragstart', 'selectstart'].forEach(ev => document.addEventListener(ev, e => e.preventDefault()));
 window.onload = () => { initDataSync(); };
+window.addEventListener('load', preventCheating);
 
 </script>
 </body></html> 

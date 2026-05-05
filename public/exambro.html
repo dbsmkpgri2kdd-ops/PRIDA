@@ -115,24 +115,24 @@
                 <div id="admin-exam-list" class="grid grid-cols-1 xl:grid-cols-2 gap-6"></div>
             </div>
 
-            <!-- SECTION STUDENT -->
-            <div id="section-student" class="hidden-element">
-                <div class="flex justify-between items-end mb-10">
-                    <h2 class="text-3xl font-black text-slate-900">Database Siswa</h2>
-                    <div class="flex space-x-3">
-                        <label class="bg-emerald-600 text-white px-6 py-4 rounded-2xl font-black text-xs cursor-pointer flex items-center">Impor CSV <input type="file" class="hidden" accept=".csv" onchange="handleCSVImport(event)"></label>
-                        <button onclick="openStudentModal()" class="bg-blue-600 text-white px-8 py-4 rounded-2xl font-black text-xs shadow-lg">+ Tambah Siswa</button>
-                    </div>
-                </div>
-                <div class="bg-white rounded-[2.5rem] border overflow-hidden shadow-sm">
-                    <table class="w-full text-left">
-                        <thead class="bg-slate-50 border-b">
-                            <tr><th class="px-8 py-5 text-[10px] font-black uppercase text-slate-400">NIS</th><th class="px-8 py-5 text-[10px] font-black uppercase text-slate-400">Nama</th><th class="px-8 py-5 text-[10px] font-black uppercase text-slate-400">Kelas</th><th class="px-8 py-5 text-[10px] font-black uppercase text-slate-400">Password</th><th class="px-8 py-5 text-[10px] font-black uppercase text-slate-400 text-right">Aksi</th></tr>
-                        </thead>
-                        <tbody id="admin-student-list" class="divide-y"></tbody>
-                    </table>
-                </div>
-            </div>
+	<!-- SECTION STUDENT -->
+	<div id="section-student" class="hidden-element">
+	    <div class="flex justify-between items-end mb-10">
+	        <div><h2 class="text-3xl font-black text-slate-900">Database Siswa</h2><p class="text-slate-400 text-xs mt-1">Kelola data peserta ujian secara real-time.</p></div>
+	        <div class="flex space-x-3">
+	            <button onclick="openModal('modal-sheet')" class="bg-emerald-600 text-white px-6 py-4 rounded-2xl font-black text-xs shadow-lg shadow-emerald-100 flex items-center hover:bg-emerald-700 transition-all"><span class="mr-2">📊</span> Sinkron Google Sheet</button>
+	            <button onclick="openStudentModal()" class="bg-blue-600 text-white px-8 py-4 rounded-2xl font-black text-xs shadow-lg shadow-blue-100 hover:bg-blue-700 transition-all">+ Tambah Siswa</button>
+	        </div>
+	    </div>
+	    <div class="bg-white rounded-[2.5rem] border overflow-hidden shadow-sm">
+	        <table class="w-full text-left">
+	            <thead class="bg-slate-50 border-b"><tr><th class="px-8 py-5 text-[10px] font-black uppercase text-slate-400">NIS</th><th class="px-8 py-5 text-[10px] font-black uppercase text-slate-400">Nama Lengkap</th>
+                    <th class="px-8 py-5 text-[10px] font-black uppercase text-slate-400">Kelas</th><th class="px-8 py-5 text-[10px] font-black uppercase text-slate-400">Password</th>
+                    <th class="px-8 py-5 text-[10px] font-black uppercase text-slate-400 text-right">Aksi</th></tr></thead>
+	            <tbody id="admin-student-list" class="divide-y"><!-- Data akan diisi otomatis oleh JavaScript --></tbody>
+	        </table>
+	    </div>
+	</div>
 
             <!-- SECTION MONITOR -->
             <div id="section-monitor" class="hidden-element">
@@ -154,70 +154,42 @@
         </main>
     </div>
 
-    <!-- STUDENT DASHBOARD -->
-    <div id="student-page" class="min-h-screen bg-slate-50 hidden-element">
-        <header class="bg-white border-b px-10 py-6 flex justify-between items-center sticky top-0 z-50">
-            <div class="flex items-center space-x-5">
-                <div class="w-12 h-12 bg-blue-600 rounded-2xl flex items-center justify-center text-white font-black text-xl shadow-lg shadow-blue-200">S</div>
-                <div><h3 id="display-std-name" class="font-black text-slate-900">Peserta</h3><p class="text-[9px] text-emerald-500 font-black tracking-widest uppercase">● Connection Secure</p></div>
-            </div>
-            <button onclick="location.reload()" class="text-red-500 font-black text-xs uppercase tracking-tighter">Keluar Sistem</button>
-        </header>
-        <main class="max-w-6xl mx-auto p-12">
-            <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-12">
-                <div onclick="switchStudentView('scheduled')" class="bg-white p-8 rounded-[3rem] border-2 border-transparent hover:border-blue-500 transition-all cursor-pointer text-center group shadow-sm">
-                    <div class="w-20 h-20 bg-blue-50 text-blue-600 rounded-[2rem] flex items-center justify-center mx-auto mb-6 text-3xl group-hover:scale-110 transition-transform">📅</div>
-                    <span class="font-black text-slate-900">Ujian Terjadwal</span>
-                </div>
-                <div onclick="simulateScan()" class="bg-white p-8 rounded-[3rem] border-2 border-transparent hover:border-emerald-500 transition-all cursor-pointer text-center group shadow-sm">
-                    <div class="w-20 h-20 bg-emerald-50 text-emerald-600 rounded-[2rem] flex items-center justify-center mx-auto mb-6 text-3xl group-hover:scale-110 transition-transform">📷</div>
-                    <span class="font-black text-slate-900">Scan QR Code</span>
-                </div>
-                <div onclick="switchStudentView('manual')" class="bg-white p-8 rounded-[3rem] border-2 border-transparent hover:border-amber-500 transition-all cursor-pointer text-center group shadow-sm">
-                    <div class="w-20 h-20 bg-amber-50 text-amber-600 rounded-[2rem] flex items-center justify-center mx-auto mb-6 text-3xl group-hover:scale-110 transition-transform">🔗</div>
-                    <span class="font-black text-slate-900">Input Link Manual</span>
-                </div>
-            </div>
+	<!-- STUDENT DASHBOARD -->
+	<div id="student-page" class="min-h-screen bg-slate-50 hidden-element">
+	    <header class="bg-white border-b px-4 py-3 flex justify-between items-center sticky top-0 z-50 shadow-sm">
+	        <div class="flex items-center space-x-3">
+	            <div class="w-10 h-10 bg-blue-600 rounded-xl flex items-center justify-center text-white font-black text-lg shadow-md">S</div>
+	            <div><h3 id="display-std-name" class="font-bold text-slate-900 text-sm leading-none">Peserta</h3><p class="text-[8px] text-emerald-500 font-bold tracking-wider uppercase mt-1">● Secure Connection</p></div>
+	        </div>
+	        <button onclick="location.reload()" class="text-red-500 font-black text-[10px] border border-red-100 px-3 py-2 rounded-lg uppercase">Keluar</button>
 
-            <div id="view-scheduled">
-                <h2 class="text-2xl font-black mb-8 text-slate-900">Pilih Mata Pelajaran</h2>
-                <div id="student-exam-list" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8"></div>
-            </div>
+	    </header>
 
-            <div id="qr-reader-container" class="hidden-element bg-white p-10 rounded-[3rem] border shadow-2xl max-w-lg mx-auto mb-10 text-center">
-                <div id="qr-reader" class="rounded-2xl overflow-hidden mb-6"></div>
-                <button onclick="stopQR()" class="text-red-500 font-black text-xs uppercase">Batalkan Pemindaian</button>
-            </div>
+	    <main class="p-4">
+	        <div class="grid grid-cols-2 gap-3 mb-6">
+	            <div onclick="switchStudentView('scheduled')" class="bg-white p-5 rounded-3xl border border-slate-100 shadow-sm active:scale-95 transition-all cursor-pointer text-center"><div class="w-12 h-12 bg-blue-50 text-blue-600 rounded-2xl flex items-center justify-center mx-auto mb-3 text-xl">📅</div><span class="font-bold text-slate-800 text-xs block">Ujian Terjadwal</span></div>
+	            <div onclick="simulateScan()" class="bg-white p-5 rounded-3xl border border-slate-100 shadow-sm active:scale-95 transition-all cursor-pointer text-center"><div class="w-12 h-12 bg-emerald-50 text-emerald-600 rounded-2xl flex items-center justify-center mx-auto mb-3 text-xl">📷</div><span class="font-bold text-slate-800 text-xs block">Scan QR Code</span></div>
+	            <div onclick="switchStudentView('manual')" class="bg-white p-5 rounded-3xl border border-slate-100 shadow-sm active:scale-95 transition-all cursor-pointer text-center col-span-2"><div class="flex items-center justify-center space-x-4"><div class="w-10 h-10 bg-amber-50 text-amber-600 rounded-xl flex items-center justify-center text-lg">🔗</div><span class="font-bold text-slate-800 text-xs">Input Link Manual</span></div></div>
+	        </div>
+	        <div id="view-scheduled"><h2 class="text-lg font-black mb-4 text-slate-900 flex items-center"><span class="w-1 h-5 bg-blue-600 rounded-full mr-2"></span>Pilih Mata Pelajaran</h2><div id="student-exam-list" class="grid grid-cols-1 gap-4"></div></div>
+	        <div id="qr-reader-container" class="hidden-element bg-white p-6 rounded-3xl border shadow-xl mx-auto mb-6 text-center"><div id="qr-reader" class="rounded-xl overflow-hidden mb-4 bg-slate-100"></div><button onclick="stopQR()" class="text-red-500 font-bold text-xs uppercase p-2">Batalkan</button></div>
+	        <div id="view-manual" class="hidden-element bg-white p-6 rounded-3xl border shadow-xl text-center">
+	            <h2 class="text-xl font-black mb-2">Tempel Link</h2><p class="text-slate-400 text-xs mb-6">Masukkan URL Google Form atau LMS</p><input type="text" id="manual-url" class="w-full bg-slate-50 p-4 rounded-2xl mb-4 border focus:border-blue-500 outline-none text-sm" placeholder="https://...">
+	            <button onclick="startManualExam()" class="w-full bg-blue-600 text-white py-4 rounded-2xl font-bold shadow-lg shadow-blue-100 active:bg-blue-700">BUKA UJIAN</button>
+	        </div>
+	    </main>
 
-            <div id="view-manual" class="hidden-element bg-white p-16 rounded-[4rem] border max-w-2xl mx-auto shadow-2xl text-center">
-                <h2 class="text-3xl font-black mb-4">Penyematan Link</h2>
-                <p class="text-slate-400 text-sm mb-10">Tempel URL ujian (Google Form, Quizizz, LMS) di bawah.</p>
-                <input type="text" id="manual-url" class="w-full bg-slate-50 p-6 rounded-3xl mb-6 border-2 border-transparent focus:border-blue-500 outline-none font-medium transition-all" placeholder="https://forms.gle/...">
-                <button onclick="startManualExam()" class="w-full bg-blue-600 text-white py-6 rounded-3xl font-black shadow-xl shadow-blue-100 hover:scale-[1.02] transition-all">BUKA DASHBOARD AMAN</button>
-            </div>
-        </main>
-    </div>
-
-    <!-- EXAM VIEWER (FULLSCREEN INTERFACE) -->
-    <div id="exam-viewer" class="fixed inset-0 bg-white z-[500] flex flex-col hidden-element">
-        <header class="bg-slate-950 text-white px-10 py-5 flex justify-between items-center shadow-2xl">
-            <div class="flex items-center space-x-8">
-                <div><p class="text-[9px] font-black text-blue-400 uppercase tracking-widest">UJIAN BERLANGSUNG</p><h4 id="view-mapel" class="font-black text-lg leading-tight uppercase">MAPEL</h4></div>
-                <div id="exam-timer" class="bg-white/10 px-8 py-3 rounded-2xl font-mono font-black text-blue-100 text-2xl tracking-tighter">00:00:00</div>
-                <div id="violation-badge" class="bg-red-600/20 text-red-500 px-6 py-3 rounded-2xl text-[10px] font-black hidden-element uppercase animate-pulse">PELANGGARAN: <span id="violation-count">0</span>/3</div>
-            </div>
-            <div class="flex items-center space-x-6">
-                <div class="w-40 h-24 bg-black rounded-2xl border-2 border-white/10 overflow-hidden relative shadow-2xl">
-                    <video id="self-video" class="w-full h-full object-cover" autoplay muted playsinline></video>
-                    <div class="absolute inset-0 bg-gradient-to-t from-black/40 to-transparent"></div>
-                </div>
-                <button onclick="confirmFinishExam()" class="bg-red-600 px-10 py-5 rounded-[2rem] text-xs font-black uppercase hover:bg-red-700 shadow-xl shadow-red-900/20 transition-all">Selesai Ujian</button>
-            </div>
-        </header>
-        <div id="exam-frame-container" class="flex-grow bg-slate-200 p-4">
-            <!-- Iframe Exam loaded here -->
-        </div>
-    </div>
+	</div>
+	<div id="exam-viewer" class="fixed inset-0 bg-white z-[500] flex flex-col hidden-element">
+	    <header class="bg-slate-900 text-white px-4 py-2 flex justify-between items-center shadow-lg">
+	        <div class="flex flex-col"><h4 id="view-mapel" class="font-bold text-xs uppercase truncate w-32">MAPEL</h4><div id="exam-timer" class="text-blue-400 font-mono font-bold text-sm tracking-tighter">00:00:00</div></div>
+	        <div class="flex items-center space-x-3">
+	            <div class="w-16 h-20 bg-black rounded-lg border border-white/20 overflow-hidden relative shadow-inner"><video id="self-video" class="w-full h-full object-cover" autoplay muted playsinline></video><div id="violation-badge" class="absolute top-0 right-0 bg-red-600 text-[8px] px-1 font-bold hidden-element animate-pulse">! <span id="violation-count">0</span></div></div>
+	            <button onclick="confirmFinishExam()" class="bg-red-600 px-4 py-2 rounded-xl text-[10px] font-black uppercase active:bg-red-700">Selesai</button>
+	        </div>
+	    </header>
+	    <div id="exam-frame-container" class="flex-grow bg-slate-100 relative"><!-- Iframe akan mengisi seluruh sisa layar --></div>
+	</div>
 
     <!-- MODALS -->
     <!-- Modal Paket Ujian -->
@@ -256,20 +228,32 @@
     </div>
 
     <!-- Modal Data Siswa -->
-    <div id="modal-student" class="hidden-element fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-[3000] flex items-center justify-center p-4">
-        <div class="bg-white w-full max-w-md rounded-[3rem] p-12">
-            <h3 class="text-2xl font-black mb-10 text-center" id="student-modal-title">Biodata Peserta</h3>
-            <input type="hidden" id="edit-student-id">
-            <div class="space-y-4">
-                <input type="text" id="std-nis" class="w-full bg-slate-50 p-5 rounded-3xl outline-none font-bold" placeholder="Nomor Induk (NIS)">
-                <input type="text" id="std-nama" class="w-full bg-slate-50 p-5 rounded-3xl outline-none" placeholder="Nama Lengkap">
-                <input type="text" id="std-kelas" class="w-full bg-slate-50 p-5 rounded-3xl outline-none uppercase" placeholder="Kelas (contoh: XII IPA 1)">
-                <input type="text" id="std-pwd" class="w-full bg-slate-50 p-5 rounded-3xl outline-none" placeholder="Password Login">
-            </div>
-            <button onclick="saveStudent()" class="w-full bg-blue-600 text-white py-5 rounded-[2rem] font-black mt-10 shadow-xl">SIMPAN DATA</button>
-            <button onclick="closeModal('modal-student')" class="w-full py-4 text-slate-400 font-bold text-xs uppercase mt-2">Batal</button>
-        </div>
-    </div>
+	<!-- MODAL: INPUT DATA SISWA -->
+	<div id="modal-student" class="hidden-element fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-[3000] flex items-center justify-center p-4">
+	    <div class="bg-white w-full max-w-md rounded-[3rem] p-12 shadow-2xl">
+	        <h3 class="text-2xl font-black mb-8 text-center" id="student-modal-title">Data Siswa</h3>
+	        <input type="hidden" id="edit-student-id">
+	        <div class="space-y-4">
+	            <div class="space-y-1"><label class="text-[10px] font-black text-slate-400 ml-4 uppercase">NIS</label><input type="text" id="std-nis" class="w-full bg-slate-50 p-5 rounded-3xl outline-none font-bold focus:ring-2 ring-blue-500" placeholder="Contoh: 2024001"></div>
+	            <div class="space-y-1"><label class="text-[10px] font-black text-slate-400 ml-4 uppercase">Nama Lengkap</label><input type="text" id="std-nama" class="w-full bg-slate-50 p-5 rounded-3xl outline-none focus:ring-2 ring-blue-500" placeholder="Nama Siswa"></div>
+	            <div class="space-y-1"><label class="text-[10px] font-black text-slate-400 ml-4 uppercase">Kelas</label><input type="text" id="std-kelas" class="w-full bg-slate-50 p-5 rounded-3xl outline-none uppercase focus:ring-2 ring-blue-500" placeholder="Contoh: XII IPA 1"></div>
+	            <div class="space-y-1"><label class="text-[10px] font-black text-slate-400 ml-4 uppercase">Password Login</label><input type="text" id="std-pwd" class="w-full bg-slate-50 p-5 rounded-3xl outline-none focus:ring-2 ring-blue-500" placeholder="Password"></div>
+	        </div>
+	        <button onclick="saveStudent()" class="w-full bg-blue-600 text-white py-5 rounded-[2.5rem] font-black mt-10 shadow-xl shadow-blue-100 hover:scale-[1.02] transition-all">SIMPAN DATA</button>
+	        <button onclick="closeModal('modal-student')" class="w-full py-4 text-slate-400 font-bold text-xs uppercase mt-2">Batal</button>
+	    </div>
+	</div>
+
+	<!-- MODAL: SINKRONISASI GOOGLE SHEET -->
+	<div id="modal-sheet" class="hidden-element fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-[3000] flex items-center justify-center p-4">
+	    <div class="bg-white w-full max-w-md rounded-[3rem] p-12 shadow-2xl">
+	        <div class="w-20 h-20 bg-emerald-100 text-emerald-600 rounded-[2rem] flex items-center justify-center mx-auto mb-6 text-3xl">📊</div>
+	        <h3 class="text-2xl font-black mb-2 text-center">Google Sheet Sync</h3><p class="text-slate-400 text-[10px] mb-8 text-center uppercase tracking-widest font-black">Format: NIS, Nama, Kelas, Password</p>
+	        <div class="space-y-2"><label class="text-[10px] font-black text-slate-400 ml-2 uppercase tracking-tighter">Tempel Link Spreadsheet</label><input type="text" id="sheet-url" class="w-full bg-slate-50 p-5 rounded-3xl outline-none border-2 border-transparent focus:border-emerald-500 transition-all text-sm" placeholder="https://docs.google.com/spreadsheets/d/..."></div>
+	        <button id="btn-sync-sheet" onclick="syncFromGoogleSheet()" class="w-full bg-emerald-600 text-white py-5 rounded-[2.5rem] font-black mt-8 shadow-xl shadow-emerald-100 flex items-center justify-center transition-all"><span id="sync-text">MULAI SINKRONISASI</span></button>
+	        <button onclick="closeModal('modal-sheet')" class="w-full py-4 text-slate-400 font-bold text-xs uppercase mt-2">Batalkan</button>
+	    </div>
+	</div>
 
     <script>
         // --- 1. CONFIGURATION & FIREBASE ---
@@ -450,53 +434,145 @@
         document.addEventListener('visibilitychange', () => { if(document.hidden && isExamActive) reportViolation(); });
         window.addEventListener('resize', () => { if (isExamActive && window.innerWidth < initialWidth - 100) reportViolation(); });
         window.onbeforeunload = () => { if(isExamActive) return "Data ujian sedang diproses, yakin ingin keluar?"; };
-        document.addEventListener('keydown', e => {
-            if(e.key === "F12" || (e.ctrlKey && e.shiftKey && e.key.toLowerCase() === "i") || (e.ctrlKey && e.key.toLowerCase() === "u")) {
-                e.preventDefault(); reportViolation();
+
+// --- 7. ADMIN SYNC & CRUD (VERSI DIPERBAIKI) ---
+function syncAdminData() {
+    // Panggil fungsi khusus siswa agar tidak double listener
+    syncAdminStudentData(); 
+
+    // Exam Sync
+    publicData.collection('exams').onSnapshot(s => {
+        const list = document.getElementById('admin-exam-list');
+        if(!list) return;
+        list.innerHTML = "";
+        s.forEach(d => {
+            const x = d.data();
+            list.innerHTML += `<div class="bg-white p-6 rounded-[2.5rem] border-2 border-transparent hover:border-blue-200 transition-all flex justify-between items-center group">
+                <div><h4 class="font-black text-slate-800">${x.mapel}</h4><p class="text-[9px] text-slate-400 font-bold uppercase tracking-widest">${x.kelas} | TOKEN: ${x.token} | PIN: ${x.pin}</p></div>
+                <div class="flex space-x-2"><button onclick="editExam('${d.id}')" class="bg-blue-50 text-blue-500 p-3 rounded-xl">✎</button><button onclick="delDoc('exams','${d.id}')" class="bg-red-50 text-red-500 p-3 rounded-xl">✕</button></div>
+            </div>`;
+        });
+    });
+
+    // Bank Sync
+    publicData.collection('ai_bank').onSnapshot(s => {
+        const list = document.getElementById('ai-question-list');
+        if(!list) return;
+        list.innerHTML = "";
+        s.forEach(d => {
+            const q = d.data();
+            list.innerHTML += `<div class="bg-white p-6 rounded-3xl border border-slate-100"><p class="text-slate-800 font-medium">${q.question}</p><span class="text-[9px] bg-indigo-50 text-indigo-500 px-3 py-1 rounded-full font-black uppercase mt-3 inline-block">${q.topic}</span></div>`;
+        });
+    });
+}
+
+
+
+// --- SINKRONISASI REAL-TIME TABEL SISWA ---
+function syncAdminStudentData() {
+    publicData.collection('users').orderBy('kelas', 'asc').onSnapshot(s => {
+        const list = document.getElementById('admin-student-list');
+        list.innerHTML = "";
+        s.forEach(d => {
+            const u = d.data();
+            list.innerHTML += `
+                <tr class="hover:bg-slate-50 transition-colors">
+                    <td class="px-8 py-5 font-bold text-sm text-slate-800">${u.nis}</td>
+                    <td class="px-8 py-5 text-sm text-slate-600">${u.nama}</td>
+                    <td class="px-8 py-5 text-[10px] font-black uppercase text-slate-400">${u.kelas}</td>
+                    <td class="px-8 py-5 text-xs font-mono text-slate-300">${u.pwd}</td>
+                    <td class="px-8 py-5 text-right space-x-4">
+                        <button onclick="editStudent('${d.id}')" class="text-blue-500 font-black text-[10px] uppercase hover:text-blue-700">Edit</button>
+                        <button onclick="delDoc('users','${d.id}')" class="text-red-400 font-black text-[10px] uppercase hover:text-red-600">Hapus</button>
+                    </td>
+                </tr>`;
+        });
+    });
+}
+
+// --- FUNGSI SIMPAN DATA (MANUAL) ---
+async function saveStudent() {
+    const id = document.getElementById('edit-student-id').value;
+    const data = {
+        nis: document.getElementById('std-nis').value.trim(),
+        nama: document.getElementById('std-nama').value.trim(),
+        kelas: document.getElementById('std-kelas').value.trim(),
+        pwd: document.getElementById('std-pwd').value.trim()
+    };
+
+    if (!data.nis || !data.nama || !data.kelas || !data.pwd) return alert("Lengkapi semua kolom!");
+
+    try {
+        if (id) await publicData.collection('users').doc(id).update(data);
+        else await publicData.collection('users').add(data);
+        closeModal('modal-student');
+        alert("Data berhasil disimpan.");
+    } catch (e) { alert("Error: " + e.message); }
+}
+
+// --- FUNGSI EDIT SISWA ---
+async function editStudent(id) {
+    const d = await publicData.collection('users').doc(id).get();
+    const u = d.data();
+    document.getElementById('student-modal-title').textContent = "Edit Data Peserta";
+    document.getElementById('edit-student-id').value = id;
+    document.getElementById('std-nis').value = u.nis;
+    document.getElementById('std-nama').value = u.nama;
+    document.getElementById('std-kelas').value = u.kelas;
+    document.getElementById('std-pwd').value = u.pwd;
+    openModal('modal-student');
+}
+
+// --- FUNGSI SINKRON GOOGLE SHEET ---
+async function syncFromGoogleSheet() {
+    const urlInput = document.getElementById('sheet-url').value;
+    const btn = document.getElementById('btn-sync-sheet');
+    const btnText = document.getElementById('sync-text');
+
+    if (!urlInput || !urlInput.includes('/d/')) return alert("Link Google Sheet tidak valid!");
+
+    const sheetId = urlInput.match(/\/d\/(.+?)\//)[1];
+    const exportUrl = `https://docs.google.com/spreadsheets/d/${sheetId}/export?format=csv`;
+
+    btn.disabled = true;
+    btn.classList.replace('bg-emerald-600', 'bg-slate-400');
+    btnText.textContent = "MENGUNDUH DATA...";
+
+    try {
+        const res = await fetch(exportUrl);
+        const text = await res.text();
+        const rows = text.replace(/\r/g, "").split('\n').slice(1);
+        
+        const batch = db.batch();
+        let addedCount = 0;
+
+        rows.forEach(row => {
+            const cols = row.split(',');
+            if (cols.length >= 3 && cols[0].trim() !== "") {
+                const docRef = publicData.collection('users').doc();
+                batch.set(docRef, {
+                    nis: cols[0].trim(),
+                    nama: cols[1].trim(),
+                    kelas: cols[2].trim(),
+                    pwd: cols[3]?.trim() || "123"
+                });
+                addedCount++;
             }
         });
 
-        // --- 7. ADMIN SYNC & CRUD ---
-        function syncAdminData() {
-            // Exam Sync
-            publicData.collection('exams').onSnapshot(s => {
-                const list = document.getElementById('admin-exam-list');
-                list.innerHTML = "";
-                s.forEach(d => {
-                    const x = d.data();
-                    list.innerHTML += `<div class="bg-white p-6 rounded-[2.5rem] border-2 border-transparent hover:border-blue-200 transition-all flex justify-between items-center group">
-                        <div><h4 class="font-black text-slate-800">${x.mapel}</h4><p class="text-[9px] text-slate-400 font-bold uppercase tracking-widest">${x.kelas} | TOKEN: ${x.token} | PIN: ${x.pin}</p></div>
-                        <div class="flex space-x-2"><button onclick="editExam('${d.id}')" class="bg-blue-50 text-blue-500 p-3 rounded-xl">✎</button><button onclick="delDoc('exams','${d.id}')" class="bg-red-50 text-red-500 p-3 rounded-xl">✕</button></div>
-                    </div>`;
-                });
-            });
+        await batch.commit();
+        alert(`Sinkronisasi Selesai! ${addedCount} siswa ditambahkan.`);
+        closeModal('modal-sheet');
+        loadKelas(); // Update dropdown login
+    } catch (e) {
+        alert("Gagal sinkron. Pastikan Google Sheet bersifat Public (Viewer).");
+    } finally {
+        btn.disabled = false;
+        btn.classList.replace('bg-slate-400', 'bg-emerald-600');
+        btnText.textContent = "MULAI SINKRONISASI";
+    }
+}
 
-            // Student Sync
-            publicData.collection('users').onSnapshot(s => {
-                const list = document.getElementById('admin-student-list');
-                list.innerHTML = "";
-                s.forEach(d => {
-                    const u = d.data();
-                    list.innerHTML += `<tr class="hover:bg-slate-50 transition-colors">
-                        <td class="px-8 py-5 font-bold text-sm text-slate-800">${u.nis}</td>
-                        <td class="px-8 py-5 text-sm text-slate-600">${u.nama}</td>
-                        <td class="px-8 py-5 text-[10px] font-black uppercase text-slate-400">${u.kelas}</td>
-                        <td class="px-8 py-5 text-xs font-mono text-slate-300">${u.pwd}</td>
-                        <td class="px-8 py-5 text-right"><button onclick="editStudent('${d.id}')" class="text-blue-500 mr-4 font-bold uppercase text-[10px]">Edit</button><button onclick="delDoc('users','${d.id}')" class="text-red-400 font-bold uppercase text-[10px]">Hapus</button></td>
-                    </tr>`;
-                });
-            });
-
-            // Bank Sync
-            publicData.collection('ai_bank').onSnapshot(s => {
-                const list = document.getElementById('ai-question-list');
-                list.innerHTML = "";
-                s.forEach(d => {
-                    const q = d.data();
-                    list.innerHTML += `<div class="bg-white p-6 rounded-3xl border border-slate-100"><p class="text-slate-800 font-medium">${q.question}</p><span class="text-[9px] bg-indigo-50 text-indigo-500 px-3 py-1 rounded-full font-black uppercase mt-3 inline-block">${q.topic}</span></div>`;
-                });
-            });
-        }
 
         function startMonitorFeed() {
             publicData.collection('live').onSnapshot(s => {
@@ -531,35 +607,56 @@
             });
         }
 
-        // --- 8. AI ENGINE (GEMINI) ---
-        async function generateAISoal() {
-            const topic = document.getElementById('ai-topic').value;
-            const count = document.getElementById('ai-count').value || 1;
-            if (!topic) return alert("Mohon isi topik materi!");
-            if (!apiKey || apiKey.includes("MASUKKAN")) return alert("API Key Gemini belum diatur di script!");
+// --- LOGIKA AI GEMINI (VERSI STABIL) ---
+async function generateAISoal() {
+    const topic = document.getElementById('ai-topic').value;
+    const count = document.getElementById('ai-count').value || 1;
+    
+    if (!topic) return alert("Mohon isi topik materi!");
+    const btn = document.getElementById('ai-btn');
+    const loader = document.getElementById('ai-loading');
 
-            document.getElementById('ai-btn').classList.add('hidden-element');
-            document.getElementById('ai-loading').classList.remove('hidden-element');
+    btn.classList.add('hidden-element');
+    loader.classList.remove('hidden-element');
 
-            try {
-                const prompt = `Buatkan ${count} soal pilihan ganda tentang materi ${topic}. Berikan jawaban dalam format JSON murni array of objects: [{"question": "..."}]. Jangan gunakan markdown, jangan ada teks tambahan.`;
-                const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`, {
-                    method: 'POST', headers: {'Content-Type': 'application/json'},
-                    body: JSON.stringify({contents: [{parts: [{text: prompt}]}]})
-                });
-                const result = await res.json();
-                let text = result.candidates[0].content.parts[0].text;
-                text = text.replace(/```json|```/g, "").trim();
-                const qs = JSON.parse(text);
-                for(let q of qs) await publicData.collection('ai_bank').add({question: q.question, topic: topic, timestamp: Date.now()});
-                alert("AI Berhasil merumuskan soal!");
-                closeModal('modal-ai');
-            } catch(e) { console.error(e); alert("Gagal memproses AI: Format JSON tidak valid."); }
-            finally {
-                document.getElementById('ai-btn').classList.remove('hidden-element');
-                document.getElementById('ai-loading').classList.add('hidden-element');
-            }
-        }
+    try {
+        const prompt = `Buatkan ${count} soal pilihan ganda tentang materi ${topic}. Berikan jawaban HANYA dalam format JSON Array of Objects: [{"question": "..."}]. Tanpa penjelasan tambahan.`;
+
+        const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`, {
+            method: 'POST', 
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({
+                contents: [{parts: [{text: prompt}]}],
+                generationConfig: { responseMimeType: "application/json" }
+            })
+        });
+
+        const result = await res.json();
+        let text = result.candidates[0].content.parts[0].text;
+        
+        // Membersihkan string jika ada sisa markdown
+        const startIndex = text.indexOf('[');
+        const endIndex = text.lastIndexOf(']') + 1;
+        const cleanJson = text.substring(startIndex, endIndex);
+        const qs = JSON.parse(cleanJson);
+
+        const batch = db.batch();
+        qs.forEach(q => {
+            const docRef = publicData.collection('ai_bank').doc();
+            batch.set(docRef, { question: q.question, topic: topic, timestamp: Date.now() });
+        });
+        await batch.commit();
+
+        alert(`Berhasil generate ${qs.length} soal!`);
+        closeModal('modal-ai');
+    } catch(e) {
+        console.error(e);
+        alert("Gagal memproses AI. Pastikan API Key valid dan format benar.");
+    } finally {
+        btn.classList.remove('hidden-element');
+        loader.classList.add('hidden-element');
+    }
+}
 
         // --- 9. CRUD LOGIC ---
         async function saveExam() {
@@ -577,20 +674,6 @@
             if(id) await publicData.collection('exams').doc(id).update(data);
             else await publicData.collection('exams').add(data);
             closeModal('modal-exam');
-        }
-
-        async function saveStudent() {
-            const id = document.getElementById('edit-student-id').value;
-            const data = {
-                nis: document.getElementById('std-nis').value,
-                nama: document.getElementById('std-nama').value,
-                kelas: document.getElementById('std-kelas').value,
-                pwd: document.getElementById('std-pwd').value
-            };
-            if(!data.nis || !data.nama) return alert("NIS dan Nama wajib diisi!");
-            if(id) await publicData.collection('users').doc(id).update(data);
-            else await publicData.collection('users').add(data);
-            closeModal('modal-student');
         }
 
         async function delDoc(c, id) { if(confirm("Hapus data ini secara permanen dari Cloud?")) await publicData.collection(c).doc(id).delete(); }
@@ -617,18 +700,6 @@
             openModal('modal-exam');
         }
 
-        async function editStudent(id) {
-            const d = await publicData.collection('users').doc(id).get();
-            const u = d.data();
-            document.getElementById('student-modal-title').textContent = "Edit Data Peserta";
-            document.getElementById('edit-student-id').value = id;
-            document.getElementById('std-nis').value = u.nis;
-            document.getElementById('std-nama').value = u.nama;
-            document.getElementById('std-kelas').value = u.kelas;
-            document.getElementById('std-pwd').value = u.pwd;
-            openModal('modal-student');
-        }
-
         // --- 10. UTILITIES ---
         function showPage(id) {
             ['login-page','admin-page','student-page'].forEach(p => document.getElementById(p).classList.add('hidden-element'));
@@ -646,33 +717,21 @@
             document.getElementById('tab-btn-'+t).classList.remove('text-slate-400');
         }
 
-        function openModal(id) { document.getElementById(id).classList.remove('hidden-element'); }
-        function closeModal(id) { document.getElementById(id).classList.add('hidden-element'); }
-        
+        function openModal(id) {const modal = document.getElementById(id);if (modal) {modal.classList.remove('hidden-element');} else {console.error("Modal dengan ID " + id + " tidak ditemukan!");}}
+	function closeModal(id) {const modal = document.getElementById(id);if (modal) {modal.classList.add('hidden-element');}}
+
+	function openStudentModal() {
+	    const title = document.getElementById('student-modal-title'); if(title) title.textContent = "Tambah Siswa Baru";
+	    const editId = document.getElementById('edit-student-id'); if(editId) editId.value = "";
+	    const fields = ['std-nis', 'std-nama', 'std-kelas', 'std-pwd'];
+	    fields.forEach(id => {const el = document.getElementById(id);if (el) el.value = "";});
+	    openModal('modal-student');}
+
         function switchStudentView(v) {
             ['view-scheduled','view-manual','qr-reader-container'].forEach(id => document.getElementById(id).classList.add('hidden-element'));
             document.getElementById('view-'+v).classList.remove('hidden-element');
         }
 
-        async function handleCSVImport(e) {
-            const reader = new FileReader();
-            reader.onload = async (ev) => {
-                const content = ev.target.result.replace(/\r/g, "");
-                const lines = content.split('\n').slice(1);
-                let added = 0;
-                for (let line of lines) {
-                    const cols = line.split(',');
-                    if (cols.length < 3) continue;
-                    await publicData.collection('users').add({
-                        nis: cols[0].trim(), nama: cols[1].trim(), kelas: cols[2].trim(), pwd: cols[3]?.trim() || "123"
-                    });
-                    added++;
-                }
-                alert(`Impor ${added} siswa berhasil disinkronkan!`);
-                location.reload();
-            };
-            reader.readAsText(e.target.files[0]);
-        }
 
         async function syncSpecialSettings() {
             publicData.collection('settings').doc('special_methods').onSnapshot(d => { if(d.exists) specialSettings = d.data(); });
@@ -710,23 +769,34 @@
             startExamEngine(url, "Manual Access", specialSettings.duration);
         }
 
-        function simulateScan() {
-            document.getElementById('qr-reader-container').classList.remove('hidden-element');
-            document.getElementById('view-scheduled').classList.add('hidden-element');
-            const reader = new Html5Qrcode("qr-reader");
-            reader.start({facingMode: "environment"}, {fps: 10, qrbox: 250}, async (txt) => {
-                try {
-                    const data = JSON.parse(txt);
-                    const d = await publicData.collection('exams').doc(data.examId).get();
-                    if(d.exists) {
-                        activePin = d.data().pin;
-                        startExamEngine(d.data().link, d.data().mapel, specialSettings.duration || d.data().duration);
-                        reader.stop();
-                        document.getElementById('qr-reader-container').classList.add('hidden-element');
-                    }
-                } catch(e) { alert("Format QR Code tidak dikenal oleh sistem."); }
-            });
+// --- SISTEM SCAN QR (DIPERBAIKI) ---
+let html5QrScanner = null;
+function simulateScan() {
+    document.getElementById('qr-reader-container').classList.remove('hidden-element');
+    document.getElementById('view-scheduled').classList.add('hidden-element');
+    
+    if(!html5QrScanner) {
+        html5QrScanner = new Html5Qrcode("qr-reader");
+    }
+    
+    html5QrScanner.start(
+        { facingMode: "environment" }, 
+        { fps: 10, qrbox: 250 },
+        async (txt) => {
+            try {
+                const data = JSON.parse(txt);
+                const d = await publicData.collection('exams').doc(data.examId).get();
+                if(d.exists) {
+                    activePin = d.data().pin;
+                    await html5QrScanner.stop();
+                    startExamEngine(d.data().link, d.data().mapel, d.data().duration);
+                }
+            } catch(e) { 
+                alert("QR Code tidak valid!"); 
+            }
         }
+    ).catch(err => alert("Gagal mengakses kamera: " + err));
+}
 
         function stopQR() { location.reload(); }
 
@@ -758,6 +828,9 @@
             const snap = await publicData.collection('live').get();
             const batch = db.batch(); snap.forEach(doc => batch.delete(doc.ref)); await batch.commit();
         }
+
+
+
     </script>
 </body>
 </html>

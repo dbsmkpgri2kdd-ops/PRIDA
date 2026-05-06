@@ -137,6 +137,20 @@ body{background:var(--bg);color:var(--text-dark);overflow-x:hidden;overscroll-be
     to { opacity: 1; transform: translateY(0); }
 }
 
+
+/* CSS Tambahan untuk Link Full Screen */
+.modal-body.no-padding {
+    padding: 0 !important;
+    overflow: hidden;
+}
+
+#externalFrame {
+    width: 100%;
+    height: 100%;
+    border: none;
+    display: block;
+}
+
 </style>
 </head>
 
@@ -158,8 +172,7 @@ body{background:var(--bg);color:var(--text-dark);overflow-x:hidden;overscroll-be
 	    <!-- APPBAR -->
 	<div class="appbar">
 		<div class="appbar-left"><i class="fa-solid fa-bars-staggered menu-toggle" onclick="toggleSidebar()"></i><h3>SMK PGRI 2 KEDONDONG</h3></div>
-	<!-- Tambahkan ID ini di dalam appbar-left -->
-	<div id="mainLogo" style="display:none;"></div>
+	<!-- Tambahkan ID ini di dalam appbar-left --><div id="mainLogo" style="display:none;"></div>
 	</div>
 
     <div class="sidebar-overlay" id="sidebarOverlay" onclick="toggleSidebar()"></div>
@@ -182,9 +195,6 @@ body{background:var(--bg);color:var(--text-dark);overflow-x:hidden;overscroll-be
             <div class="sidebar-item" onclick="handleLogout()" style="color: #ff6b6b;"><i class="fa-solid fa-power-off"></i> Logout</div>
         </div>
     </div>
-
-
-
 
         <!-- Content Sections -->
         <div class="section active" id="profil">
@@ -305,62 +315,6 @@ body{background:var(--bg);color:var(--text-dark);overflow-x:hidden;overscroll-be
             }
         }
 
-async function fetchSpreadsheetData() {
-    try {
-        const r = await fetch(API_URL);
-        const data = await r.json();
-        
-        // Daftar kontainer yang perlu dibersihkan
-        const sections = ['grid-lembaga', 'grid-profil', 'grid-game', 'grid-layanan', 'grid-literasi', 'grid-media', 'video-profil'];
-        sections.forEach(id => {
-            const el = document.getElementById(id);
-            if (el) {
-                // Simpan item statis (yang ditulis manual di HTML) agar tidak hilang
-                const statics = el.querySelectorAll('.static-item');
-                el.innerHTML = ''; 
-                statics.forEach(s => el.appendChild(s));
-            }
-        });
-
-        Object.keys(data).forEach(key => {
-            const item = data[key];
-            const sectionId = `grid-${item.SectionID?.toLowerCase().trim()}`;
-            const container = document.getElementById(sectionId);
-
-            if (container) {
-                const card = document.createElement('div');
-                card.className = 'menu-card';
-                card.innerHTML = `
-                    <div class="icon-box"><i class="${item.Icon || 'fa-solid fa-link'}"></i></div>
-                    <span>${item.Title || key}</span>
-                `;
-                card.onclick = () => item.Url ? window.open(item.Url, '_blank') : openModal(item.Title, "Konten belum tersedia.");
-                container.appendChild(card);
-            }
-
-            // Logika Video Galeri
-            if (item.Thumbnail && item.Thumbnail.startsWith('http')) {
-                const videoList = document.getElementById('video-profil');
-                if (videoList) {
-                    const v = document.createElement('div');
-                    v.className = 'video-item';
-                    v.innerHTML = `
-                        <div class="video-thumb" onclick="playInPlace(this, '${item.Url}')">
-                            <img src="${item.Thumbnail}">
-                            <div class="video-play-btn"><i class="fa-solid fa-play"></i></div>
-                        </div>
-                        <div class="video-info">${item.Title}</div>
-                    `;
-                    videoList.appendChild(v);
-                }
-            }
-        });
-    } catch (e) {
-        console.error("Error loading data", e);
-        showToast("Gagal memuat data.");
-    }
-}
-
 
         async function fetchAndShowPTK() {
             openModal('Daftar PTK', 'Memuat data guru...');
@@ -402,32 +356,9 @@ async function fetchSpreadsheetData() {
             const active = s.classList.toggle('active');
             o.style.display = active ? 'block' : 'none';
         }
-// --- LOGIKA MODAL FULL SCREEN & BACK BUTTON HP ---
 
-function openModal(title, content) {
-    // Isi konten ke dalam body modal
-    document.getElementById('modalBody').innerHTML = content;
-    // Tampilkan modal
-    document.getElementById('contentModal').style.display = 'flex';
-    
-    // TAMBAHKAN INI: Masukkan state baru ke history agar saat tombol back HP ditekan, modal tertutup
-    history.pushState({ modalOpen: true }, "");
-}
 
-function closeModal() {
-    document.getElementById('contentModal').style.display = 'none';
-}
 
-// TAMBAHKAN INI: Mendeteksi tombol Back fisik/sistem HP
-window.onpopstate = function(event) {
-    // Jika user menekan tombol back, tutup modal
-    closeModal();
-};
-
-// Pastikan fungsi lama tetap bekerja tapi panggil openModal
-function openDynamicContent(key) { 
-    openModal(key, DYNAMIC_DATA[key] || "Konten tidak ditemukan."); 
-}
         function openDynamicContent(key) { openModal(key, DYNAMIC_DATA[key] || "Konten tidak ditemukan."); }
 
         function showToast(msg) {
@@ -565,7 +496,95 @@ function playInPlace(container, url) {
 }
 
 
+// 1. Modifikasi fungsi fetch agar tidak membuka tab baru
+async function fetchSpreadsheetData() {
+    try {
+        const r = await fetch(API_URL);
+        const data = await r.json();
+        
+        const sections = ['grid-lembaga', 'grid-profil', 'grid-game', 'grid-layanan', 'grid-literasi', 'grid-media'];
+        sections.forEach(id => {
+            const el = document.getElementById(id);
+            if (el) {
+                const statics = el.querySelectorAll('.static-item');
+                el.innerHTML = ''; 
+                statics.forEach(s => el.appendChild(s));
+            }
+        });
 
+        Object.keys(data).forEach(key => {
+            const item = data[key];
+            const sectionId = `grid-${item.SectionID?.toLowerCase().trim()}`;
+            const container = document.getElementById(sectionId);
+
+            if (container) {
+                const card = document.createElement('div');
+                card.className = 'menu-card';
+                card.innerHTML = `
+                    <div class="icon-box"><i class="${item.Icon || 'fa-solid fa-link'}"></i></div>
+                    <span>${item.Title || key}</span>
+                `;
+                
+                // MODIFIKASI DISINI: Jika ada URL, panggil openExternalLink
+                card.onclick = () => {
+                    if (item.Url) {
+                        openExternalLink(item.Url);
+                    } else {
+                        openModal(item.Title, "Konten belum tersedia.");
+                    }
+                };
+                container.appendChild(card);
+            }
+        });
+    } catch (e) {
+        console.error("Error loading data", e);
+    }
+}
+
+// 2. Fungsi Khusus Membuka Link (Full Layar & Iframe)
+function openExternalLink(url) {
+    const modalBody = document.getElementById('modalBody');
+    
+    // Set padding ke 0 agar benar-benar full layar
+    modalBody.classList.add('no-padding');
+    
+    // Masukkan Iframe ke dalam modal
+    modalBody.innerHTML = `<iframe src="${url}" id="externalFrame" allow="geolocation; microphone; camera"></iframe>`;
+    
+    // Tampilkan modal
+    document.getElementById('contentModal').style.display = 'flex';
+    
+    // Tambahkan history state agar tombol back HP bisa menutup modal
+    history.pushState({ modalOpen: true }, "");
+}
+
+// 3. Update fungsi openModal standar agar mengembalikan padding
+function openModal(title, content) {
+    const modalBody = document.getElementById('modalBody');
+    modalBody.classList.remove('no-padding'); // Kembalikan padding untuk teks biasa
+    modalBody.innerHTML = content;
+    document.getElementById('contentModal').style.display = 'flex';
+    history.pushState({ modalOpen: true }, "");
+}
+
+// 4. Update Logika Tombol Back HP
+window.onpopstate = function(event) {
+    closeModal();
+};
+
+function closeModal() {
+    const modal = document.getElementById('contentModal');
+    if (modal.style.display === 'flex') {
+        modal.style.display = 'none';
+        // Bersihkan iframe agar tidak berat saat modal tertutup
+        document.getElementById('modalBody').innerHTML = '';
+    }
+}
+
+// Pastikan fungsi lama tetap bekerja tapi panggil openModal
+function openDynamicContent(key) { 
+    openModal(key, DYNAMIC_DATA[key] || "Konten tidak ditemukan."); 
+}
 
 
     </script>

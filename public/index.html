@@ -85,28 +85,68 @@ body{background:var(--bg);color:var(--text-dark);overflow-x:hidden;overscroll-be
 .video-thumb{width:100%;aspect-ratio:16/9;background:#000;position:relative;overflow:hidden;display:flex;align-items:center;justify-content:center}
 .video-thumb iframe{position:absolute;top:0;left:0;width:100%!important;height:100%!important}.video-thumb img{width:100%;height:100%;object-fit:cover}
 .video-play-btn{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);width:45px;height:45px;background:rgba(0,86,179,0.8);border-radius:50%;display:flex;align-items:center;justify-content:center;color:white}.video-info{padding:12px;font-size:13px;font-weight:700}
-#contentModal{position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,29,61,0.6);backdrop-filter:blur(8px);z-index:10000;display:none;align-items:flex-end;justify-content:center}
-.modal-content{width:100%;max-width:500px;background:var(--white);border-radius:28px 28px 0 0;max-height:calc(100vh - 120px);display:flex;flex-direction:column;animation:slideUp 0.35s ease-out}
-.modal-header{padding:20px 24px;flex-shrink:0;border-bottom:1px solid #eee}.modal-body{flex:1;overflow-y:auto;padding:20px 24px;padding-bottom:calc(100px + env(safe-area-inset-bottom))}
-#modalBody select,#modalBody input{width:100%;padding:14px;margin-top:10px;border-radius:12px;border:1.5px solid #eee;background:#f8f9fa;font-size:14px;outline:none}#modalBody select:focus{border-color:var(--secondary)}
 @keyframes slideUp{from{transform:translateY(100%)}to{transform:translateY(0)}}
 .swipe-indicator{position:fixed;bottom:85px;left:50%;transform:translateX(-50%);display:flex;gap:6px;z-index:1200}.swipe-dot{width:6px;height:6px;border-radius:50%;background:rgba(0,0,0,0.1);transition:0.3s}.swipe-dot.active{width:16px;border-radius:6px;background:var(--primary)}
 .toast{position:fixed;top:85px;left:50%;transform:translateX(-50%);background:rgba(0,0,0,0.8);color:white;padding:10px 20px;border-radius:20px;font-size:12px;display:none;z-index:9000}
 #btnInstall{display:none;position:fixed;left:50%;bottom:40px;transform:translateX(-50%);z-index:99999;padding:18px 36px;border:none;border-radius:18px;background:linear-gradient(135deg,#25D366,#128C7E);color:#ffffff;font-size:16px;font-weight:700;letter-spacing:0.5px;box-shadow:0 10px 25px rgba(45,43,124,0.45);cursor:pointer}
 .lulus-box{animation:glow 1.5s infinite}@keyframes glow{0%{box-shadow:0 0 0 rgba(22,163,74,0.4)}50%{box-shadow:0 0 25px rgba(22,163,74,0.8)}100%{box-shadow:0 0 0 rgba(22,163,74,0.4)}}
 .confetti{position:fixed;width:8px;height:8px;top:-10px;z-index:99999;animation:fall linear forwards}@keyframes fall{to{transform:translateY(110vh) rotate(720deg);opacity:0}}
+
+/* --- MODIFIKASI FULL SCREEN --- */
+#contentModal {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: var(--white); /* Latar belakang putih bersih */
+    z-index: 10000;
+    display: none;
+    align-items: flex-start; /* Mulai dari atas */
+    justify-content: center;
+}
+
+.modal-content {
+    width: 100%;
+    height: 100vh; /* Full tinggi layar */
+    max-width: none; /* Hilangkan batas lebar */
+    background: var(--white);
+    border-radius: 0; /* Hilangkan lengkungan sudut */
+    display: flex;
+    flex-direction: column;
+    animation: fadeIn 0.3s ease-out; /* Animasi muncul halus */
+}
+
+/* Sembunyikan Header (Judul & Tombol Back di layar) */
+.modal-header {
+    display: none !important; 
+}
+
+.modal-body {
+    flex: 1;
+    overflow-y: auto;
+    padding: 25px; /* Beri ruang bersih untuk teks */
+    padding-bottom: env(safe-area-inset-bottom);
+    line-height: 1.8; /* Agar teks lebih enak dibaca */
+    font-size: 16px;
+    color: #333;
+}
+
+@keyframes fadeIn {
+    from { opacity: 0; transform: translateY(20px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
 </style>
 </head>
 
 <body>
 
     <button id="btnInstall">📲 Install Aplikasi</button>
-
     <div class="toast" id="toast"></div>
     <div id="login-screen">
         <div class="login-card">
-            <div class="login-logo"><i class="fa-solid fa-graduation-cap"></i></div>
-            <h2>PRIDA Mobile</h2><p>Solusi Akademik Digital Terpadu</p>
+            <div class="login-logo"><i class="fa-solid fa-graduation-cap"></i></div><h2>PRIDA Mobile</h2><p>Solusi Akademik Digital Terpadu</p>
             <div class="input-group"><i class="fa-solid fa-circle-user"></i><input type="text" id="usernameInput" placeholder="Nama Pengguna" autocomplete="off"></div>
             <div class="input-group"><i class="fa-solid fa-shield-halved"></i><input type="password" id="passwordInput" placeholder="Password (12345)"></div>
             <button class="login-btn" onclick="handleLogin()">MASUK SEKARANG</button>
@@ -362,15 +402,32 @@ async function fetchSpreadsheetData() {
             const active = s.classList.toggle('active');
             o.style.display = active ? 'block' : 'none';
         }
+// --- LOGIKA MODAL FULL SCREEN & BACK BUTTON HP ---
 
-        function openModal(title, content) {
-            document.getElementById('modalTitle').innerText = title;
-            document.getElementById('modalBody').innerHTML = content;
-            document.getElementById('contentModal').style.display = 'flex';
-        }
+function openModal(title, content) {
+    // Isi konten ke dalam body modal
+    document.getElementById('modalBody').innerHTML = content;
+    // Tampilkan modal
+    document.getElementById('contentModal').style.display = 'flex';
+    
+    // TAMBAHKAN INI: Masukkan state baru ke history agar saat tombol back HP ditekan, modal tertutup
+    history.pushState({ modalOpen: true }, "");
+}
 
-        function closeModal() { document.getElementById('contentModal').style.display = 'none'; }
+function closeModal() {
+    document.getElementById('contentModal').style.display = 'none';
+}
 
+// TAMBAHKAN INI: Mendeteksi tombol Back fisik/sistem HP
+window.onpopstate = function(event) {
+    // Jika user menekan tombol back, tutup modal
+    closeModal();
+};
+
+// Pastikan fungsi lama tetap bekerja tapi panggil openModal
+function openDynamicContent(key) { 
+    openModal(key, DYNAMIC_DATA[key] || "Konten tidak ditemukan."); 
+}
         function openDynamicContent(key) { openModal(key, DYNAMIC_DATA[key] || "Konten tidak ditemukan."); }
 
         function showToast(msg) {

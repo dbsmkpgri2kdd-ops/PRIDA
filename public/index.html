@@ -517,8 +517,9 @@ async function fetchSpreadsheetData() {
     }
 }
 
-// Pisahkan logika tampilan ke fungsi tersendiri
+
 function renderData(data) {
+    try {
         const sections = ['grid-lembaga', 'grid-profil', 'grid-game', 'grid-layanan', 'grid-literasi', 'grid-media', 'video-profil'];
         sections.forEach(id => {
             const el = document.getElementById(id);
@@ -531,7 +532,6 @@ function renderData(data) {
 
         Object.keys(data).forEach(key => {
             const item = data[key];
-            // Ambil URL dengan toleransi huruf besar/kecil
             const targetUrl = item.Url || item.URL || item.url;
             const sectionId = `grid-${item.SectionID?.toLowerCase().trim()}`;
             const container = document.getElementById(sectionId);
@@ -544,7 +544,6 @@ function renderData(data) {
                     <span>${item.Title || key}</span>
                 `;
                 
-                // PERBAIKAN DI SINI: Menggunakan openExternalLink agar terbuka dalam aplikasi
                 card.onclick = () => {
                     if (targetUrl) {
                         openExternalLink(targetUrl);
@@ -574,12 +573,10 @@ function renderData(data) {
             }
         });
     } catch (e) {
-        console.error("Error loading data", e);
+        console.error("Error rendering data", e);
         showToast("Gagal memuat data.");
     }
 }
-
-
 
 // 2. Fungsi Khusus Membuka Link (Full Layar & Iframe)
 function openExternalLink(url) {

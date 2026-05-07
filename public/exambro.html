@@ -190,7 +190,9 @@
 			<div id="view-manual" class="hidden-element bg-white p-6 rounded-3xl border shadow-xl text-center"><h2 class="text-xl font-black mb-2">Tempel Link</h2><p class="text-slate-400 text-[10px] mb-6 uppercase font-bold tracking-widest">Masukkan URL Google Form atau LMS</p>
 			<input type="text" id="manual-url" class="w-full bg-slate-50 p-4 rounded-2xl mb-4 border focus:border-blue-500 outline-none text-sm font-medium" placeholder="https://forms.gle/...">
 			<button onclick="startManualExam()" class="w-full bg-blue-600 text-white py-4 rounded-2xl font-bold shadow-lg shadow-blue-100 active:bg-blue-700 transition-all uppercase text-xs tracking-widest">BUKA UJIAN</button>
-	        </div>
+	        <button onclick="switchStudentView('scheduled')" class="mt-6 text-slate-400 text-[10px] font-bold uppercase tracking-widest block w-full text-center">← Kembali ke Jadwal</button>
+			</div>
+
 	    </main>
 
 	</div>
@@ -295,8 +297,10 @@
             } catch(e) { console.error("Init Error:", e); }
         };
 
-		function logout() {
+		async function logout() {
             if(confirm("Yakin ingin keluar dari Akun Dashboard?")) {
+				try {if (user && user.id) {await publicData.collection('live').doc(user.id).delete();}
+        } catch (e) { console.log("Clean up skip"); }
                 localStorage.removeItem('exambro_session');
 				user = null; if (window.localStream) {window.localStream.getTracks().forEach(track => track.stop()); }
                 location.reload();
@@ -366,14 +370,6 @@
             }
         }
 		
-
-        // --- 5. STUDENT ENGINE (SECURITY & EXAM) ---
-        function initPeer() {
-    // Sanitasi ID agar hanya berisi huruf dan angka
-    const safeId = 'std-' + user.id.replace(/[^a-zA-Z0-9]/g, '');
-    peer = new Peer(safeId);
-    peer.on('call', call => { if (window.localStream) call.answer(window.localStream); });
-}
 
         function reportViolation() {
             if (!isExamActive) return;
@@ -559,12 +555,21 @@ function syncAdminStudentData() {
             });
         }
 
-        function openLiveStream(studentId) {
+ function initPeer() {
+    // Pastikan ID unik dan bersih
+    const safeId = 'user-exam-' + user.id.replace(/[^a-zA-Z0-9]/g, '');
+    peer = new Peer(safeId);
+    peer.on('call', call => { 
+        if (window.localStream) call.answer(window.localStream); 
+    });
+}
+
+function openLiveStream(studentId) {
     const container = document.getElementById(`container-${studentId}`);
     container.innerHTML = `<video id="remote-${studentId}" autoplay playsinline class="w-full h-full object-cover bg-black"></video>`;
     
-    // Pastikan ID yang dipanggil sama dengan ID yang didaftarkan siswa (pakai awalan std-)
-    const safeStudentId = 'std-' + studentId.replace(/[^a-zA-Z0-9]/g, '');
+    // ID harus sama persis dengan yang dibuat siswa (user-exam-ID)
+    const safeStudentId = 'user-exam-' + studentId.replace(/[^a-zA-Z0-9]/g, '');
     
     if (!peer) peer = new Peer();
     const call = peer.call(safeStudentId, new MediaStream());
@@ -574,7 +579,7 @@ function syncAdminStudentData() {
     });
 }
 		
-	
+		
 
 // --- LOGIKA AI GEMINI (VERSI STABIL) ---
 async function generateAISoal() {
@@ -717,7 +722,62 @@ async function generateAISoal() {
 
         function confirmFinishExam() { if(confirm("Apakah anda yakin telah menyelesaikan semua soal dan ingin keluar?")) finishExam(); }
         
-function startManualExam() {
+function switchStudentView(view) {
+    const scheduled = document.getElementById('view-scheduled');
+    const manual = document.getElementById('view-manual');
+    const qr = document.getElementById('qr-reader-container');
+
+    // Sembunyikan semua view siswa
+    scheduled.classList.add('hidden-element');
+    manual.classList.add('hidden-element');
+    qr.classList.add('hidden-element');
+
+    // Tampilkan yang dipilih
+    if (view === 'scheduled') {
+        scheduled.classList.remove('hidden-element');
+    } else if (view === 'manual') {
+        manual.classList.remove('hidden-element');
+    } else if (view === 'qr') {
+        qr.classList.remove('hidden-element');
+    }
+}
+		
+let html5QrScanner = null;
+function simulateScan() {
+    // Pindah ke tampilan kamera
+    switchStudentView('qr');
+    
+    html5QrScanner = new Html5Qrcode("qr-reader");
+    html5QrScanner.start(
+        { facingMode: "environment" }, 
+        { fps: 10, qrbox: 250 },
+        async (decodedText) => {
+            const scannedUrl = decodedText.trim();
+            if (scannedUrl.startsWith("http")) {
+                await html5QrScanner.stop();
+                // Gunakan pengaturan global/akses cepat
+                activePin = specialSettings.pin || "1234"; 
+                startExamEngine(scannedUrl, "Akses Via Scan QR", specialSettings.duration || 60, true);
+            } else {
+                alert("QR Code bukan berisi link valid!");
+            }
+        }
+    ).catch(err => {
+        alert("Kamera Error: " + err);
+        stopQR();
+    });
+}
+
+async function stopQR() {
+    if (html5QrScanner) {
+        try { await html5QrScanner.stop(); } catch (e) {}
+    }
+    // Kembali ke daftar jadwal
+    switchStudentView('scheduled');
+}		
+		
+		
+	function startManualExam() {
     const url = document.getElementById('manual-url').value.trim();
     
     // 1. Validasi Input
@@ -745,55 +805,7 @@ function startManualExam() {
     document.getElementById('manual-url').value = "";
 		}
 
-let html5QrScanner = null;
-function simulateScan() {
-    // Tampilkan container scanner dan sembunyikan list pelajaran
-    document.getElementById('qr-reader-container').classList.remove('hidden-element');
-    document.getElementById('view-scheduled').classList.add('hidden-element');
-    
-    // Inisialisasi scanner
-    html5QrScanner = new Html5Qrcode("qr-reader");
-    
-    html5QrScanner.start(
-        { facingMode: "environment" }, 
-        { fps: 10, qrbox: 250 },
-        async (decodedText) => {
-            // LOGIKA: decodedText langsung dianggap sebagai URL (sama seperti input manual)
-            const scannedUrl = decodedText.trim();
 
-            if (scannedUrl.startsWith("http")) {
-                // 1. Matikan scanner dulu agar kamera bisa digunakan untuk monitor ujian
-                await html5QrScanner.stop();
-                document.getElementById('qr-reader-container').classList.add('hidden-element');
-
-                // 2. Gunakan PIN dan Durasi dari "Konfigurasi Akses Cepat" (Special Settings)
-                activePin = specialSettings.pin; 
-                
-                // 3. Jalankan Engine Ujian (Logika sama dengan Manual)
-                // Parameter: URL, Nama Mapel, Durasi, Wajib Kamera (true)
-                startExamEngine(scannedUrl, "Akses Via Scan QR", specialSettings.duration, true);
-            } else {
-                alert("QR Code tidak berisi link URL yang valid!");
-            }
-        }
-    ).catch(err => {
-        alert("Gagal mengakses kamera: " + err);
-        stopQR();
-    });
-}
-
-async function stopQR() {
-    if (html5QrScanner) {
-        try {
-            await html5QrScanner.stop();
-        } catch (e) {
-            console.log("Scanner sudah berhenti");
-        }
-    }
-    // Sembunyikan scanner dan kembali ke list terjadwal
-    document.getElementById('qr-reader-container').classList.add('hidden-element');
-    document.getElementById('view-scheduled').classList.remove('hidden-element');
-}
 
 
 		function syncStudentData() {

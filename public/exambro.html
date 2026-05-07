@@ -120,7 +120,7 @@
 	<!-- SECTION STUDENT -->
 	<div id="section-student" class="hidden-element">
 	    <div class="flex justify-between items-end mb-10">
-	        <div><h2 class="text-3xl font-black text-slate-900">Database Siswa</h2><p class="text-slate-400 text-xs mt-1">Kelola data peserta ujian secara real-time.</p></div>
+	        <div><h2 class="text-3xl font-black text-slate-900">Database Siswa</h2><p class="text-slate-400 text-xs mt-1">Data sinkron otomatis dari Google Spreadsheet.</p></div>
 		</div>
 
 		<!-- Panel Sinkronisasi Google Sheet (Sekarang Langsung Muncul) -->
@@ -132,11 +132,11 @@
                         </div>
                         <div class="flex items-end h-full pt-6">
                             <button id="btn-sync-sheet" onclick="syncFromGoogleSheet()" class="bg-emerald-600 text-white px-8 py-4 rounded-2xl font-black text-xs shadow-lg shadow-emerald-100 flex items-center hover:bg-emerald-700 transition-all min-w-[200px] justify-center">
-                                <span id="sync-text">SINKRON DATA</span>
+                                <span id="sync-text">SIMPAN & SINKRON</span>
                             </button>
                         </div>
                     </div>
-                    <p class="text-[9px] text-slate-400 mt-4 italic">*Pastikan format kolom: <b>NIS, Nama, Kelas, Password</b> dan akses file adalah "Publish to Web".</p>
+                    <p class="text-[9px] text-slate-400 mt-4 italic">*Perubahan data dilakukan langsung di Google Sheet. Klik tombol di atas untuk menyegarkan database di aplikasi.</p>
                 </div>
 	    
 	    <div class="bg-white rounded-[2.5rem] border overflow-hidden shadow-sm">
@@ -328,7 +328,7 @@
                 setRole('student');
                 syncSpecialSettings();
                 loadKelas();
-                startCleanupService();
+                startCleanupService();loadSheetConfig();
             } catch(e) { console.error("Init Error:", e); }
         };
 
@@ -475,12 +475,87 @@ function syncAdminData() {
     });
 }
 
+// 1. Fungsi untuk Memuat Link yang tersimpan di Cloud saat Admin dibuka
+async function loadSheetConfig() {
+    const doc = await publicData.collection('settings').doc('sheet_config').get();
+    if (doc.exists) {
+        document.getElementById('sheet-url').value = doc.data().url;
+    }
+}
 
+// 2. Fungsi Utama: Simpan Link ke Cloud dan Jalankan Sinkronisasi
+async function saveAndSyncSheet() {
+    const urlInput = document.getElementById('sheet-url').value.trim();
+    if (!urlInput) return alert("Masukkan link Google Sheet terlebih dahulu!");
 
-// --- SINKRONISASI REAL-TIME TABEL SISWA ---
+    const btn = document.getElementById('btn-sync-sheet');
+    const btnText = document.getElementById('sync-text');
+
+    // Simpan Link ke Firestore agar bisa diakses dari perangkat manapun
+    await publicData.collection('settings').doc('sheet_config').set({
+        url: urlInput,
+        lastSync: Date.now()
+    });
+
+    // Jalankan Proses Sinkronisasi Data
+    btn.disabled = true;
+    btnText.textContent = "SEDANG MENYINKRON...";
+
+    try {
+        // Konversi URL ke format CSV
+        let exportUrl = urlInput;
+        if (urlInput.includes('/edit')) {
+            const match = urlInput.match(/\/d\/(.+?)\//);
+            if (match) exportUrl = `https://docs.google.com/spreadsheets/d/${match[1]}/export?format=csv`;
+        }
+
+        const res = await fetch(exportUrl);
+        if (!res.ok) throw new Error("Gagal mengambil file. Pastikan sudah 'Publish to Web'.");
+        
+        const text = await res.text();
+        const rows = text.replace(/\r/g, "").split('\n').filter(row => row.trim() !== "");
+        const dataRows = rows.slice(1); // Potong header
+
+        // PROSES OVERWRITE: Hapus data lama, ganti dengan data baru dari Spreadsheet
+        const oldDocs = await publicData.collection('users').get();
+        const batch = db.batch();
+        
+        // Hapus semua data siswa lama di Firestore
+        oldDocs.forEach(doc => batch.delete(doc.ref));
+
+        // Tambah data siswa baru dari Spreadsheet
+        let addedCount = 0;
+        dataRows.forEach(row => {
+            const cols = row.match(/(".*?"|[^",\s]+)(?=\s*,|\s*$)/g);
+            if (cols && cols.length >= 3) {
+                const docRef = publicData.collection('users').doc();
+                batch.set(docRef, {
+                    nis: cols[0].replace(/"/g, '').trim(),
+                    nama: cols[1].replace(/"/g, '').trim(),
+                    kelas: cols[2].replace(/"/g, '').trim(),
+                    pwd: cols[3] ? cols[3].replace(/"/g, '').trim() : "123"
+                });
+                addedCount++;
+            }
+        });
+
+        await batch.commit();
+        alert(`Berhasil! Database diperbarui. ${addedCount} siswa terdaftar.`);
+        loadKelas(); // Refresh dropdown kelas di halaman login
+
+    } catch (e) {
+        alert("KESALAHAN SINKRON: " + e.message);
+    } finally {
+        btn.disabled = false;
+        btnText.textContent = "SIMPAN & SINKRON";
+    }
+}
+
+// 3. Update Fungsi Tampilan Tabel (Hapus tombol Edit/Hapus)
 function syncAdminStudentData() {
     publicData.collection('users').orderBy('kelas', 'asc').onSnapshot(s => {
         const list = document.getElementById('admin-student-list');
+        if (!list) return;
         list.innerHTML = "";
         s.forEach(d => {
             const u = d.data();
@@ -490,47 +565,11 @@ function syncAdminStudentData() {
                     <td class="px-8 py-5 text-sm text-slate-600">${u.nama}</td>
                     <td class="px-8 py-5 text-[10px] font-black uppercase text-slate-400">${u.kelas}</td>
                     <td class="px-8 py-5 text-xs font-mono text-slate-300">${u.pwd}</td>
-                    <td class="px-8 py-5 text-right space-x-4">
-                        <button onclick="editStudent('${d.id}')" class="text-blue-500 font-black text-[10px] uppercase hover:text-blue-700">Edit</button>
-                        <button onclick="delDoc('users','${d.id}')" class="text-red-400 font-black text-[10px] uppercase hover:text-red-600">Hapus</button>
-                    </td>
                 </tr>`;
         });
     });
 }
 
-// --- FUNGSI SIMPAN DATA (MANUAL) ---
-async function saveStudent() {
-    const id = document.getElementById('edit-student-id').value;
-    const data = {
-        nis: document.getElementById('std-nis').value.trim(),
-        nama: document.getElementById('std-nama').value.trim(),
-        kelas: document.getElementById('std-kelas').value.trim(),
-        pwd: document.getElementById('std-pwd').value.trim()
-    };
-
-    if (!data.nis || !data.nama || !data.kelas || !data.pwd) return alert("Lengkapi semua kolom!");
-
-    try {
-        if (id) await publicData.collection('users').doc(id).update(data);
-        else await publicData.collection('users').add(data);
-        closeModal('modal-student');
-        alert("Data berhasil disimpan.");
-    } catch (e) { alert("Error: " + e.message); }
-}
-
-// --- FUNGSI EDIT SISWA ---
-async function editStudent(id) {
-    const d = await publicData.collection('users').doc(id).get();
-    const u = d.data();
-    document.getElementById('student-modal-title').textContent = "Edit Data Peserta";
-    document.getElementById('edit-student-id').value = id;
-    document.getElementById('std-nis').value = u.nis;
-    document.getElementById('std-nama').value = u.nama;
-    document.getElementById('std-kelas').value = u.kelas;
-    document.getElementById('std-pwd').value = u.pwd;
-    openModal('modal-student');
-}
 
 // --- FUNGSI SINKRON GOOGLE SHEET ---
 async function syncFromGoogleSheet() {

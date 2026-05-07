@@ -298,7 +298,7 @@
         };
 
 		async function logout() {
-            async if(confirm("Yakin ingin keluar dari Akun Dashboard?")) {
+        if(confirm("Yakin ingin keluar dari Akun Dashboard?")) {
 				try {if (user && user.id) {await publicData.collection('live').doc(user.id).delete();}
         } catch (e) { console.log("Clean up skip"); }
                 localStorage.removeItem('exambro_session');
@@ -556,6 +556,7 @@ function syncAdminStudentData() {
         }
 
  function initPeer() {
+	 if (!user || !user.id) return; // Proteksi agar tidak error
     // Pastikan ID unik dan bersih
     const safeId = 'user-exam-' + user.id.replace(/[^a-zA-Z0-9]/g, '');
     peer = new Peer(safeId);

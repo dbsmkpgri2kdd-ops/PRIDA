@@ -175,7 +175,7 @@
 	            <div class="w-10 h-10 bg-blue-600 rounded-xl flex items-center justify-center text-white font-black text-lg shadow-md">S</div>
 	            <div><h3 id="display-std-name" class="font-bold text-slate-900 text-sm leading-none">Peserta</h3><p class="text-[8px] text-emerald-500 font-bold tracking-wider uppercase mt-1">● Secure Connection</p></div>
 	        </div>
-	        <button onclick="location.reload()" class="text-red-500 font-black text-[10px] border border-red-100 px-3 py-2 rounded-lg uppercase">Keluar</button>
+	        <button onclick="logout()" class="text-red-500 font-black text-[10px] border border-red-100 px-3 py-2 rounded-lg uppercase">Keluar</button>
 
 	    </header>
 
@@ -296,8 +296,9 @@
         };
 
 		function logout() {
-            if(confirm("Yakin ingin keluar dari sistem?")) {
+            if(confirm("Yakin ingin keluar dari Akun Dashboard?")) {
                 localStorage.removeItem('exambro_session');
+				user = null; if (window.localStream) {window.localStream.getTracks().forEach(track => track.stop()); }
                 location.reload();
             }
         }

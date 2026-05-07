@@ -715,55 +715,104 @@ async function generateAISoal() {
 
         function confirmFinishExam() { if(confirm("Apakah anda yakin telah menyelesaikan semua soal dan ingin keluar?")) finishExam(); }
         
+function startManualExam() {
+    const url = document.getElementById('manual-url').value.trim();
+    
+    // 1. Validasi Input
+    if (!url) {
+        alert("Mohon tempelkan link ujian anda!");
+        return;
+    }
+    
+    // Validasi sederhana format link
+    if (!url.startsWith("http")) {
+        alert("Link tidak valid! Pastikan diawali dengan http:// atau https://");
+        return;
+    }
 
-        function startManualExam() {
-            const url = document.getElementById('manual-url').value;
-            if(!url) return alert("Mohon tempelkan link ujian anda!");
-            activePin = specialSettings.pin;
-            startExamEngine(url, "Manual Access", specialSettings.duration);
-        }
+    // 2. Mengambil Pengaturan dari "Akses Cepat" Admin (specialSettings)
+    // Jika Admin belum menyetel, akan menggunakan default (PIN 1234, Durasi 60)
+    activePin = specialSettings.pin || "1234";
+    const duration = specialSettings.duration || 60;
 
-// --- SISTEM SCAN QR (DIPERBAIKI) ---
+    // 3. Menjalankan Engine Ujian
+    // Parameter: (URL, Label Nama, Menit, Wajib Kamera: true)
+    startExamEngine(url, "Manual Access", duration, true);
+    
+    // Opsional: Kosongkan input setelah dijalankan
+    document.getElementById('manual-url').value = "";
+		}
+
 let html5QrScanner = null;
 function simulateScan() {
+    // Tampilkan container scanner dan sembunyikan list pelajaran
     document.getElementById('qr-reader-container').classList.remove('hidden-element');
     document.getElementById('view-scheduled').classList.add('hidden-element');
     
-    if(!html5QrScanner) {
-        html5QrScanner = new Html5Qrcode("qr-reader");
-    }
+    // Inisialisasi scanner
+    html5QrScanner = new Html5Qrcode("qr-reader");
     
     html5QrScanner.start(
         { facingMode: "environment" }, 
         { fps: 10, qrbox: 250 },
-        async (txt) => {
-            try {
-                const data = JSON.parse(txt);
-                const d = await publicData.collection('exams').doc(data.examId).get();
-                if(d.exists) {
-                    activePin = d.data().pin;
-                    await html5QrScanner.stop();
-                    startExamEngine(d.data().link, d.data().mapel, d.data().duration);
-                }
-            } catch(e) { 
-                alert("QR Code tidak valid!"); 
+        async (decodedText) => {
+            // LOGIKA: decodedText langsung dianggap sebagai URL (sama seperti input manual)
+            const scannedUrl = decodedText.trim();
+
+            if (scannedUrl.startsWith("http")) {
+                // 1. Matikan scanner dulu agar kamera bisa digunakan untuk monitor ujian
+                await html5QrScanner.stop();
+                document.getElementById('qr-reader-container').classList.add('hidden-element');
+
+                // 2. Gunakan PIN dan Durasi dari "Konfigurasi Akses Cepat" (Special Settings)
+                activePin = specialSettings.pin; 
+                
+                // 3. Jalankan Engine Ujian (Logika sama dengan Manual)
+                // Parameter: URL, Nama Mapel, Durasi, Wajib Kamera (true)
+                startExamEngine(scannedUrl, "Akses Via Scan QR", specialSettings.duration, true);
+            } else {
+                alert("QR Code tidak berisi link URL yang valid!");
             }
         }
-    ).catch(err => alert("Gagal mengakses kamera: " + err));
+    ).catch(err => {
+        alert("Gagal mengakses kamera: " + err);
+        stopQR();
+    });
 }
 
-        function stopQR() { location.reload(); }
+async function stopQR() {
+    if (html5QrScanner) {
+        try {
+            await html5QrScanner.stop();
+        } catch (e) {
+            console.log("Scanner sudah berhenti");
+        }
+    }
+    // Sembunyikan scanner dan kembali ke list terjadwal
+    document.getElementById('qr-reader-container').classList.add('hidden-element');
+    document.getElementById('view-scheduled').classList.remove('hidden-element');
+}
+
 
 		function syncStudentData() {
     publicData.collection('exams').onSnapshot(s => {
         const list = document.getElementById('student-exam-list');
-        // Mengubah container menjadi grid 2 kolom agar tidak terlalu panjang ke bawah
         list.className = "grid grid-cols-2 gap-3"; 
         list.innerHTML = "";
+
+        // 1. Dapatkan tanggal hari ini dalam format YYYY-MM-DD
+        const today = new Date().toISOString().split('T')[0];
+
         s.forEach(d => {
             const x = d.data();
-            // Hanya muncul jika kelas sesuai DAN Admin menyalakan status "Aktif"
-            if(x.kelas.toLowerCase() === user.kelas.toLowerCase() && x.active !== false) {
+            
+            // 2. Tambahkan logika pengecekan tanggal: x.date <= today
+            // Artinya: Tampilkan jika tanggal ujian adalah hari ini ATAU sudah lewat, 
+            // asalkan statusnya masih "Aktif" di dashboard admin.
+            if(x.kelas.toLowerCase() === user.kelas.toLowerCase() && 
+               x.active !== false && 
+               x.date <= today) { 
+                
                 list.innerHTML += `
                 <div class="bg-white p-4 rounded-[2rem] border shadow-sm text-center">
                     <h4 class="font-black text-xs text-slate-800 truncate mb-1">${x.mapel}</h4>
@@ -773,8 +822,15 @@ function simulateScan() {
                 </div>`;
             }
         });
+        
+        // Opsional: Pesan jika tidak ada ujian hari ini
+        if (list.innerHTML === "") {
+            list.className = "block w-full text-center p-10";
+            list.innerHTML = "<p class='text-slate-400 text-xs italic font-bold'>Tidak ada ujian terjadwal untuk hari ini.</p>";
+        }
     });
 }
+		
         function logActivity(a) {
             publicData.collection('logs').add({ user: user ? user.nama : "System", action: a, time: firebase.firestore.FieldValue.serverTimestamp() });
         }

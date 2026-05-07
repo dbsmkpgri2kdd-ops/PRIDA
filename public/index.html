@@ -495,13 +495,30 @@ function playInPlace(container, url) {
     }
 }
 
-
-// 1. Modifikasi fungsi fetch agar tidak membuka tab baru
 async function fetchSpreadsheetData() {
+    // 1. Cek apakah ada data lama di memori HP
+    const cachedData = localStorage.getItem('app_data_cache');
+    if (cachedData) {
+        renderData(JSON.parse(cachedData)); // Tampilkan data lama dulu agar cepat
+    }
+
     try {
         const r = await fetch(API_URL);
         const data = await r.json();
         
+        // 2. Simpan data terbaru ke memori HP
+        localStorage.setItem('app_data_cache', JSON.stringify(data));
+        
+        // 3. Update tampilan dengan data terbaru
+        renderData(data);
+    } catch (e) {
+        console.error("Gagal update data terbaru");
+        if (!cachedData) showToast("Koneksi internet diperlukan.");
+    }
+}
+
+// Pisahkan logika tampilan ke fungsi tersendiri
+function renderData(data) {
         const sections = ['grid-lembaga', 'grid-profil', 'grid-game', 'grid-layanan', 'grid-literasi', 'grid-media', 'video-profil'];
         sections.forEach(id => {
             const el = document.getElementById(id);

@@ -185,7 +185,7 @@
 	            <div onclick="simulateScan()" class="bg-white p-5 rounded-3xl border border-slate-100 shadow-sm active:scale-95 transition-all cursor-pointer text-center"><div class="w-12 h-12 bg-emerald-50 text-emerald-600 rounded-2xl flex items-center justify-center mx-auto mb-3 text-xl">📷</div><span class="font-bold text-slate-800 text-xs block">Scan QR Code</span></div>
 	            <div onclick="switchStudentView('manual')" class="bg-white p-5 rounded-3xl border border-slate-100 shadow-sm active:scale-95 transition-all cursor-pointer text-center col-span-2"><div class="flex items-center justify-center space-x-4"><div class="w-10 h-10 bg-amber-50 text-amber-600 rounded-xl flex items-center justify-center text-lg">🔗</div><span class="font-bold text-slate-800 text-xs">Input Link Manual</span></div></div>
 	        </div>
-	        <div id="view-scheduled"><h2 class="text-lg font-black mb-4 text-slate-900 flex items-center"><span class="w-1 h-5 bg-blue-600 rounded-full mr-2"></span>Pilih Mata Pelajaran</h2><div id="student-exam-list" class="grid grid-cols-1 gap-4"></div></div>
+	        <div id="view-scheduled"><h2 class="text-lg font-black mb-4 text-slate-900 flex items-center"><span class="w-1 h-5 bg-blue-600 rounded-full mr-2"></span>Pilih Mata Pelajaran</h2><div id="student-exam-list" class="grid grid-cols-2 gap-3"></div></div>
 	        <div id="qr-reader-container" class="hidden-element bg-white p-6 rounded-3xl border shadow-xl mx-auto mb-6 text-center"><div id="qr-reader" class="rounded-xl overflow-hidden mb-4 bg-slate-100"></div><button onclick="stopQR()" class="text-red-500 font-bold text-xs uppercase p-2">Batalkan</button></div>
 	        <div id="view-manual" class="hidden-element bg-white p-6 rounded-3xl border shadow-xl text-center">
 	            <h2 class="text-xl font-black mb-2">Tempel Link</h2><p class="text-slate-400 text-xs mb-6">Masukkan URL Google Form atau LMS</p><input type="text" id="manual-url" class="w-full bg-slate-50 p-4 rounded-2xl mb-4 border focus:border-blue-500 outline-none text-sm" placeholder="https://...">
@@ -219,6 +219,10 @@
                 <div class="space-y-2"><label class="text-[10px] font-black uppercase ml-4">Token Masuk</label><input type="text" id="ex-token" class="w-full bg-slate-50 p-5 rounded-3xl outline-none font-black uppercase text-blue-600 transition-all"></div>
                 <div class="space-y-2"><label class="text-[10px] font-black uppercase ml-4">PIN Pengawas</label><input type="text" id="ex-pin" class="w-full bg-slate-50 p-5 rounded-3xl outline-none font-black text-amber-600 transition-all"></div>
                 <div class="col-span-2 space-y-2"><label class="text-[10px] font-black uppercase ml-4">Link Google Form / LMS</label><input type="text" id="ex-link" class="w-full bg-slate-50 p-5 rounded-3xl outline-none transition-all" placeholder="https://..."></div>
+				<div class="col-span-2 flex space-x-4">
+					<div class="flex-1 flex items-center space-x-3 p-4 bg-slate-50 rounded-2xl"><input type="checkbox" id="ex-active" checked class="w-5 h-5 accent-blue-600"><span class="text-[10px] font-black uppercase">Ujian Aktif</span></div>
+					<div class="flex-1 flex items-center space-x-3 p-4 bg-slate-50 rounded-2xl"><input type="checkbox" id="ex-camera" checked class="w-5 h-5 accent-blue-600"><span class="text-[10px] font-black uppercase">Wajib Kamera</span></div>
+				</div>
             </div>
             <div class="flex space-x-4 mt-10">
                 <button onclick="closeModal('modal-exam')" class="flex-1 py-5 font-bold text-slate-400">Batalkan</button>
@@ -418,7 +422,7 @@ function syncAdminData() {
             const x = d.data();
             list.innerHTML += `<div class="bg-white p-6 rounded-[2.5rem] border-2 border-transparent hover:border-blue-200 transition-all flex justify-between items-center group">
                 <div><h4 class="font-black text-slate-800">${x.mapel}</h4><p class="text-[9px] text-slate-400 font-bold uppercase tracking-widest">${x.kelas} | TOKEN: ${x.token} | PIN: ${x.pin}</p></div>
-                <div class="flex space-x-2"><button onclick="editExam('${d.id}')" class="bg-blue-50 text-blue-500 p-3 rounded-xl">✎</button><button onclick="delDoc('exams','${d.id}')" class="bg-red-50 text-red-500 p-3 rounded-xl">✕</button></div>
+                <div class="flex space-x-2"><button onclick="copyExam('${d.id}')" class="bg-emerald-50 text-emerald-600 p-3 rounded-xl" title="Copy Paket">📄</button><button onclick="editExam('${d.id}')" class="bg-blue-50 text-blue-500 p-3 rounded-xl">✎</button><button onclick="delDoc('exams','${d.id}')" class="bg-red-50 text-red-500 p-3 rounded-xl">✕</button></div>
             </div>`;
         });
     });
@@ -624,30 +628,32 @@ async function generateAISoal() {
 
         // --- 9. CRUD LOGIC ---
         async function saveExam() {
-            const id = document.getElementById('edit-exam-id').value;
-            const data = {
-                mapel: document.getElementById('ex-mapel').value,
-                kelas: document.getElementById('ex-kelas').value,
-                date: document.getElementById('ex-date').value,
-                duration: document.getElementById('ex-duration').value,
-                token: document.getElementById('ex-token').value.toUpperCase(),
-                pin: document.getElementById('ex-pin').value,
-                link: document.getElementById('ex-link').value
-            };
-            if(!data.mapel || !data.link) return alert("Mapel dan Link wajib diisi!");
-            if(id) await publicData.collection('exams').doc(id).update(data);
-            else await publicData.collection('exams').add(data);
-            closeModal('modal-exam');
-        }
+    const id = document.getElementById('edit-exam-id').value;
+    const data = {
+        mapel: document.getElementById('ex-mapel').value,
+        kelas: document.getElementById('ex-kelas').value,
+        date: document.getElementById('ex-date').value,
+        duration: document.getElementById('ex-duration').value,
+        token: document.getElementById('ex-token').value.toUpperCase(),
+        pin: document.getElementById('ex-pin').value,
+        link: document.getElementById('ex-link').value,
+        active: document.getElementById('ex-active').checked, // data baru
+        camera: document.getElementById('ex-camera').checked  // data baru
+    };
+    if(id) await publicData.collection('exams').doc(id).update(data);
+    else await publicData.collection('exams').add(data);
+    closeModal('modal-exam');
+		}
 
-        async function delDoc(c, id) { if(confirm("Hapus data ini secara permanen dari Cloud?")) await publicData.collection(c).doc(id).delete(); }
-
-        function openExamModal() {
-            document.getElementById('exam-modal-title').textContent = "Buat Paket Ujian";
-            document.getElementById('edit-exam-id').value = "";
-            ['ex-mapel', 'ex-kelas', 'ex-date', 'ex-duration', 'ex-token', 'ex-pin', 'ex-link'].forEach(i => document.getElementById(i).value = "");
-            openModal('modal-exam');
-        }
+        async function copyExam(id) {
+    if(!confirm("Salin paket ujian ini?")) return;
+    const d = await publicData.collection('exams').doc(id).get();
+    const data = d.data();
+    data.mapel += " (Copy)";
+    data.active = false; // Hasil copy otomatis non-aktif agar bisa diedit dulu
+    await publicData.collection('exams').add(data);
+    alert("Paket berhasil dikloning!");
+}
 
         async function editExam(id) {
             const d = await publicData.collection('exams').doc(id).get();
@@ -661,6 +667,17 @@ async function generateAISoal() {
             document.getElementById('ex-token').value = x.token;
             document.getElementById('ex-pin').value = x.pin;
             document.getElementById('ex-link').value = x.link;
+            openModal('modal-exam');
+        }
+
+
+		
+		async function delDoc(c, id) { if(confirm("Hapus data ini secara permanen dari Cloud?")) await publicData.collection(c).doc(id).delete(); }
+
+        function openExamModal() {
+            document.getElementById('exam-modal-title').textContent = "Buat Paket Ujian";
+            document.getElementById('edit-exam-id').value = "";
+            ['ex-mapel', 'ex-kelas', 'ex-date', 'ex-duration', 'ex-token', 'ex-pin', 'ex-link'].forEach(i => document.getElementById(i).value = "");
             openModal('modal-exam');
         }
 
@@ -736,25 +753,27 @@ function simulateScan() {
 
         function stopQR() { location.reload(); }
 
-        function syncStudentData() {
-            publicData.collection('exams').onSnapshot(s => {
-                const list = document.getElementById('student-exam-list');
-                list.innerHTML = "";
-                s.forEach(d => {
-                    const x = d.data();
-                    if(x.kelas.toLowerCase() === user.kelas.toLowerCase()) {
-                        list.innerHTML += `
-                        <div class="bg-white p-10 rounded-[3.5rem] border-2 border-transparent hover:border-blue-500 transition-all shadow-sm text-center">
-                            <h4 class="font-black text-2xl mb-2 text-slate-800">${x.mapel}</h4>
-                            <p class="text-[10px] text-slate-400 font-bold mb-8 uppercase tracking-widest">${x.duration} Menit • ${x.date}</p>
-                            <input type="text" id="tk-${d.id}" class="w-full bg-slate-50 p-5 rounded-2xl text-center mb-4 font-black tracking-[0.3em] outline-none border-2 border-transparent focus:border-blue-500" placeholder="TOKEN">
-                            <button onclick="startExam('${d.id}', '${x.token}')" class="w-full bg-slate-900 text-white py-5 rounded-2xl font-black hover:bg-black transition-colors">MULAI SEKARANG</button>
-                        </div>`;
-                    }
-                });
-            });
-        }
-
+		function syncStudentData() {
+    publicData.collection('exams').onSnapshot(s => {
+        const list = document.getElementById('student-exam-list');
+        // Mengubah container menjadi grid 2 kolom agar tidak terlalu panjang ke bawah
+        list.className = "grid grid-cols-2 gap-3"; 
+        list.innerHTML = "";
+        s.forEach(d => {
+            const x = d.data();
+            // Hanya muncul jika kelas sesuai DAN Admin menyalakan status "Aktif"
+            if(x.kelas.toLowerCase() === user.kelas.toLowerCase() && x.active !== false) {
+                list.innerHTML += `
+                <div class="bg-white p-4 rounded-[2rem] border shadow-sm text-center">
+                    <h4 class="font-black text-xs text-slate-800 truncate mb-1">${x.mapel}</h4>
+                    <p class="text-[8px] text-slate-400 font-bold mb-3 uppercase">${x.duration} Menit</p>
+                    <input type="text" id="tk-${d.id}" class="w-full bg-slate-50 p-2 rounded-xl text-center mb-2 font-black text-xs outline-none border border-transparent focus:border-blue-500" placeholder="TOKEN">
+                    <button onclick="startExam('${d.id}', '${x.token}')" class="w-full bg-slate-900 text-white py-2 rounded-xl font-black text-[10px] hover:bg-black transition-colors">MULAI</button>
+                </div>`;
+            }
+        });
+    });
+}
         function logActivity(a) {
             publicData.collection('logs').add({ user: user ? user.nama : "System", action: a, time: firebase.firestore.FieldValue.serverTimestamp() });
         }
@@ -867,51 +886,78 @@ document.addEventListener('fullscreenchange', () => {
 
 // --- UPDATE PADA FUNGSI START EXAM ---
 // Pastikan fungsi startExamEngine memanggil lockdown
-async function startExamEngine(url, mapel, dur) {
-    try {
-        const stream = await navigator.mediaDevices.getUserMedia({video: true});
-        window.localStream = stream;
-        document.getElementById('self-video').srcObject = stream;
-    } catch(e) { 
-        alert("Izin kamera wajib diaktifkan untuk memulai ujian!"); 
-        return; 
+async function startExamEngine(url, mapel, dur, isCameraRequired) {
+    // 1. Logika Pengecekan Kamera (Hanya aktif jika Admin menyalakan 'Wajib Kamera')
+    if (isCameraRequired !== false) { 
+        try {
+            const stream = await navigator.mediaDevices.getUserMedia({video: true});
+            window.localStream = stream;
+            document.getElementById('self-video').srcObject = stream;
+            document.getElementById('self-video').parentElement.classList.remove('hidden-element');
+        } catch(e) { 
+            alert("Ujian ini wajib menggunakan kamera! Berikan izin kamera pada browser Anda."); 
+            return; 
+        }
+    } else {
+        // Jika Admin mematikan wajib kamera, sembunyikan kotak video siswa
+        document.getElementById('self-video').parentElement.classList.add('hidden-element');
     }
 
+    // 2. Inisialisasi Status Ujian
     isExamActive = true;
     violationCount = 0;
     initialWidth = window.innerWidth;
-    // Aktifkan Pengunci Keamanan
+    
+    // Aktifkan Fitur Keamanan (Lockdown)
     enableHardLockdown();
+    
+    // Set Tampilan Header Ujian
     document.getElementById('view-mapel').textContent = mapel;
     document.getElementById('exam-frame-container').innerHTML = `<iframe src="${url}" allow="camera; microphone"></iframe>`;
     document.getElementById('exam-viewer').classList.remove('hidden-element');
     
-    // Paksa Fullscreen
+    // Paksa Masuk Mode Layar Penuh
     document.documentElement.requestFullscreen().catch(() => {
-        alert("Gagal masuk mode Fullscreen. Mohon izinkan browser.");
+        alert("Gagal masuk mode Fullscreen. Pastikan Anda memberikan izin.");
     });
 
-    // Timer & Monitoring (Sesuai kode lama anda...)
+    // 3. Menjalankan Timer Ujian
     let time = dur * 60;
     const timer = setInterval(() => {
         if (!isExamActive) { clearInterval(timer); return; }
         time--;
         const m = Math.floor(time/60), s = time%60;
         document.getElementById('exam-timer').textContent = `${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}`;
-        if (time <= 0) finishExam();
+        if (time <= 0) {
+            alert("Waktu ujian telah habis!");
+            finishExam();
+        }
     }, 1000);
 
+    // 4. Monitoring Live ke Admin (Setiap 15 Detik)
     const canvas = document.createElement('canvas');
     const ctx = canvas.getContext('2d');
     monitorInterval = setInterval(() => {
         if(!isExamActive) return;
-        canvas.width = 160; canvas.height = 120;
-        ctx.drawImage(document.getElementById('self-video'), 0,0,160,120);
+        
+        // Kirim data monitoring (jika kamera aktif kirim foto, jika tidak kirim info saja)
+        let imgData = "";
+        if (isCameraRequired !== false) {
+            canvas.width = 160; canvas.height = 120;
+            ctx.drawImage(document.getElementById('self-video'), 0,0,160,120);
+            imgData = canvas.toDataURL('image/jpeg', 0.2);
+        }
+
         publicData.collection('live').doc(user.id).set({
-            nama: user.nama, img: canvas.toDataURL('image/jpeg', 0.2), last: Date.now(), v: violationCount
+            nama: user.nama, 
+            img: imgData, 
+            last: Date.now(), 
+            v: violationCount,
+            camStatus: isCameraRequired !== false ? "ON" : "OFF"
         });
     }, 15000);
-}
+			}
+		
 
 // --- UPDATE PADA FUNGSI FINISH EXAM ---
 function finishExam() {
@@ -935,7 +981,7 @@ function finishExam() {
 async function startExam(id, correctToken) {
     const tokenInput = document.getElementById(`tk-${id}`).value.toUpperCase();
     if (tokenInput !== correctToken) {
-        alert("Token ujian salah!");
+        alert("Token ujian salah! Silahkan hubungi pengawas.");
         return;
     }
 
@@ -943,9 +989,11 @@ async function startExam(id, correctToken) {
     if (doc.exists) {
         const x = doc.data();
         activePin = x.pin || specialSettings.pin;
-        startExamEngine(x.link, x.mapel, x.duration);
+        // Memulai engine ujian dengan membawa data pengaturan kamera
+        startExamEngine(x.link, x.mapel, x.duration, x.camera);
     }
 }
+		
 
 
 

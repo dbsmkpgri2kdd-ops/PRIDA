@@ -131,7 +131,7 @@
                             <input type="text" id="sheet-url" class="w-full bg-slate-50 p-4 rounded-2xl outline-none border-2 border-transparent focus:border-emerald-500 transition-all text-sm" placeholder="https://docs.google.com/spreadsheets/d/...">
                         </div>
                         <div class="flex items-end h-full pt-6">
-                            <button id="btn-sync-sheet" onclick="syncFromGoogleSheet()" class="bg-emerald-600 text-white px-8 py-4 rounded-2xl font-black text-xs shadow-lg shadow-emerald-100 flex items-center hover:bg-emerald-700 transition-all min-w-[200px] justify-center">
+                            <button id="btn-sync-sheet" onclick="saveAndSyncSheet()" class="bg-emerald-600 text-white px-8 py-4 rounded-2xl font-black text-xs shadow-lg shadow-emerald-100 flex items-center hover:bg-emerald-700 transition-all min-w-[200px] justify-center">
                                 <span id="sync-text">SIMPAN & SINKRON</span>
                             </button>
                         </div>
@@ -142,8 +142,7 @@
 	    <div class="bg-white rounded-[2.5rem] border overflow-hidden shadow-sm">
 	        <table class="w-full text-left">
 	            <thead class="bg-slate-50 border-b"><tr><th class="px-8 py-5 text-[10px] font-black uppercase text-slate-400">NIS</th><th class="px-8 py-5 text-[10px] font-black uppercase text-slate-400">Nama Lengkap</th>
-                    <th class="px-8 py-5 text-[10px] font-black uppercase text-slate-400">Kelas</th><th class="px-8 py-5 text-[10px] font-black uppercase text-slate-400">Password</th>
-                    <th class="px-8 py-5 text-[10px] font-black uppercase text-slate-400 text-right">Aksi</th></tr></thead>
+                    <th class="px-8 py-5 text-[10px] font-black uppercase text-slate-400">Kelas</th><th class="px-8 py-5 text-[10px] font-black uppercase text-slate-400">Password</th></tr></thead>
 	            <tbody id="admin-student-list" class="divide-y"><!-- Data akan diisi otomatis oleh JavaScript --></tbody>
 	        </table>
 	    </div>
@@ -228,36 +227,6 @@
         </div>
     </div>
 
-    <!-- Modal AI Generator -->
-    <div id="modal-ai" class="hidden-element fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-[3000] flex items-center justify-center p-4">
-        <div class="bg-white w-full max-w-md rounded-[4rem] p-12 text-center shadow-2xl">
-            <div class="w-24 h-24 bg-indigo-100 text-indigo-600 rounded-[2.5rem] flex items-center justify-center mx-auto mb-8 text-4xl">✨</div>
-            <h3 class="text-3xl font-black mb-2">Gemini AI Engine</h3>
-            <p class="text-slate-400 text-xs mb-10 uppercase tracking-[0.2em] font-bold">Automatic Question Bank</p>
-            <input type="text" id="ai-topic" class="w-full bg-slate-50 p-6 rounded-3xl mb-4 text-center font-bold outline-none" placeholder="Input Topik Materi">
-            <input type="number" id="ai-count" class="w-full bg-slate-50 p-6 rounded-3xl mb-8 text-center font-bold outline-none" placeholder="Jumlah Butir Soal">
-            <div id="ai-loading" class="hidden-element text-indigo-600 font-bold mb-6 animate-pulse">🤖 AI Sedang Merakit Pertanyaan...</div>
-            <button id="ai-btn" onclick="generateAISoal()" class="w-full bg-indigo-600 text-white py-6 rounded-3xl font-black shadow-xl shadow-indigo-100">MULAI GENERATE</button>
-            <button onclick="closeModal('modal-ai')" class="w-full py-4 text-slate-400 font-bold text-xs uppercase mt-4">Tutup</button>
-        </div>
-    </div>
-
-    <!-- Modal Data Siswa -->
-	<!-- MODAL: INPUT DATA SISWA -->
-	<div id="modal-student" class="hidden-element fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-[3000] flex items-center justify-center p-4">
-	    <div class="bg-white w-full max-w-md rounded-[3rem] p-12 shadow-2xl">
-	        <h3 class="text-2xl font-black mb-8 text-center" id="student-modal-title">Data Siswa</h3>
-	        <input type="hidden" id="edit-student-id">
-	        <div class="space-y-4">
-	            <div class="space-y-1"><label class="text-[10px] font-black text-slate-400 ml-4 uppercase">NIS</label><input type="text" id="std-nis" class="w-full bg-slate-50 p-5 rounded-3xl outline-none font-bold focus:ring-2 ring-blue-500" placeholder="Contoh: 2024001"></div>
-	            <div class="space-y-1"><label class="text-[10px] font-black text-slate-400 ml-4 uppercase">Nama Lengkap</label><input type="text" id="std-nama" class="w-full bg-slate-50 p-5 rounded-3xl outline-none focus:ring-2 ring-blue-500" placeholder="Nama Siswa"></div>
-	            <div class="space-y-1"><label class="text-[10px] font-black text-slate-400 ml-4 uppercase">Kelas</label><input type="text" id="std-kelas" class="w-full bg-slate-50 p-5 rounded-3xl outline-none uppercase focus:ring-2 ring-blue-500" placeholder="Contoh: XII IPA 1"></div>
-	            <div class="space-y-1"><label class="text-[10px] font-black text-slate-400 ml-4 uppercase">Password Login</label><input type="text" id="std-pwd" class="w-full bg-slate-50 p-5 rounded-3xl outline-none focus:ring-2 ring-blue-500" placeholder="Password"></div>
-	        </div>
-	        <button onclick="saveStudent()" class="w-full bg-blue-600 text-white py-5 rounded-[2.5rem] font-black mt-10 shadow-xl shadow-blue-100 hover:scale-[1.02] transition-all">SIMPAN DATA</button>
-	        <button onclick="closeModal('modal-student')" class="w-full py-4 text-slate-400 font-bold text-xs uppercase mt-2">Batal</button>
-	    </div>
-	</div>
 
 	<!-- MODAL: SINKRONISASI GOOGLE SHEET -->
 	<div id="modal-sheet" class="hidden-element fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-[3000] flex items-center justify-center p-4">
@@ -405,10 +374,11 @@
 
         // --- 5. STUDENT ENGINE (SECURITY & EXAM) ---
         function initPeer() {
-            peer = new Peer(user.id);
-            peer.on('call', call => { if (window.localStream) call.answer(window.localStream); });
-        }
-
+    // Sanitasi ID agar hanya berisi huruf dan angka
+    const safeId = 'std-' + user.id.replace(/[^a-zA-Z0-9]/g, '');
+    peer = new Peer(safeId);
+    peer.on('call', call => { if (window.localStream) call.answer(window.localStream); });
+}
 
         function reportViolation() {
             if (!isExamActive) return;
@@ -571,79 +541,6 @@ function syncAdminStudentData() {
 }
 
 
-// --- FUNGSI SINKRON GOOGLE SHEET ---
-async function syncFromGoogleSheet() {
-    let urlInput = document.getElementById('sheet-url').value.trim();
-    const btn = document.getElementById('btn-sync-sheet');
-    const btnText = document.getElementById('sync-text');
-
-    if (!urlInput) return alert("Masukkan link Google Sheet!");
-
-    // Konversi link share biasa ke link ekspor CSV jika perlu
-    let exportUrl = urlInput;
-    if (urlInput.includes('/edit')) {
-        const match = urlInput.match(/\/d\/(.+?)\//);
-        if (match) {
-            exportUrl = `https://docs.google.com/spreadsheets/d/${match[1]}/export?format=csv`;
-        }
-    }
-
-    btn.disabled = true;
-    btn.classList.replace('bg-emerald-600', 'bg-slate-400');
-    btnText.textContent = "MENGUNDUH DATA...";
-
-    try {
-        // Menggunakan mode 'cors' atau 'no-cors' terkadang bermasalah, 
-        // tapi link Publish to Web biasanya lancar dengan fetch biasa
-        const res = await fetch(exportUrl);
-        
-        if (!res.ok) throw new Error("Gagal mengambil data. Pastikan sudah 'Publish to Web'");
-        
-        const text = await res.text();
-        
-        // Cek apakah yang didapat adalah HTML (halaman login) bukan CSV
-        if (text.includes('<!DOCTYPE html>') || text.includes('login')) {
-            throw new Error("Akses Ditolak. Gunakan metode 'Publish to Web' di Google Sheets.");
-        }
-
-        const rows = text.replace(/\r/g, "").split('\n').filter(row => row.trim() !== "");
-        const dataRows = rows.slice(1); // Lewati baris header
-        
-        const batch = db.batch();
-        let addedCount = 0;
-
-        dataRows.forEach(row => {
-            // Regex untuk menangani koma di dalam tanda kutip (nama dengan gelar)
-            const cols = row.match(/(".*?"|[^",\s]+)(?=\s*,|\s*$)/g);
-            
-            if (cols && cols.length >= 3) {
-                const docRef = publicData.collection('users').doc();
-                batch.set(docRef, {
-                    nis: cols[0].replace(/"/g, '').trim(),
-                    nama: cols[1].replace(/"/g, '').trim(),
-                    kelas: cols[2].replace(/"/g, '').trim(),
-                    pwd: cols[3] ? cols[3].replace(/"/g, '').trim() : "123"
-                });
-                addedCount++;
-            }
-        });
-
-        if (addedCount === 0) throw new Error("Tidak ada data yang valid ditemukan.");
-
-        await batch.commit();
-        alert(`Berhasil! ${addedCount} data siswa telah disinkronkan.`);
-        closeModal('modal-sheet');
-        if (typeof loadKelas === "function") loadKelas(); 
-
-    } catch (e) {
-        console.error(e);
-        alert("KESALAHAN: " + e.message);
-    } finally {
-        btn.disabled = false;
-        btn.classList.replace('bg-slate-400', 'bg-emerald-600');
-        btnText.textContent = "MULAI SINKRONISASI";
-    }
-}
 
         function startMonitorFeed() {
             publicData.collection('live').onSnapshot(s => {
@@ -790,19 +687,6 @@ async function generateAISoal() {
 
     function openModal(id) {const modal = document.getElementById(id);if (modal) {modal.classList.remove('hidden-element');} else {console.error("Modal dengan ID " + id + " tidak ditemukan!");}}
 	function closeModal(id) {const modal = document.getElementById(id);if (modal) {modal.classList.add('hidden-element');}}
-
-	function openStudentModal() {
-	    const title = document.getElementById('student-modal-title'); if(title) title.textContent = "Tambah Siswa Baru";
-	    const editId = document.getElementById('edit-student-id'); if(editId) editId.value = "";
-	    const fields = ['std-nis', 'std-nama', 'std-kelas', 'std-pwd'];
-	    fields.forEach(id => {const el = document.getElementById(id);if (el) el.value = "";});
-	    openModal('modal-student');}
-
-        function switchStudentView(v) {
-            ['view-scheduled','view-manual','qr-reader-container'].forEach(id => document.getElementById(id).classList.add('hidden-element'));
-            document.getElementById('view-'+v).classList.remove('hidden-element');
-        }
-
 
         async function syncSpecialSettings() {
             publicData.collection('settings').doc('special_methods').onSnapshot(d => { if(d.exists) specialSettings = d.data(); });
@@ -1049,7 +933,20 @@ function finishExam() {
     location.reload();
 }
 
+async function startExam(id, correctToken) {
+    const tokenInput = document.getElementById(`tk-${id}`).value.toUpperCase();
+    if (tokenInput !== correctToken) {
+        alert("Token ujian salah!");
+        return;
+    }
 
+    const doc = await publicData.collection('exams').doc(id).get();
+    if (doc.exists) {
+        const x = doc.data();
+        activePin = x.pin || specialSettings.pin;
+        startExamEngine(x.link, x.mapel, x.duration);
+    }
+}
 
 
 

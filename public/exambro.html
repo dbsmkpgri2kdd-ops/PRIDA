@@ -525,54 +525,77 @@ async function editStudent(id) {
 
 // --- FUNGSI SINKRON GOOGLE SHEET ---
 async function syncFromGoogleSheet() {
-    const urlInput = document.getElementById('sheet-url').value;
+    let urlInput = document.getElementById('sheet-url').value.trim();
     const btn = document.getElementById('btn-sync-sheet');
     const btnText = document.getElementById('sync-text');
 
-    if (!urlInput || !urlInput.includes('/d/')) return alert("Link Google Sheet tidak valid!");
+    if (!urlInput) return alert("Masukkan link Google Sheet!");
 
-    const sheetId = urlInput.match(/\/d\/(.+?)\//)[1];
-    const exportUrl = `https://docs.google.com/spreadsheets/d/${sheetId}/export?format=csv`;
+    // Konversi link share biasa ke link ekspor CSV jika perlu
+    let exportUrl = urlInput;
+    if (urlInput.includes('/edit')) {
+        const match = urlInput.match(/\/d\/(.+?)\//);
+        if (match) {
+            exportUrl = `https://docs.google.com/spreadsheets/d/${match[1]}/export?format=csv`;
+        }
+    }
 
     btn.disabled = true;
     btn.classList.replace('bg-emerald-600', 'bg-slate-400');
     btnText.textContent = "MENGUNDUH DATA...";
 
     try {
+        // Menggunakan mode 'cors' atau 'no-cors' terkadang bermasalah, 
+        // tapi link Publish to Web biasanya lancar dengan fetch biasa
         const res = await fetch(exportUrl);
+        
+        if (!res.ok) throw new Error("Gagal mengambil data. Pastikan sudah 'Publish to Web'");
+        
         const text = await res.text();
-        const rows = text.replace(/\r/g, "").split('\n').slice(1);
+        
+        // Cek apakah yang didapat adalah HTML (halaman login) bukan CSV
+        if (text.includes('<!DOCTYPE html>') || text.includes('login')) {
+            throw new Error("Akses Ditolak. Gunakan metode 'Publish to Web' di Google Sheets.");
+        }
+
+        const rows = text.replace(/\r/g, "").split('\n').filter(row => row.trim() !== "");
+        const dataRows = rows.slice(1); // Lewati baris header
         
         const batch = db.batch();
         let addedCount = 0;
 
-        rows.forEach(row => {
-            const cols = row.split(',');
-            if (cols.length >= 3 && cols[0].trim() !== "") {
+        dataRows.forEach(row => {
+            // Regex untuk menangani koma di dalam tanda kutip (nama dengan gelar)
+            const cols = row.match(/(".*?"|[^",\s]+)(?=\s*,|\s*$)/g);
+            
+            if (cols && cols.length >= 3) {
                 const docRef = publicData.collection('users').doc();
                 batch.set(docRef, {
-                    nis: cols[0].trim(),
-                    nama: cols[1].trim(),
-                    kelas: cols[2].trim(),
-                    pwd: cols[3]?.trim() || "123"
+                    nis: cols[0].replace(/"/g, '').trim(),
+                    nama: cols[1].replace(/"/g, '').trim(),
+                    kelas: cols[2].replace(/"/g, '').trim(),
+                    pwd: cols[3] ? cols[3].replace(/"/g, '').trim() : "123"
                 });
                 addedCount++;
             }
         });
 
+        if (addedCount === 0) throw new Error("Tidak ada data yang valid ditemukan.");
+
         await batch.commit();
-        alert(`Sinkronisasi Selesai! ${addedCount} siswa ditambahkan.`);
+        alert(`Berhasil! ${addedCount} data siswa telah disinkronkan.`);
         closeModal('modal-sheet');
-        loadKelas(); // Update dropdown login
+        if (typeof loadKelas === "function") loadKelas(); 
+
     } catch (e) {
-        alert("Gagal sinkron. Pastikan Google Sheet bersifat Public (Viewer).");
+        console.error(e);
+        alert("KESALAHAN: " + e.message);
     } finally {
         btn.disabled = false;
         btn.classList.replace('bg-slate-400', 'bg-emerald-600');
         btnText.textContent = "MULAI SINKRONISASI";
     }
 }
-
 
         function startMonitorFeed() {
             publicData.collection('live').onSnapshot(s => {
@@ -829,7 +852,12 @@ function simulateScan() {
             const batch = db.batch(); snap.forEach(doc => batch.delete(doc.ref)); await batch.commit();
         }
 
-
+window.addEventListener('resize', () => {
+    // Tambahkan pengecekan apakah keyboard yang muncul atau benar-benar resize window
+    if (isExamActive && !/Android|webOS|iPhone|iPad|iPod/i.test(navigator.userAgent)) {
+        if (window.innerWidth < initialWidth - 100) reportViolation();
+    }
+});
 
     </script>
 </body>

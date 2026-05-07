@@ -486,7 +486,7 @@ async function saveAndSyncSheet() {
         // Tambah data siswa baru dari Spreadsheet
         let addedCount = 0;
         dataRows.forEach(row => {
-            const cols = row.match(/(".*?"|[^",\s]+)(?=\s*,|\s*$)/g);
+			const cols = row.split(',').map(item => item.replace(/^"|"$/g, '').trim());
             if (cols && cols.length >= 3) {
                 const docRef = publicData.collection('users').doc();
                 batch.set(docRef, {
@@ -842,8 +842,12 @@ function handleKeyboardLock(e) {
 // 5. Deteksi Kehilangan Fokus (Pindah Tab / Buka Aplikasi Lain / Screenshot)
 window.addEventListener('blur', () => { 
     if(isExamActive) {
-        document.body.classList.add('blur-screen'); // Mengaburkan layar
-        reportViolation();
+        // Cek jika fokus pindah ke iframe soal, itu bukan pelanggaran
+        setTimeout(() => {
+            if (document.activeElement.tagName !== 'IFRAME') {
+                reportViolation();
+            }
+        }, 100);
     }
 });
 

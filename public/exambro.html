@@ -89,8 +89,8 @@
             <div class="p-4 bg-slate-50 rounded-2xl mb-4">
                 <div class="flex items-center text-[9px] font-bold text-slate-400 uppercase"><span class="sync-indicator"></span> Cloud Online</div>
             </div>
-            <button onclick="location.reload()" class="p-4 text-red-500 font-bold text-sm flex items-center space-x-3 hover:bg-red-50 rounded-2xl transition-all"><span>Logout</span></button>
-        </aside>
+			<button onclick="logout()" class="p-4 text-red-500 font-bold text-sm flex items-center space-x-3 hover:bg-red-50 rounded-2xl transition-all"><span>Logout</span></button>
+		</aside>
 
         <!-- Main Content -->
         <main class="flex-grow p-12 bg-slate-50 h-screen overflow-y-auto">
@@ -121,11 +121,25 @@
 	<div id="section-student" class="hidden-element">
 	    <div class="flex justify-between items-end mb-10">
 	        <div><h2 class="text-3xl font-black text-slate-900">Database Siswa</h2><p class="text-slate-400 text-xs mt-1">Kelola data peserta ujian secara real-time.</p></div>
-	        <div class="flex space-x-3">
-	            <button onclick="openModal('modal-sheet')" class="bg-emerald-600 text-white px-6 py-4 rounded-2xl font-black text-xs shadow-lg shadow-emerald-100 flex items-center hover:bg-emerald-700 transition-all"><span class="mr-2">📊</span> Sinkron Google Sheet</button>
-	            <button onclick="openStudentModal()" class="bg-blue-600 text-white px-8 py-4 rounded-2xl font-black text-xs shadow-lg shadow-blue-100 hover:bg-blue-700 transition-all">+ Tambah Siswa</button>
+				<button onclick="openStudentModal()" class="bg-blue-600 text-white px-8 py-4 rounded-2xl font-black text-xs shadow-lg shadow-blue-100 hover:bg-blue-700 transition-all">+ Tambah Siswa</button>
 	        </div>
-	    </div>
+
+		<!-- Panel Sinkronisasi Google Sheet (Sekarang Langsung Muncul) -->
+                <div class="bg-white p-8 rounded-[2.5rem] border mb-8 shadow-sm">
+                    <div class="flex flex-col md:flex-row items-center space-y-4 md:space-y-0 md:space-x-4">
+                        <div class="flex-grow w-full">
+                            <label class="text-[10px] font-black text-slate-400 ml-2 uppercase tracking-widest mb-2 block">Link Google Spreadsheet (CSV/Publish to Web)</label>
+                            <input type="text" id="sheet-url" class="w-full bg-slate-50 p-4 rounded-2xl outline-none border-2 border-transparent focus:border-emerald-500 transition-all text-sm" placeholder="https://docs.google.com/spreadsheets/d/...">
+                        </div>
+                        <div class="flex items-end h-full pt-6">
+                            <button id="btn-sync-sheet" onclick="syncFromGoogleSheet()" class="bg-emerald-600 text-white px-8 py-4 rounded-2xl font-black text-xs shadow-lg shadow-emerald-100 flex items-center hover:bg-emerald-700 transition-all min-w-[200px] justify-center">
+                                <span id="sync-text">SINKRON DATA</span>
+                            </button>
+                        </div>
+                    </div>
+                    <p class="text-[9px] text-slate-400 mt-4 italic">*Pastikan format kolom: <b>NIS, Nama, Kelas, Password</b> dan akses file adalah "Publish to Web".</p>
+                </div>
+	    
 	    <div class="bg-white rounded-[2.5rem] border overflow-hidden shadow-sm">
 	        <table class="w-full text-left">
 	            <thead class="bg-slate-50 border-b"><tr><th class="px-8 py-5 text-[10px] font-black uppercase text-slate-400">NIS</th><th class="px-8 py-5 text-[10px] font-black uppercase text-slate-400">Nama Lengkap</th>
@@ -288,16 +302,43 @@
         window.localStream = null;
 
         // --- 3. INITIALIZATION ---
-        window.onload = async () => {
+		window.onload = async () => {
             try {
                 await auth.signInAnonymously();
                 document.getElementById('loading-overlay').classList.add('hidden-element');
+                
+                // Cek apakah ada session tersimpan
+                const savedSession = localStorage.getItem('exambro_session');
+                if (savedSession) {
+                    const sessionData = JSON.parse(savedSession);
+                    if (sessionData.role === 'admin') {
+                        // Re-login Admin
+                        showPage('admin-page');
+                        syncAdminData();
+                        startMonitorFeed();
+                    } else if (sessionData.role === 'student' && sessionData.user) {
+                        // Re-login Student
+                        user = sessionData.user;
+                        document.getElementById('display-std-name').textContent = user.nama;
+                        showPage('student-page');
+                        syncStudentData();
+                        initPeer();
+                    }
+                }
+
                 setRole('student');
                 syncSpecialSettings();
                 loadKelas();
                 startCleanupService();
-            } catch(e) { console.error("Firebase Auth Error:", e); }
+            } catch(e) { console.error("Init Error:", e); }
         };
+
+		function logout() {
+            if(confirm("Yakin ingin keluar dari sistem?")) {
+                localStorage.removeItem('exambro_session');
+                location.reload();
+            }
+        }
 
         function startCleanupService() {
             setInterval(async () => {
@@ -344,6 +385,8 @@
             const pwd = document.getElementById('user-pwd').value;
             if (currentRole === 'admin') {
                 if (document.getElementById('user-id').value === 'admin' && pwd === 'admin123') {
+                    // Simpan session admin
+                    localStorage.setItem('exambro_session', JSON.stringify({ role: 'admin', time: Date.now() }));
                     showPage('admin-page'); syncAdminData(); startMonitorFeed();
                 } else { alert("Akses Admin Ditolak!"); }
             } else {
@@ -352,12 +395,14 @@
                 const doc = await publicData.collection('users').doc(userId).get();
                 if (doc.exists && doc.data().pwd === pwd) {
                     user = doc.data(); user.id = doc.id;
+                    // Simpan session siswa
+                    localStorage.setItem('exambro_session', JSON.stringify({ role: 'student', user: user, time: Date.now() }));
                     document.getElementById('display-std-name').textContent = user.nama;
                     showPage('student-page'); syncStudentData(); initPeer();
-                    logActivity("Login Berhasil");
                 } else { alert("Password salah!"); }
             }
         }
+		
 
         // --- 5. STUDENT ENGINE (SECURITY & EXAM) ---
         function initPeer() {
@@ -705,7 +750,7 @@ async function generateAISoal() {
             document.getElementById('tab-btn-'+t).classList.remove('text-slate-400');
         }
 
-        function openModal(id) {const modal = document.getElementById(id);if (modal) {modal.classList.remove('hidden-element');} else {console.error("Modal dengan ID " + id + " tidak ditemukan!");}}
+    function openModal(id) {const modal = document.getElementById(id);if (modal) {modal.classList.remove('hidden-element');} else {console.error("Modal dengan ID " + id + " tidak ditemukan!");}}
 	function closeModal(id) {const modal = document.getElementById(id);if (modal) {modal.classList.add('hidden-element');}}
 
 	function openStudentModal() {

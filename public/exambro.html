@@ -399,7 +399,12 @@
             } else { alert("PIN Pengawas Salah!"); }
         }
 
-    
+        // --- 6. SECURITY LISTENERS ---
+        window.addEventListener('blur', () => { if(isExamActive) reportViolation(); });
+        document.addEventListener('visibilitychange', () => { if(document.hidden && isExamActive) reportViolation(); });
+        window.addEventListener('resize', () => { if (isExamActive && window.innerWidth < initialWidth - 100) reportViolation(); });
+        window.onbeforeunload = () => { if(isExamActive) return "Data ujian sedang diproses, yakin ingin keluar?"; };
+
 // --- 7. ADMIN SYNC & CRUD (VERSI DIPERBAIKI) ---
 function syncAdminData() {
     // Panggil fungsi khusus siswa agar tidak double listener
@@ -797,7 +802,8 @@ async function stopQR() {
     startExamEngine(url, "Manual Access", duration, true);
     
     // Opsional: Kosongkan input setelah dijalankan
-    document.getElementById('manual-url').value = "";}
+    document.getElementById('manual-url').value = "";
+		}
 
 
 
@@ -849,7 +855,12 @@ async function stopQR() {
             const batch = db.batch(); snap.forEach(doc => batch.delete(doc.ref)); await batch.commit();
         }
 
-
+window.addEventListener('resize', () => {
+    // Tambahkan pengecekan apakah keyboard yang muncul atau benar-benar resize window
+    if (isExamActive && !/Android|webOS|iPhone|iPad|iPod/i.test(navigator.userAgent)) {
+        if (window.innerWidth < initialWidth - 100) reportViolation();
+    }
+});
 
 
 
@@ -930,8 +941,9 @@ window.addEventListener('blur', () => {
     }
 });
 
-window.onbeforeunload = () => { if(isExamActive) return "Data ujian sedang diproses, yakin ingin keluar?"; };
-window.addEventListener('focus', () => {document.body.classList.remove('blur-screen');});
+window.addEventListener('focus', () => {
+    document.body.classList.remove('blur-screen');
+});
 
 // 6. Deteksi Fullscreen Exit
 document.addEventListener('fullscreenchange', () => {
@@ -943,12 +955,6 @@ document.addEventListener('fullscreenchange', () => {
     }
 });
 
-window.addEventListener('resize', () => {
-    // Tambahkan pengecekan apakah keyboard yang muncul atau benar-benar resize window
-    if (isExamActive && !/Android|webOS|iPhone|iPad|iPod/i.test(navigator.userAgent)) {
-        if (window.innerWidth < initialWidth - 100) reportViolation();
-    }
-});
 // --- UPDATE PADA FUNGSI START EXAM ---
 // Pastikan fungsi startExamEngine memanggil lockdown
 async function startExamEngine(url, mapel, dur, isCameraRequired) {

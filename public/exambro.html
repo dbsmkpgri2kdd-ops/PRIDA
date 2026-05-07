@@ -228,17 +228,7 @@
     </div>
 
 
-	<!-- MODAL: SINKRONISASI GOOGLE SHEET -->
-	<div id="modal-sheet" class="hidden-element fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-[3000] flex items-center justify-center p-4">
-	    <div class="bg-white w-full max-w-md rounded-[3rem] p-12 shadow-2xl">
-	        <div class="w-20 h-20 bg-emerald-100 text-emerald-600 rounded-[2rem] flex items-center justify-center mx-auto mb-6 text-3xl">📊</div>
-	        <h3 class="text-2xl font-black mb-2 text-center">Google Sheet Sync</h3><p class="text-slate-400 text-[10px] mb-8 text-center uppercase tracking-widest font-black">Format: NIS, Nama, Kelas, Password</p>
-	        <div class="space-y-2"><label class="text-[10px] font-black text-slate-400 ml-2 uppercase tracking-tighter">Tempel Link Spreadsheet</label><input type="text" id="sheet-url" class="w-full bg-slate-50 p-5 rounded-3xl outline-none border-2 border-transparent focus:border-emerald-500 transition-all text-sm" placeholder="https://docs.google.com/spreadsheets/d/..."></div>
-	        <button id="btn-sync-sheet" onclick="syncFromGoogleSheet()" class="w-full bg-emerald-600 text-white py-5 rounded-[2.5rem] font-black mt-8 shadow-xl shadow-emerald-100 flex items-center justify-center transition-all"><span id="sync-text">MULAI SINKRONISASI</span></button>
-	        <button onclick="closeModal('modal-sheet')" class="w-full py-4 text-slate-400 font-bold text-xs uppercase mt-2">Batalkan</button>
-	    </div>
-	</div>
-
+	
     <script>
         // --- 1. CONFIGURATION & FIREBASE ---
         const apiKey = "AIzaSyBrpMLLakAoM5HIL0Vax91OI0wX371Bgxc";
@@ -565,15 +555,21 @@ function syncAdminStudentData() {
         }
 
         function openLiveStream(studentId) {
-            const container = document.getElementById(`container-${studentId}`);
-            container.innerHTML = `<video id="remote-${studentId}" autoplay playsinline class="w-full h-full object-cover bg-black"></video>`;
-            if (!peer) peer = new Peer();
-            const call = peer.call(studentId, new MediaStream());
-            call.on('stream', st => { 
-                const v = document.getElementById(`remote-${studentId}`);
-                if (v) v.srcObject = st;
-            });
-        }
+    const container = document.getElementById(`container-${studentId}`);
+    container.innerHTML = `<video id="remote-${studentId}" autoplay playsinline class="w-full h-full object-cover bg-black"></video>`;
+    
+    // Pastikan ID yang dipanggil sama dengan ID yang didaftarkan siswa (pakai awalan std-)
+    const safeStudentId = 'std-' + studentId.replace(/[^a-zA-Z0-9]/g, '');
+    
+    if (!peer) peer = new Peer();
+    const call = peer.call(safeStudentId, new MediaStream());
+    call.on('stream', st => { 
+        const v = document.getElementById(`remote-${studentId}`);
+        if (v) v.srcObject = st;
+    });
+}
+		
+	
 
 // --- LOGIKA AI GEMINI (VERSI STABIL) ---
 async function generateAISoal() {
@@ -879,10 +875,9 @@ async function startExamEngine(url, mapel, dur) {
 
     isExamActive = true;
     violationCount = 0;
-    
+    initialWidth = window.innerWidth;
     // Aktifkan Pengunci Keamanan
     enableHardLockdown();
-
     document.getElementById('view-mapel').textContent = mapel;
     document.getElementById('exam-frame-container').innerHTML = `<iframe src="${url}" allow="camera; microphone"></iframe>`;
     document.getElementById('exam-viewer').classList.remove('hidden-element');

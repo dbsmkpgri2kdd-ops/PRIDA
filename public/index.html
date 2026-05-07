@@ -106,6 +106,7 @@ body{background:var(--bg);color:var(--text-dark);overflow-x:hidden;overscroll-be
     justify-content: center;
 }
 
+
 .modal-content {
     width: 100%;
     height: 100vh; /* Full tinggi layar */
@@ -470,12 +471,10 @@ async function fetchSpreadsheetData() {
         const r = await fetch(API_URL);
         const data = await r.json();
         
-        // Daftar kontainer yang perlu dibersihkan
         const sections = ['grid-lembaga', 'grid-profil', 'grid-game', 'grid-layanan', 'grid-literasi', 'grid-media', 'video-profil'];
         sections.forEach(id => {
             const el = document.getElementById(id);
             if (el) {
-                // Simpan item statis (yang ditulis manual di HTML) agar tidak hilang
                 const statics = el.querySelectorAll('.static-item');
                 el.innerHTML = ''; 
                 statics.forEach(s => el.appendChild(s));
@@ -484,6 +483,8 @@ async function fetchSpreadsheetData() {
 
         Object.keys(data).forEach(key => {
             const item = data[key];
+            // Ambil URL dengan toleransi huruf besar/kecil
+            const targetUrl = item.Url || item.URL || item.url;
             const sectionId = `grid-${item.SectionID?.toLowerCase().trim()}`;
             const container = document.getElementById(sectionId);
 
@@ -494,7 +495,15 @@ async function fetchSpreadsheetData() {
                     <div class="icon-box"><i class="${item.Icon || 'fa-solid fa-link'}"></i></div>
                     <span>${item.Title || key}</span>
                 `;
-                card.onclick = () => item.Url ? window.open(item.Url, '_blank') : openModal(item.Title, "Konten belum tersedia.");
+                
+                // PERBAIKAN DI SINI: Menggunakan openExternalLink agar terbuka dalam aplikasi
+                card.onclick = () => {
+                    if (targetUrl) {
+                        openExternalLink(targetUrl);
+                    } else {
+                        openModal(item.Title || key, "Konten belum tersedia.");
+                    }
+                };
                 container.appendChild(card);
             }
 
@@ -504,8 +513,9 @@ async function fetchSpreadsheetData() {
                 if (videoList) {
                     const v = document.createElement('div');
                     v.className = 'video-item';
+                    const videoUrl = item.Url || item.URL || item.url;
                     v.innerHTML = `
-                        <div class="video-thumb" onclick="playInPlace(this, '${item.Url}')">
+                        <div class="video-thumb" onclick="playInPlace(this, '${videoUrl}')">
                             <img src="${item.Thumbnail}">
                             <div class="video-play-btn"><i class="fa-solid fa-play"></i></div>
                         </div>
@@ -521,7 +531,16 @@ async function fetchSpreadsheetData() {
     }
 }
 
-
+card.onclick = () => {
+    if (targetUrl) {
+        // Jika link mengandung 'google.com' atau 'facebook.com', buka di tab baru
+        if (targetUrl.includes('google.com') || targetUrl.includes('facebook.com')) {
+            window.open(targetUrl, '_blank');
+        } else {
+            openExternalLink(targetUrl);
+        }
+    }
+};
 
 // 2. Fungsi Khusus Membuka Link (Full Layar & Iframe)
 function openExternalLink(url) {

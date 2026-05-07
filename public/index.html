@@ -146,6 +146,43 @@ body{background:var(--bg);color:var(--text-dark);overflow-x:hidden;overscroll-be
     display: block;
 }
 
+	
+/* Styling Khusus Input di dalam Modal */
+.modal-body .input-group {
+    margin-bottom: 15px;
+}
+.modal-body .input-group input {
+    width: 100%;
+    padding: 15px 15px 15px 50px;
+    border-radius: 12px;
+    border: 1.5px solid #e0e0e0;
+    font-size: 15px;
+    outline: none;
+    background: #fdfdfd;
+}
+.modal-body .input-group i {
+    position: absolute;
+    left: 18px;
+    top: 50%;
+    transform: translateY(-50%);
+    color: var(--primary);
+}
+.info-box {
+    background: #e0f2fe;
+    color: #0369a1;
+    padding: 12px;
+    border-radius: 10px;
+    font-size: 12px;
+    margin-bottom: 20px;
+    display: flex;
+    gap: 10px;
+    align-items: center;
+}
+
+
+
+
+		   
 </style>
 </head>
 
@@ -384,41 +421,109 @@ body{background:var(--bg);color:var(--text-dark);overflow-x:hidden;overscroll-be
 
         // --- PENGUMUMAN & KELULUSAN ---
         function openPengumuman() {
-            openModal('Pengumuman Kelulusan', `
-                <p style="text-align: center; font-weight: bold;">UJI KOMPETENSI KEAHLIAN (UKK)</p>
-                <input id="namaKelulusan" placeholder="Nama Lengkap">
-                <input id="kelasKelulusan" placeholder="Kelas (Contoh: XII.1)">
-                <button class="login-btn" onclick="cariKelulusan()">Cari</button>
-                <div id="hasilKelulusan" style="margin-top:15px;"></div>
-            `);
+    openModal('Pengumuman UKK', `
+        <div style="padding: 10px;">
+            <div class="info-box">
+                <i class="fa-solid fa-circle-info"></i>
+                <span>Silakan masukkan Nama Lengkap dan Kelas sesuai dengan data Dapodik untuk melihat hasil UKK.</span>
+            </div>
+
+            <div class="input-group">
+                <i class="fa-solid fa-user"></i>
+                <input type="text" id="namaKelulusan" placeholder="Nama Lengkap Siswa" autocomplete="off">
+            </div>
+
+            <div class="input-group">
+                <i class="fa-solid fa-screen-users"></i>
+                <input type="text" id="kelasKelulusan" placeholder="Kelas (Contoh: XII.1)" autocomplete="off">
+            </div>
+
+            <button class="login-btn" onclick="cariKelulusan()" style="margin-top: 10px;">
+                <i class="fa-solid fa-magnifying-glass"></i> CARI DATA
+            </button>
+
+            <div id="hasilKelulusan" style="margin-top: 25px; min-height: 100px;">
+                <!-- Hasil akan muncul di sini -->
+            </div>
+        </div>
+    `);
+}
+		function cariKelulusan() {
+    const nama = document.getElementById('namaKelulusan').value;
+    const kelas = document.getElementById('kelasKelulusan').value;
+    const box = document.getElementById('hasilKelulusan');
+
+    if (!nama || !kelas) return showToast('Harap isi Nama dan Kelas!');
+
+    // Tampilan Loading
+    box.innerHTML = `
+        <div style="text-align:center; padding: 20px;">
+            <i class="fa-solid fa-spinner fa-spin" style="font-size: 30px; color: var(--primary);"></i>
+            <p style="margin-top:10px; font-size: 14px; color: #666;">Mencari data di server...</p>
+        </div>
+    `;
+
+    const cb = 'cb_' + Date.now();
+    window[cb] = function(data) {
+        delete window[cb];
+        script.remove();
+        
+        if (data.locked) { 
+            box.innerHTML = `
+                <div style="background:#fff4e5; color:#663c00; padding:20px; border-radius:12px; text-align:center; border: 1px solid #ffe2b7;">
+                    <i class="fa-solid fa-lock" style="font-size:24px; margin-bottom:10px;"></i>
+                    <p><b>Akses Dikunci</b></p>
+                    <p style="font-size:13px;">Hasil akan dibuka pada:<br><b>${data.buka}</b></p>
+                </div>`; 
+            return; 
         }
 
-        function cariKelulusan() {
-            const nama = document.getElementById('namaKelulusan').value;
-            const kelas = document.getElementById('kelasKelulusan').value;
-            const box = document.getElementById('hasilKelulusan');
-            if (!nama || !kelas) return showToast('Data wajib diisi');
-            box.innerHTML = '? Memeriksa...';
-            const cb = 'cb_' + Date.now();
-            window[cb] = function(data) {
-                delete window[cb]; script.remove();
-                if (data.locked) { box.innerHTML = `?? Dibuka pada <b>${data.buka}</b>`; return; }
-                if (!data.found) { box.innerHTML = '<p style="color:red;">Tidak ditemukan</p>'; return; }
-                const warna = data.status === 'LULUS' ? '#16a34a' : '#dc2626';
-                if (data.status === 'LULUS') launchConfetti();
-                box.innerHTML = `<div class="${data.status === 'LULUS' ? 'lulus-box' : ''}" style="border:2px solid ${warna};padding:16px;border-radius:16px">
-                                    <h2 style="color:${warna}">${data.status}</h2>
-                                    <p><b>Nama:</b> ${data.nama}</p><p><b>Kelas:</b> ${data.kelas}</p><p>${data.keterangan}</p>
-                                 </div>`;
-                if (data.video && data.status === 'LULUS') {
-                    const embed = data.video.replace('watch?v=', 'embed/') + '?autoplay=1&mute=1';
-                    box.innerHTML += `<iframe src="${embed}" width="100%" height="220" style="margin-top:14px;border-radius:14px" allow="autoplay" allowfullscreen></iframe>`;
-                }
-            };
-            const script = document.createElement('script');
-            script.src = `${KELULUSAN_API}?nama=${encodeURIComponent(nama)}&kelas=${encodeURIComponent(kelas)}&callback=${cb}`;
-            document.body.appendChild(script);
+        if (!data.found) { 
+            box.innerHTML = `
+                <div style="background:#fee2e2; color:#991b1b; padding:20px; border-radius:12px; text-align:center; border: 1px solid #fecaca;">
+                    <i class="fa-solid fa-circle-exclamation" style="font-size:24px; margin-bottom:10px;"></i>
+                    <p><b>Data Tidak Ditemukan</b></p>
+                    <p style="font-size:12px;">Pastikan penulisan Nama dan Kelas sudah benar.</p>
+                </div>`; 
+            return; 
         }
+
+        const warna = data.status === 'LULUS' ? '#16a34a' : '#dc2626';
+        const bgWarna = data.status === 'LULUS' ? '#f0fdf4' : '#fef2f2';
+        
+        if (data.status === 'LULUS') launchConfetti();
+
+        box.innerHTML = `
+            <div class="${data.status === 'LULUS' ? 'lulus-box' : ''}" 
+                 style="background:${bgWarna}; border:2px solid ${warna}; padding:20px; border-radius:20px; text-align:center;">
+                <p style="font-size:12px; color:#666; text-transform:uppercase; letter-spacing:1px;">Hasil Kelulusan UKK</p>
+                <h2 style="color:${warna}; font-size:32px; margin:10px 0;">${data.status}</h2>
+                <div style="text-align:left; background:rgba(255,255,255,0.6); padding:15px; border-radius:12px; font-size:14px; line-height:1.8;">
+                    <p><b>Nama:</b> ${data.nama}</p>
+                    <p><b>Kelas:</b> ${data.kelas}</p>
+                    <p><b>Ket:</b> ${data.keterangan}</p>
+                </div>
+            </div>`;
+
+        if (data.video && data.status === 'LULUS') {
+            const videoId = data.video.split('v=')[1] || data.video.split('/').pop();
+            box.innerHTML += `
+                <div style="margin-top:20px;">
+                    <p style="font-size:12px; margin-bottom:8px; color:#666; text-align:center;">Pesan untuk kamu:</p>
+                    <iframe src="https://www.youtube.com/embed/${videoId}?autoplay=1&mute=0" 
+                        width="100%" height="200" style="border-radius:15px; border:none; box-shadow:0 10px 20px rgba(0,0,0,0.1);" 
+                        allow="autoplay" allowfullscreen></iframe>
+                </div>`;
+        }
+    };
+
+    const script = document.createElement('script');
+    script.src = `${KELULUSAN_API}?nama=${encodeURIComponent(nama)}&kelas=${encodeURIComponent(kelas)}&callback=${cb}`;
+    document.body.appendChild(script);
+}
+		
+
+        
 
         function launchConfetti() {
             for (let i = 0; i < 80; i++) {

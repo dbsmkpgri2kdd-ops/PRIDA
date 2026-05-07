@@ -580,12 +580,6 @@ function openExternalLink(url) {
     // Tambahkan history state agar tombol back HP bisa menutup modal
     history.pushState({ modalOpen: true }, "");
 
-	// Contoh tambahan di fungsi openExternalLink
-	modalBody.innerHTML = `
-    <div style="padding:10px; background:#eee; text-align:center;">
-        <button onclick="window.open('${url}', '_blank')">Buka di Tab Baru</button>
-    </div>
-    <iframe src="${url}" id="externalFrame" ...></iframe>`;
 }
 
 // 3. Update fungsi openModal standar agar mengembalikan padding

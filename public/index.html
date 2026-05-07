@@ -92,35 +92,35 @@ body{background:var(--bg);color:var(--text-dark);overflow-x:hidden;overscroll-be
 .lulus-box{animation:glow 1.5s infinite}@keyframes glow{0%{box-shadow:0 0 0 rgba(22,163,74,0.4)}50%{box-shadow:0 0 25px rgba(22,163,74,0.8)}100%{box-shadow:0 0 0 rgba(22,163,74,0.4)}}
 .confetti{position:fixed;width:8px;height:8px;top:-10px;z-index:99999;animation:fall linear forwards}@keyframes fall{to{transform:translateY(110vh) rotate(720deg);opacity:0}}
 
-/* --- MODIFIKASI FULL SCREEN --- */
+/* MODIFIKASI FULL SCREEN TOTAL */
 #contentModal {
     position: fixed;
     top: 0;
     left: 0;
     width: 100%;
     height: 100%;
-    background: var(--white); /* Latar belakang putih bersih */
+    background: #fff;
     z-index: 10000;
     display: none;
-    align-items: flex-start; /* Mulai dari atas */
-    justify-content: center;
 }
-
 
 .modal-content {
     width: 100%;
-    height: 100vh; /* Full tinggi layar */
-    max-width: none; /* Hilangkan batas lebar */
-    background: var(--white);
-    border-radius: 0; /* Hilangkan lengkungan sudut */
+    height: 100%;
     display: flex;
     flex-direction: column;
-    animation: fadeIn 0.3s ease-out; /* Animasi muncul halus */
 }
 
-/* Sembunyikan Header (Judul & Tombol Back di layar) */
+.modal-body.no-padding {
+    padding: 0 !important;
+    margin: 0 !important;
+    height: 100vh;
+    overflow: hidden;
+}
+
+/* Hilangkan header modal agar tidak ada tombol X atau judul yang mengganggu */
 .modal-header {
-    display: none !important; 
+    display: none !important;
 }
 
 .modal-body {
@@ -138,12 +138,6 @@ body{background:var(--bg);color:var(--text-dark);overflow-x:hidden;overscroll-be
     to { opacity: 1; transform: translateY(0); }
 }
 
-
-/* CSS Tambahan untuk Link Full Screen */
-.modal-body.no-padding {
-    padding: 0 !important;
-    overflow: hidden;
-}
 
 #externalFrame {
     width: 100%;
@@ -471,11 +465,17 @@ body{background:var(--bg);color:var(--text-dark);overflow-x:hidden;overscroll-be
         });
 
         // Initialize
-	window.addEventListener('DOMContentLoaded', () => { initApp(); });
         window.addEventListener('online', () => { updateNetwork(); showToast('Kembali Online'); });
         window.addEventListener('offline', () => { updateNetwork(); showToast('Mode Offline'); });
 	document.getElementById('passwordInput').addEventListener('keypress', function (e) {if (e.key === 'Enter') handleLogin();});
-
+// Pastikan aplikasi langsung masuk jika sudah pernah login
+window.addEventListener('DOMContentLoaded', () => {
+    if (localStorage.getItem('isLoggedIn') === 'true') {
+        document.getElementById('login-screen').style.display = 'none';
+        document.getElementById('main-app').style.display = 'block';
+        initApp();
+    }
+});
 
 
 function playInPlace(container, url) {
@@ -566,20 +566,38 @@ async function fetchSpreadsheetData() {
 
 // 2. Fungsi Khusus Membuka Link (Full Layar & Iframe)
 function openExternalLink(url) {
-    const modalBody = document.getElementById('modalBody');
-    
-    // Set padding ke 0 agar benar-benar full layar
-    modalBody.classList.add('no-padding');
-    
-    // Masukkan Iframe ke dalam modal
-    modalBody.innerHTML = `<iframe src="${url}" id="externalFrame" allow="geolocation; microphone; camera"></iframe>`;
-    
-    // Tampilkan modal
-    document.getElementById('contentModal').style.display = 'flex';
-    
-    // Tambahkan history state agar tombol back HP bisa menutup modal
-    history.pushState({ modalOpen: true }, "");
+    // Daftar website yang HARAM dibuka di Iframe (pasti putih/error)
+    const blockedSites = [
+        'facebook.com', 'instagram.com', 'youtube.com', 'google.com', 
+        'twitter.com', 'shopee', 'tokopedia', 'tiktok.com', 'wa.me', 't.me'
+    ];
 
+    const isBlocked = blockedSites.some(site => url.toLowerCase().includes(site));
+
+    if (isBlocked) {
+        // JIKA LINK MEMBLOKIR IFRAME:
+        // Langsung pindah halaman di jendela yang sama.
+        // Pada PWA yang sudah di-install, ini akan tetap Full Screen tanpa bar URL.
+        window.location.href = url;
+    } else {
+        // JIKA LINK AMAN (Web Sekolah/Lainnya):
+        // Buka di dalam Modal Full Screen aplikasi
+        const modalBody = document.getElementById('modalBody');
+        modalBody.classList.add('no-padding');
+        modalBody.innerHTML = `
+            <div id="loadingIframe" style="position:absolute; top:50%; left:50%; transform:translate(-50%,-50%); font-family:sans-serif; color:#666;">
+                <i class="fa-solid fa-spinner fa-spin"></i> Memuat...
+            </div>
+            <iframe src="${url}" id="externalFrame" 
+                style="width:100%; height:100vh; border:none; display:block;" 
+                onload="document.getElementById('loadingIframe').style.display='none'"
+                allow="geolocation; microphone; camera; clipboard-write">
+            </iframe>`;
+        
+        document.getElementById('contentModal').style.display = 'flex';
+        // Simpan state agar tombol back HP bisa menutup modal
+        history.pushState({ modalOpen: true }, "");
+    }
 }
 
 // 3. Update fungsi openModal standar agar mengembalikan padding
@@ -590,20 +608,22 @@ function openModal(title, content) {
     document.getElementById('contentModal').style.display = 'flex';
     history.pushState({ modalOpen: true }, "");
 }
-
-// 4. Update Logika Tombol Back HP
-window.onpopstate = function(event) {
-    closeModal();
-};
-
+		
 function closeModal() {
     const modal = document.getElementById('contentModal');
     if (modal.style.display === 'flex') {
         modal.style.display = 'none';
-        // Bersihkan iframe agar tidak berat saat modal tertutup
         document.getElementById('modalBody').innerHTML = '';
     }
 }
+
+// Menangani tombol back pada smartphone
+window.onpopstate = function(event) {
+    const modal = document.getElementById('contentModal');
+    if (modal.style.display === 'flex') {
+        closeModal();
+    }
+};
 
 
 

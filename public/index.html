@@ -242,43 +242,12 @@ body{background:var(--bg);color:var(--text-dark);overflow-x:hidden;overscroll-be
         const API_URL = 'https://script.google.com/macros/s/AKfycbzdUXE8vqAH7g2wa-XnvQWZm1-4cXxMlOjlxsUAufOhjx8OcMfcYe2U8OTa_nKxmsxu/exec';
         const PTK_API_URL = 'https://script.google.com/macros/s/AKfycbwvjXmZX0lEME9M9cSy9FvfHvcx2gMPkp1H5Dj4YaKufPRsAyon8Tf_UeTqzq1C2zQk6ZLKTVRg/exec';
 
-
         const DYNAMIC_DATA = {
-            'Sejarah Lembaga': `
-                <p><b>Pendirian SMK PGRI 2 Kedondong</b> dilatarbelakangi oleh kondisi di Kecamatan Kedondong dan sekitarnya (Way Lima, Way Khilau, Padang Cermin Kabupaten Lampung Selatan—sekarang menjadi Kabupaten Pesawaran—dan Kecamatan Pardasuka Kabupaten Tanggamus) yang pada saat itu belum memiliki Sekolah Menengah Kejuruan (SMK) bidang Teknologi.</p><br>
-                <p>SMK PGRI 2 Kedondong didirikan oleh panitia yang dimotori oleh DR. Andi Munandar, M.M., M.Si. pada tahun 2003. Sekolah ini langsung menerima siswa baru angkatan pertama pada tahun pelajaran 2003/2004 berdasarkan Surat Keputusan Pengurus Yayasan Pembina Lembaga Pendidikan Persatuan Guru Republik Indonesia (YPLP-PGRI) Nomor: 24/C/YPLP-PGRI/V/2004 tertanggal 22 Mei 2004.</p><br>
-                <p>Izin operasional sekolah diterbitkan dengan Nomor: 42.5/966/11.2/2006 pada tanggal 24 Februari 2006 oleh Kepala Dinas Pendidikan Kabupaten Lampung Selatan. Sekolah ini berdiri di atas tanah seluas 8.000 m² milik Drs. Hi. Aminullah Ihsan.</p><br>
-                <p>Berdasarkan Undang-Undang Nomor 33 Tahun 2007, wilayah ini resmi menjadi bagian dari Kabupaten Pesawaran. Peresmian pembentukan Kabupaten Pesawaran dilakukan pada 2 November 2007 oleh Mendagri atas nama Presiden Republik Indonesia.</p>`,
-
-            'Identitas Sekolah': `
-                <div style="line-height: 1.6;">
-                    <h3 style="margin-bottom: 15px;">A. IDENTITAS SEKOLAH</h3>
-                    <table style="width: 100%; border-collapse: collapse;">
-                        <tr><td style="width: 140px; padding: 5px 0;">Nama Sekolah</td><td style="width: 10px;">:</td><td><b>SMKS PGRI 2 KEDONDONG</b></td></tr>
-                        <tr><td style="padding: 5px 0;">NPSN</td><td>:</td><td>10811003</td></tr>
-                        <tr><td style="padding: 5px 0;">Jenjang</td><td>:</td><td>SMK</td></tr>
-                        <tr><td style="padding: 5px 0;">Status</td><td>:</td><td>Swasta</td></tr>
-                        <tr><td style="padding: 5px 0; vertical-align: top;">Alamat</td><td style="vertical-align: top;">:</td><td>JL. TRITURA KEDONDONG</td></tr>
-                        <tr><td style="padding: 5px 0;">RT / RW</td><td>:</td><td>1 / 1</td></tr>
-                        <tr><td style="padding: 5px 0;">Kode Pos</td><td>:</td><td>35381</td></tr>
-                        <tr><td style="padding: 5px 0;">Kelurahan</td><td>:</td><td>Kedondong</td></tr>
-                        <tr><td style="padding: 5px 0;">Kecamatan</td><td>:</td><td>Kec. Kedondong</td></tr>
-                        <tr><td style="padding: 5px 0;">Kabupaten</td><td>:</td><td>Kab. Pesawaran</td></tr>
-                        <tr><td style="padding: 5px 0;">Provinsi</td><td>:</td><td>Prov. Lampung</td></tr>
-                    </table>
-                </div>`,
-
-            'Jurusan SMK': `
-                <p>Tersedia 6 Jurusan Unggulan:</p>
-                <ul style="padding-left: 20px; margin-top: 10px;">
-                    <li>TKR (Teknik Kendaraan Ringan)</li>
-                    <li>TSM (Teknik Sepeda Motor)</li>
-                    <li>TKJ (Teknik Komputer dan Jaringan)</li>
-                    <li>TAV (Teknik Audio Video)</li>
-                    <li>BD (Bisnis Digital)</li>
-                    <li>LPS (Layanan Perbankan Syariah)</li>
-                </ul>`
+            'Sejarah Lembaga': `<p><b>SMK PGRI 2 Kedondong</b> didirikan pada tahun 2003 untuk memenuhi kebutuhan pendidikan vokasi bidang teknologi di wilayah Pesawaran.</p>`,
+            'Identitas Sekolah': `<p><b>NPSN:</b> 10811003<br><b>Status:</b> Swasta<br><b>Alamat:</b> Jl. Tritura Kedondong, Pesawaran, Lampung.</p>`,
+            'Jurusan SMK': `<p>TKR, TSM, TKJ, TAV, Bisnis Digital, Layanan Perbankan Syariah.</p>`
         };
+
 
 
         let currentTabIndex = 0;
@@ -477,7 +446,6 @@ body{background:var(--bg);color:var(--text-dark);overflow-x:hidden;overscroll-be
 
 
 
-
 function playInPlace(container, url) {
     const videoId = url.match(/(?:youtu\.be\/|youtube\.com\/(?:embed\/|v\/|watch\?v=|watch\?.+&v=))([^#&?]*)/)?.[1];
     
@@ -502,10 +470,12 @@ async function fetchSpreadsheetData() {
         const r = await fetch(API_URL);
         const data = await r.json();
         
-        const sections = ['grid-lembaga', 'grid-profil', 'grid-game', 'grid-layanan', 'grid-literasi', 'grid-media'];
+        // Daftar kontainer yang perlu dibersihkan
+        const sections = ['grid-lembaga', 'grid-profil', 'grid-game', 'grid-layanan', 'grid-literasi', 'grid-media', 'video-profil'];
         sections.forEach(id => {
             const el = document.getElementById(id);
             if (el) {
+                // Simpan item statis (yang ditulis manual di HTML) agar tidak hilang
                 const statics = el.querySelectorAll('.static-item');
                 el.innerHTML = ''; 
                 statics.forEach(s => el.appendChild(s));
@@ -524,22 +494,34 @@ async function fetchSpreadsheetData() {
                     <div class="icon-box"><i class="${item.Icon || 'fa-solid fa-link'}"></i></div>
                     <span>${item.Title || key}</span>
                 `;
-                
-                // MODIFIKASI DISINI: Jika ada URL, panggil openExternalLink
-                card.onclick = () => {
-                    if (item.Url) {
-                        openExternalLink(item.Url);
-                    } else {
-                        openModal(item.Title, "Konten belum tersedia.");
-                    }
-                };
+                card.onclick = () => item.Url ? window.open(item.Url, '_blank') : openModal(item.Title, "Konten belum tersedia.");
                 container.appendChild(card);
+            }
+
+            // Logika Video Galeri
+            if (item.Thumbnail && item.Thumbnail.startsWith('http')) {
+                const videoList = document.getElementById('video-profil');
+                if (videoList) {
+                    const v = document.createElement('div');
+                    v.className = 'video-item';
+                    v.innerHTML = `
+                        <div class="video-thumb" onclick="playInPlace(this, '${item.Url}')">
+                            <img src="${item.Thumbnail}">
+                            <div class="video-play-btn"><i class="fa-solid fa-play"></i></div>
+                        </div>
+                        <div class="video-info">${item.Title}</div>
+                    `;
+                    videoList.appendChild(v);
+                }
             }
         });
     } catch (e) {
         console.error("Error loading data", e);
+        showToast("Gagal memuat data.");
     }
 }
+
+
 
 // 2. Fungsi Khusus Membuka Link (Full Layar & Iframe)
 function openExternalLink(url) {
@@ -579,11 +561,6 @@ function closeModal() {
         // Bersihkan iframe agar tidak berat saat modal tertutup
         document.getElementById('modalBody').innerHTML = '';
     }
-}
-
-// Pastikan fungsi lama tetap bekerja tapi panggil openModal
-function openDynamicContent(key) { 
-    openModal(key, DYNAMIC_DATA[key] || "Konten tidak ditemukan."); 
 }
 
 

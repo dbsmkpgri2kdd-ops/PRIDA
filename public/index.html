@@ -16,7 +16,7 @@
     <meta name="background-color" content="#001d3d">
 
 <script>
-    const APP_VERSION = '1.0.5';
+    const APP_VERSION = '1.0.6';
     async function initPWA() {
         const savedVersion = localStorage.getItem('app_version');
         if (savedVersion !== APP_VERSION) {
@@ -39,17 +39,6 @@
     initPWA();
 </script>
 
-
-    <script>
-        if ('serviceWorker' in navigator) {
-            window.addEventListener('load', () => {
-                navigator.serviceWorker.register('/service-worker.js');
-            });
-            navigator.serviceWorker.getRegistrations().then(regs => {
-                regs.forEach(reg => reg.update());
-            });
-        }
-    </script>
 
 <style>
 :root{--primary:#001d3d;--secondary:#007aff;--accent:rgba(255,255,255,0.1);--bg:#f8fbff;--white:#ffffff;--text-dark:#001d3d;--text-gray:#6c757d;--radius-lg:28px;--radius-md:12px;--shadow:0 8px 16px rgba(0,86,179,0.05);--blue-gradient:linear-gradient(135deg,#001d3d 0%,#003566 100%)}

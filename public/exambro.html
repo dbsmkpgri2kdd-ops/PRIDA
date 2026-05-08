@@ -27,8 +27,15 @@
         .sync-indicator { width: 8px; height: 8px; border-radius: 50%; display: inline-block; margin-right: 6px; background-color: #10b981; box-shadow: 0 0 8px #10b981; }
 	.blur-screen {filter: blur(20px); pointer-events: none;}
 
+	/* Styling tambahan untuk kartu monitor */
+	.monitor-card {transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);}
+	.monitor-card:hover {transform: translateY(-4px);box-shadow: 0 20px 25px -5px rgb(0 0 0 / 0.1), 0 8px 10px -6px rgb(0 0 0 / 0.1); }
+	.status-ping {width: 8px;height: 8px;border-radius: 50%;position: relative;}
+	.status-ping::after {content: '';position: absolute;inset: 0;border-radius: 50%;animation: ping 1.5s cubic-bezier(0, 0, 0.2, 1) infinite;background-color: inherit;}
+	@keyframes ping {75%, 100% { transform: scale(2.5); opacity: 0; }}
     </style>
 </head>
+
 <body class="text-slate-800" oncontextmenu="return false">
 
     <!-- AUDIO NOTIFICATION -->
@@ -255,31 +262,91 @@
 		showPage('admin-page'); syncAdminData();startMonitorFeed();} else if (sessionData.role === 'student' && sessionData.user) {
 		// Re-login Student
 		user = sessionData.user; document.getElementById('display-std-name').textContent = user.nama;
-		showPage('student-page'); syncStudentData(); initPeer();} }
+		showPage('student-page'); syncStudentData(); initPeer(); listenForAdminCommands(); } }
 		setRole('student'); syncSpecialSettings(); loadKelas(); startCleanupService();loadSheetConfig(); } catch(e) { console.error("Init Error:", e); }
 	        };
 
-        async function handleLogin() {
-            const pwd = document.getElementById('user-pwd').value;
-            if (currentRole === 'admin') {
-                if (document.getElementById('user-id').value === 'admin' && pwd === 'admin123') {
-                    // Simpan session admin
-                    localStorage.setItem('exambro_session', JSON.stringify({ role: 'admin', time: Date.now() }));
-                    showPage('admin-page'); syncAdminData(); startMonitorFeed();
-                } else { alert("Akses Admin Ditolak!"); }
-            } else {
-                const userId = document.getElementById('select-nama').value;
-                if (!userId) return alert("Silahkan pilih nama anda!");
-                const doc = await publicData.collection('users').doc(userId).get();
-                if (doc.exists && doc.data().pwd === pwd) {
-                    user = doc.data(); user.id = doc.id;
-                    // Simpan session siswa
-                    localStorage.setItem('exambro_session', JSON.stringify({ role: 'student', user: user, time: Date.now() }));
-                    document.getElementById('display-std-name').textContent = user.nama;
-                    showPage('student-page'); syncStudentData(); initPeer();
-                } else { alert("Password salah!"); }
-            }
+async function handleLogin() {
+    const pwdInput = document.getElementById('user-pwd');
+    const pwd = pwdInput.value;
+    const userIdInput = document.getElementById('user-id');
+    const selectNamaInput = document.getElementById('select-nama');
+
+    if (currentRole === 'admin') {
+        // --- LOGIKA LOGIN ADMIN ---
+        if (userIdInput.value === 'admin' && pwd === 'admin123') {
+            // Simpan session admin ke local storage
+            localStorage.setItem('exambro_session', JSON.stringify({ 
+                role: 'admin', 
+                time: Date.now() 
+            }));
+            
+            showPage('admin-page'); 
+            syncAdminData(); 
+            startMonitorFeed();
+            
+            // Bersihkan input
+            pwdInput.value = "";
+            userIdInput.value = "";
+        } else { 
+            alert("Username atau Password Admin Salah!"); 
         }
+    } else {
+        // --- LOGIKA LOGIN SISWA ---
+        const userId = selectNamaInput.value;
+        
+        if (!userId) {
+            alert("Silahkan pilih nama Anda terlebih dahulu!");
+            return;
+        }
+
+        try {
+            // Ambil data user dari Firestore berdasarkan ID (Dokumen ID)
+            const doc = await publicData.collection('users').doc(userId).get();
+
+            if (doc.exists) {
+                const userData = doc.data();
+
+                // Verifikasi Password
+                if (userData.pwd === pwd) {
+                    // SET GLOBAL USER: Pastikan semua field penting masuk (ID, Nama, Kelas)
+                    user = {
+                        id: doc.id,
+                        nama: userData.nama,
+                        kelas: userData.kelas || "Umum", // Mengambil data kelas dari Firestore
+                        nis: userData.nis
+                    };
+
+                    // Simpan session siswa ke local storage agar jika refresh tidak logout
+                    localStorage.setItem('exambro_session', JSON.stringify({ 
+                        role: 'student', 
+                        user: user, 
+                        time: Date.now() 
+                    }));
+
+                    // Update UI Nama di Header Siswa
+                    document.getElementById('display-std-name').textContent = user.nama;
+                    
+                    // Pindah ke halaman siswa & jalankan engine
+                    showPage('student-page'); 
+                    syncStudentData(); // Sinkronisasi jadwal ujian
+                    initPeer(); // Siapkan koneksi video P2P
+                    listenForAdminCommands(); // Dengar perintah unlock dari admin
+                    
+                    // Bersihkan password
+                    pwdInput.value = "";
+                } else {
+                    alert("Password salah! Silahkan coba lagi.");
+                }
+            } else {
+                alert("Data siswa tidak ditemukan di server.");
+            }
+        } catch (error) {
+            console.error("Login Error:", error);
+            alert("Terjadi kesalahan koneksi saat login.");
+        }
+    }
+}
 
 
 	 // --- 4. AUTH & ROLES ---
@@ -580,60 +647,86 @@ async function startExam(id, correctToken) {
 // --- UPDATE PADA FUNGSI START EXAM ---
 // Pastikan fungsi startExamEngine memanggil lockdown
 async function startExamEngine(url, mapel, dur, isCameraRequired) {
+    // 1. Validasi Izin Kamera jika diwajibkan
     if (isCameraRequired !== false) { 
         try {
-            const stream = await navigator.mediaDevices.getUserMedia({video: true});
+            const stream = await navigator.mediaDevices.getUserMedia({ 
+                video: { width: 320, height: 240, frameRate: 15 } 
+            });
             window.localStream = stream;
             document.getElementById('self-video').srcObject = stream;
             document.getElementById('self-video').parentElement.classList.remove('hidden-element');
-        } catch(e) { 
-            alert("Ujian ini wajib menggunakan kamera!"); return; 
+        } catch(e) {
+            alert("Ujian ini wajib menggunakan akses kamera!"); 
+            return; 
         }
     }
 
+    // 2. Inisialisasi Status Ujian
     isExamActive = true;
     violationCount = 0;
     initialWidth = window.innerWidth;
+    
+    // Aktifkan Pengamanan Ketat
     enableHardLockdown();
     
+    // 3. Setup UI Viewer
     document.getElementById('view-mapel').textContent = mapel;
     document.getElementById('exam-frame-container').innerHTML = `<iframe src="${url}" allow="camera; microphone"></iframe>`;
     document.getElementById('exam-viewer').classList.remove('hidden-element');
+    
+    // Paksa Fullscreen
     document.documentElement.requestFullscreen().catch(() => {});
 
-    // Timer Ujian
+    // 4. Timer Ujian (Hitung Mundur)
     let time = dur * 60;
     const timer = setInterval(() => {
         if (!isExamActive) { clearInterval(timer); return; }
         time--;
-        const m = Math.floor(time/60), s = time%60;
+        const m = Math.floor(time/60);
+        const s = time % 60;
         document.getElementById('exam-timer').textContent = `${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}`;
-        if (time <= 0) { finishExam(); }
+        
+        if (time <= 0) { 
+            clearInterval(timer);
+            finishExam(); 
+        }
     }, 1000);
 
-    // MONITORING SETIAP 5 DETIK (Hanya Update Data Sementara, Tidak Disimpan Permanen)
+    // 5. Engine Monitoring Real-time (Setiap 5 Detik)
     const canvas = document.createElement('canvas');
     const ctx = canvas.getContext('2d');
-    monitorInterval = setInterval(() => {
+    
+    monitorInterval = setInterval(async () => {
         if(!isExamActive) return;
         
         let imgData = "";
+        // Ambil gambar dari video jika kamera aktif
         if (isCameraRequired !== false && window.localStream) {
             canvas.width = 160; 
             canvas.height = 120; 
-            ctx.drawImage(document.getElementById('self-video'), 0,0,160,120); 
-            imgData = canvas.toDataURL('image/jpeg', 0.2); // Foto resolusi rendah untuk efisiensi
+            ctx.drawImage(document.getElementById('self-video'), 0, 0, 160, 120); 
+            imgData = canvas.toDataURL('image/jpeg', 0.2); // Kompresi 20% untuk kecepatan
         }
         
-        // Update dokumen 'live'. Dokumen ini akan otomatis terhapus saat ujian selesai atau logout.
-        publicData.collection('live').doc(user.id).set({
-            nama: user.nama, 
-            img: imgData, 
-            last: Date.now(), 
-            v: violationCount, 
-            camStatus: isCameraRequired !== false ? "ON" : "OFF"
-        }); 
-    }, 5000); // <-- Diubah menjadi 5 detik
+        try {
+            // Update data ke Firestore koleksi 'live'
+            // Pastikan user.kelas terkirim di sini
+            await publicData.collection('live').doc(user.id).set({
+                nama: user.nama,
+                kelas: user.kelas || "Tanpa Kelas", // Mengatasi 'Kelas tidak dikenal'
+                img: imgData,
+                last: Date.now(),
+                v: violationCount,
+                camStatus: isCameraRequired !== false ? "ON" : "OFF"
+            }, { merge: true });
+        } catch (err) {
+            console.error("Gagal sinkron monitoring:", err);
+        }
+    }, 5000); 
+
+    // Log Aktivitas ke Cloud
+    logActivity(`Memulai ujian: ${mapel}`);
 }
 		
 
@@ -804,102 +897,215 @@ function handleKeyboardLock(e) {
 	});
 
 
-
-function initPeer() {
-    if (!user) return;
-    // Buat ID Peer yang unik tapi tetap (agar admin bisa menebak ID-nya)
-    const safePeerId = 'peer-exam-' + user.id.replace(/[^a-zA-Z0-9]/g, '');
-    peer = new Peer(safePeerId);
-    peer.on('open', (id) => {console.log('Peer ID Siswa Ready:', id);});
-
-    // LOGIKA PENTING: Menjawab panggilan Admin
-    peer.on('call', (call) => {if (window.localStream) {call.answer(window.localStream); // Kirim stream kamera ke admin
-	    }
-	});
-    peer.on('error', (err) => console.error('PeerJS Error:', err));
-}
-
-
-
 		
-        function startMonitorFeed() {
-            publicData.collection('live').onSnapshot(s => {
-                const grid = document.getElementById('monitor-grid');
-                grid.innerHTML = "";
-                s.forEach(d => {
-                    const l = d.data();
-                    const card = document.createElement('div');
-                    card.className = "bg-white p-2 rounded-2xl border relative overflow-hidden group cursor-pointer shadow-sm";
-                    card.innerHTML = `
-                        <div class="aspect-video bg-black rounded-xl overflow-hidden relative" id="container-${d.id}">
-                            ${l.img ? `<img src="${l.img}" class="w-full h-full object-cover">` : `<div class="w-full h-full flex items-center justify-center text-[10px] text-slate-500 font-bold uppercase">Kamera OFF</div>`}
-							${l.v > 0 ? `<div class="absolute top-2 right-2 bg-red-600 text-white text-[8px] font-black px-2 py-1 rounded-lg">VIOLATION: ${l.v}</div>` : ''}
+// --- MONITORING ENGINE (OPTIMIZED) ---
+function startMonitorFeed() {
+    publicData.collection('live').onSnapshot(s => {
+        const grid = document.getElementById('monitor-grid');
+        // Jangan refresh jika sedang ada stream video aktif agar tidak flicker
+        if (document.querySelector('video[id^="remote-video-"]')) return;
+
+        grid.innerHTML = ""; 
+        grid.className = "flex flex-col gap-10"; // Container utama vertikal
+        
+        const students = [];
+        s.forEach(d => {
+            const data = d.data();
+            students.push({ id: d.id, ...data });
+        });
+
+        // Grouping berdasarkan Kelas
+        const daftarKelas = [...new Set(students.map(st => st.kelas || "Tanpa Kelas"))].sort();
+
+        daftarKelas.forEach(kelas => {
+            const section = document.createElement('div');
+            const sectionId = `grid-kelas-${kelas.replace(/\s+/g, '-')}`;
+            
+            section.innerHTML = `
+                <div class="flex items-center mb-6">
+                    <h3 class="text-xs font-black text-slate-500 uppercase tracking-[0.2em] bg-slate-200/50 px-4 py-1.5 rounded-full">${kelas}</h3>
+                    <div class="h-[1px] flex-grow bg-slate-200 ml-4"></div>
+                    <span class="ml-4 text-[10px] font-bold text-slate-400">${students.filter(st => st.kelas === kelas).length} Siswa</span>
+                </div>
+                <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-6 gap-5" id="${sectionId}"></div>
+            `;
+            grid.appendChild(section);
+
+            const subGrid = document.getElementById(sectionId);
+
+            students.filter(st => (st.kelas || "Tanpa Kelas") === kelas).forEach(l => {
+                const isOnline = (Date.now() - l.last) < 15000; // Aktif dalam 15 detik terakhir
+                const card = document.createElement('div');
+                card.className = `monitor-card bg-white rounded-[2rem] border ${l.v > 0 ? 'border-red-200 ring-4 ring-red-50' : 'border-slate-100'} overflow-hidden shadow-sm`;
+                
+                card.innerHTML = `
+                    <!-- Preview Box -->
+                    <div class="aspect-[4/3] bg-slate-100 relative group" id="container-${l.id}">
+                        ${l.img ? 
+                            `<img src="${l.img}" class="w-full h-full object-cover">` : 
+                            `<div class="w-full h-full flex flex-col items-center justify-center bg-slate-50 text-slate-300">
+                                <span class="text-2xl mb-1">👤</span>
+                                <span class="text-[8px] font-bold uppercase tracking-tighter">No Camera Feed</span>
+                             </div>`
+                        }
+                        
+                        <!-- Status Overlays -->
+                        <div class="absolute top-3 left-3 flex gap-2">
+                            <div class="${isOnline ? 'bg-emerald-500' : 'bg-slate-400'} status-ping"></div>
+                            ${l.v > 0 ? `<div class="bg-red-600 text-white text-[8px] font-black px-2 py-0.5 rounded shadow-lg animate-bounce">⚠️ ${l.v} Pelanggaran</div>` : ''}
                         </div>
-                        <p class="text-[10px] font-black mt-2 text-center text-slate-700 truncate px-2">${l.nama}</p>
-                    `;
-                    card.onclick = () => openLiveStream(d.id);
-                    grid.appendChild(card);
-                });
-                document.getElementById('online-count').textContent = s.size + " Siswa Sedang Aktif";
+
+                        <!-- Dark Overlay on Hover -->
+                        <div class="absolute inset-0 bg-slate-900/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2">
+                             <button onclick="openLiveStream('${l.id}')" class="bg-white text-slate-900 p-2 rounded-xl shadow-xl hover:scale-110 transition-transform">
+                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z"></path></svg>
+                             </button>
+                        </div>
+                    </div>
+
+                    <!-- Info Box -->
+                    <div class="p-4">
+                        <div class="flex flex-col mb-3">
+                            <span class="text-[10px] font-black text-slate-800 truncate uppercase leading-tight">${l.nama}</span>
+                            <span class="text-[8px] font-bold text-slate-400 uppercase mt-0.5">NIS: ${l.id.slice(-6)}</span>
+                        </div>
+                        
+                        <div class="grid grid-cols-2 gap-2">
+                            <button onclick="openLiveStream('${l.id}')" class="bg-blue-50 text-blue-600 text-[8px] font-black py-2 rounded-xl hover:bg-blue-600 hover:text-white transition-all uppercase">Live Feed</button>
+                            <button onclick="remoteUnlockStudent('${l.id}')" class="bg-slate-50 text-slate-500 text-[8px] font-black py-2 rounded-xl hover:bg-emerald-500 hover:text-white transition-all uppercase">Bypass</button>
+                        </div>
+                    </div>
+                `;
+                subGrid.appendChild(card);
             });
-        }
+        });
 
-        async function clearMonitorData() {
-            if(!confirm("Hapus semua feed monitor?")) return;
-            const snap = await publicData.collection('live').get();
-            const batch = db.batch(); snap.forEach(doc => batch.delete(doc.ref)); await batch.commit();
-        }
-
-
-function openLiveStream(studentId) {
-    const container = document.getElementById(`container-${studentId}`);
-    container.innerHTML = `<video id="remote-${studentId}" autoplay playsinline class="w-full h-full object-cover bg-black"></video>`;
-    const safePeerId = 'peer-exam-' + studentId.replace(/[^a-zA-Z0-9]/g, '');
-    if (!peer) peer = new Peer();
-    // Admin menelpon siswa
-    const call = peer.call(safePeerId, new MediaStream()); // Kirim stream kosong untuk memancing jawaban
-    call.on('stream', (remoteStream) => {
-        const video = document.getElementById(`remote-${studentId}`);
-        if (video) video.srcObject = remoteStream;
+        document.getElementById('online-count').textContent = s.size + " Siswa Terdeteksi";
     });
 }
 
+async function remoteUnlockStudent(studentId) {
+    if(confirm("Buka akses siswa ini?")) {
+        try {
+            await publicData.collection('live').doc(studentId).update({ command: 'unlock', v: 0 });
+        } catch (e) { alert("Gagal koneksi ke siswa."); }
+    }
+}
 
-// --- LOGIKA AI GEMINI (VERSI STABIL) ---
+function listenForAdminCommands() {
+    if (!user || !user.id) return;
+    publicData.collection('live').doc(user.id).onSnapshot(doc => {
+        if (doc.exists && doc.data().command === 'unlock') {
+            forceUnlockLocally();
+            doc.ref.update({ command: null });
+        }
+    });
+}
+
+function forceUnlockLocally() {
+    document.getElementById('lock-screen').classList.add('hidden-element');
+    document.getElementById('unlock-pwd').value = "";
+    violationCount = 0;
+    document.getElementById('violation-count').textContent = "0";
+    document.getElementById('violation-badge').classList.add('hidden-element');
+    document.documentElement.requestFullscreen().catch(() => {});
+}
+
+function initPeer() {
+    if (!user) return;
+    const safePeerId = 'peer-exam-' + user.id.replace(/[^a-zA-Z0-9]/g, '');
+    if (peer) peer.destroy();
+    peer = new Peer(safePeerId);
+    peer.on('call', (call) => {
+        if (window.localStream) call.answer(window.localStream);
+    });
+}
+
+function openLiveStream(studentId) {
+    const container = document.getElementById(`container-${studentId}`);
+    
+    container.innerHTML = `
+        <div class="absolute inset-0 bg-black flex flex-col items-center justify-center z-30">
+            <div class="animate-spin rounded-full h-5 w-5 border-2 border-white/20 border-t-white mb-2"></div>
+            <span class="text-[7px] text-white/50 font-bold uppercase tracking-[0.2em]">Koneksi P2P...</span>
+        </div>
+        <video id="remote-video-${studentId}" autoplay muted playsinline class="w-full h-full object-cover relative z-10"></video>
+        <div class="absolute top-2 left-2 z-40 bg-red-600 text-white text-[7px] font-black px-2 py-0.5 rounded flex items-center shadow-lg">
+            <span class="w-1 h-1 bg-white rounded-full mr-1 animate-pulse"></span> LIVE
+        </div>
+        <button onclick="stopLiveStream('${studentId}')" class="absolute bottom-2 right-2 z-40 bg-white/20 hover:bg-red-600 text-white text-[8px] font-bold px-2 py-1 rounded-lg backdrop-blur-md transition-colors uppercase">Tutup</button>
+    `;
+
+    if (!peer || peer.destroyed) peer = new Peer();
+    const safePeerId = 'peer-exam-' + studentId.replace(/[^a-zA-Z0-9]/g, '');
+    const call = peer.call(safePeerId, new MediaStream());
+
+    call.on('stream', (remoteStream) => {
+        const videoElement = document.getElementById(`remote-video-${studentId}`);
+        if (videoElement) {
+            videoElement.srcObject = remoteStream;
+            videoElement.onloadedmetadata = () => {
+                videoElement.play();
+                // Hapus loading overlay
+                container.firstElementChild.remove();
+            };
+        }
+    });
+}
+
+function stopLiveStream(studentId) {
+    // 1. Cari elemen video
+    const videoElement = document.getElementById(`remote-video-${studentId}`);
+    
+    if (videoElement) {
+        // 2. Matikan semua track stream (audio/video) agar koneksi P2P benar-benar putus
+        const stream = videoElement.srcObject;
+        if (stream) {
+            stream.getTracks().forEach(track => track.stop());
+        }
+        
+        // 3. Hapus elemen video dari DOM
+        videoElement.remove();
+    }
+
+    // 4. Panggil ulang monitor feed untuk menampilkan kembali foto thumbnail terbaru
+    // Sekarang pengecekan 'if video return' akan lolos karena video sudah dihapus
+    startMonitorFeed();
+}
+
+async function clearMonitorData() {
+	if(!confirm("Bersihkan?")) return;
+	const snap = await publicData.collection('live').get();
+	const batch = db.batch(); snap.forEach(doc => batch.delete(doc.ref)); await batch.commit();
+}
+
+// --- LOGIKA AI GEMINI ---
 async function generateAISoal() {
     const topic = document.getElementById('ai-topic').value;
     const count = document.getElementById('ai-count').value || 1;
-    if (!topic) return alert("Mohon isi topik materi!");
+    if (!topic) return alert("Isi topik!");
     const btn = document.getElementById('ai-btn');
     const loader = document.getElementById('ai-loading');
     btn.classList.add('hidden-element');
     loader.classList.remove('hidden-element');
     try {
-        const prompt = `Buatkan ${count} soal pilihan ganda tentang materi ${topic}. Berikan jawaban HANYA dalam format JSON Array of Objects: [{"question": "..."}]. Tanpa penjelasan tambahan.`;
+        const prompt = `Buatkan ${count} soal pilihan ganda tentang ${topic}. Berikan HANYA format JSON Array: [{"question": "..."}]. Tanpa teks lain.`;
         const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`, {
             method: 'POST', 
             headers: {'Content-Type': 'application/json'},
             body: JSON.stringify({contents: [{parts: [{text: prompt}]}], generationConfig: { responseMimeType: "application/json" } })
         });
-
         const result = await res.json();
         let text = result.candidates[0].content.parts[0].text;
-        
-        // Membersihkan string jika ada sisa markdown
-        // Logika pembersihan JSON yang lebih kuat
-	const startBracket = text.indexOf('[');
-	const endBracket = text.lastIndexOf(']') + 1;
-	if (startBracket === -1 || endBracket === 0) throw new Error("Format AI tidak valid");
-        const cleanJson = text.substring(startBracket, endBracket);
-	const qs = JSON.parse(cleanJson);
+	    const startBracket = text.indexOf('[');
+	    const endBracket = text.lastIndexOf(']') + 1;
+	    const cleanJson = text.substring(startBracket, endBracket);
+	    const qs = JSON.parse(cleanJson);
         const batch = db.batch();
         qs.forEach(q => {const docRef = publicData.collection('ai_bank').doc(); batch.set(docRef, { question: q.question, topic: topic, timestamp: Date.now() }); });
-        await batch.commit(); alert(`Berhasil generate ${qs.length} soal!`); closeModal('modal-ai');
-    } catch(e) {console.error(e); alert("Gagal memproses AI. Pastikan API Key valid dan format benar.");
-    } finally {btn.classList.remove('hidden-element'); loader.classList.add('hidden-element');
-    }
+        await batch.commit(); alert("Berhasil!"); closeModal('modal-ai');
+    } catch(e) { alert("Gagal."); } finally { btn.classList.remove('hidden-element'); loader.classList.add('hidden-element'); }
 }
-
     </script>
 </body>
 </html>

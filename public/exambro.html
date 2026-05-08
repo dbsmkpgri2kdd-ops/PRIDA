@@ -38,8 +38,7 @@
     <div id="lock-screen" class="fixed inset-0 bg-slate-900/98 z-[1000] flex flex-col items-center justify-center p-6 hidden-element">
         <div class="bg-white rounded-[2.5rem] p-10 max-w-md w-full text-center shadow-2xl">
             <div class="w-20 h-20 bg-red-100 text-red-600 rounded-full flex items-center justify-center mx-auto mb-6 font-black text-4xl">!</div>
-            <h2 class="text-2xl font-black mb-2 text-slate-900">Akses Terkunci</h2>
-            <p class="text-slate-500 mb-8 text-sm">Terdeteksi aktivitas mencurigakan atau pelanggaran batas. Silahkan masukkan PIN Pengawas.</p>
+            <h2 class="text-2xl font-black mb-2 text-slate-900">Akses Terkunci</h2><p class="text-slate-500 mb-8 text-sm">Terdeteksi aktivitas mencurigakan atau pelanggaran batas. Silahkan masukkan PIN Pengawas.</p>
             <input type="password" id="unlock-pwd" class="w-full bg-slate-100 p-4 rounded-xl mb-4 text-center tracking-widest outline-none border-2 border-transparent focus:border-red-500 text-lg font-bold" placeholder="PIN PENGAWAS">
             <button onclick="unlockApp()" class="w-full bg-red-600 text-white py-4 rounded-xl font-bold hover:bg-red-700 transition-all shadow-lg shadow-red-200">BUKA AKSES</button>
         </div>
@@ -54,10 +53,7 @@
     <!-- LOGIN PAGE -->
     <div id="login-page" class="min-h-screen flex items-center justify-center bg-slate-950 p-4">
         <div class="bg-white/95 backdrop-blur-md rounded-[3rem] shadow-2xl w-full max-w-md p-10">
-            <div class="text-center mb-10">
-                <h1 class="text-3xl font-black text-slate-900 uppercase">Exambro <span class="text-blue-600">AI</span></h1>
-                <p class="text-slate-400 text-[10px] font-bold mt-2 uppercase tracking-[0.2em]">Secured Examination System 2026</p>
-            </div>
+            <div class="text-center mb-10"><h1 class="text-3xl font-black text-slate-900 uppercase">Exambro <span class="text-blue-600">AI</span></h1><p class="text-slate-400 text-[10px] font-bold mt-2 uppercase tracking-[0.2em]">Secured Examination System 2026</p></div>
             <div class="space-y-4">
                 <div class="flex bg-slate-100 p-1 rounded-2xl">
                     <button onclick="setRole('student')" id="role-std" class="flex-1 py-3 text-xs font-bold rounded-xl bg-white shadow-sm text-blue-600">SISWA</button>
@@ -73,46 +69,38 @@
     </div>
 
     <!-- ADMIN DASHBOARD -->
-    <div id="admin-page" class="min-h-screen flex hidden-element">
+	<div id="admin-page" class="min-h-screen flex hidden-element">
         <!-- Sidebar -->
-        <aside class="w-72 bg-white border-r flex flex-col p-8 sticky top-0 h-screen">
-            <div class="font-black text-2xl mb-12 flex items-center space-x-3 text-slate-900">
-                <div class="w-10 h-10 bg-blue-600 rounded-xl shadow-lg flex items-center justify-center text-white text-base">A</div>
+		<aside class="w-72 bg-white border-r flex flex-col p-8 sticky top-0 h-screen">
+		<div class="font-black text-2xl mb-12 flex items-center space-x-3 text-slate-900"><div class="w-10 h-10 bg-blue-600 rounded-xl shadow-lg flex items-center justify-center text-white text-base">A</div>
                 <span class="tracking-tighter">DASHBOARD</span>
             </div>
-            <nav class="space-y-3 flex-grow">
+            	<nav class="space-y-3 flex-grow">
                 <button onclick="switchTab('exam')" id="tab-btn-exam" class="w-full flex items-center space-x-4 p-4 rounded-2xl sidebar-active font-bold text-sm text-left"><span>Manajemen Ujian</span></button>
                 <button onclick="switchTab('bank')" id="tab-btn-bank" class="w-full flex items-center space-x-4 p-4 rounded-2xl text-slate-400 font-bold text-sm hover:bg-slate-50 text-left"><span>Bank Soal AI</span></button>
                 <button onclick="switchTab('student')" id="tab-btn-student" class="w-full flex items-center space-x-4 p-4 rounded-2xl text-slate-400 font-bold text-sm hover:bg-slate-50 text-left"><span>Database Siswa</span></button>
                 <button onclick="switchTab('monitor')" id="tab-btn-monitor" class="w-full flex items-center space-x-4 p-4 rounded-2xl text-slate-400 font-bold text-sm hover:bg-slate-50 text-left"><span>Monitor Live</span></button>
-            </nav>
-            <div class="p-4 bg-slate-50 rounded-2xl mb-4">
-                <div class="flex items-center text-[9px] font-bold text-slate-400 uppercase"><span class="sync-indicator"></span> Cloud Online</div>
+            	</nav>
+		<div class="p-4 bg-slate-50 rounded-2xl mb-4"><div class="flex items-center text-[9px] font-bold text-slate-400 uppercase"><span class="sync-indicator"></span> Cloud Online</div>
             </div>
-			<button onclick="logout()" class="p-4 text-red-500 font-bold text-sm flex items-center space-x-3 hover:bg-red-50 rounded-2xl transition-all"><span>Logout</span></button>
-		</aside>
+		<button onclick="logout()" class="p-4 text-red-500 font-bold text-sm flex items-center space-x-3 hover:bg-red-50 rounded-2xl transition-all"><span>Logout</span></button>
+	</aside>
+
 
         <!-- Main Content -->
         <main class="flex-grow p-12 bg-slate-50 h-screen overflow-y-auto">
-            <!-- SECTION EXAM -->
+        <!-- SECTION EXAM -->
             <div id="section-exam">
                 <div class="flex justify-between items-end mb-10">
                     <div><h2 class="text-3xl font-black text-slate-900">Manajemen Ujian</h2><p class="text-slate-400 text-xs mt-1">Kelola paket ujian dan pengaturan akses cepat.</p></div>
                     <button onclick="openExamModal()" class="bg-blue-600 text-white px-8 py-4 rounded-2xl font-black text-sm shadow-xl shadow-blue-500/20">+ Buat Paket</button>
                 </div>
                 <div class="bg-amber-50 border-2 border-amber-200 p-8 rounded-[2.5rem] mb-10 shadow-sm">
-                    <h3 class="font-black text-amber-900 text-lg mb-6 flex items-center">⚙️ Konfigurasi Akses Cepat</h3>
-                    <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
-                        <div class="space-y-2">
-                            <label class="text-[10px] font-black text-amber-600 uppercase">PIN Pengawas Utama</label>
-                            <input type="text" id="special-pin" class="w-full bg-white p-4 rounded-2xl border-2 border-amber-100 font-black text-amber-700 outline-none" value="1234">
-                        </div>
-                        <div class="space-y-2">
-                            <label class="text-[10px] font-black text-amber-600 uppercase">Default Durasi (Menit)</label>
-                            <input type="number" id="special-duration" class="w-full bg-white p-4 rounded-2xl border-2 border-amber-100 font-bold text-amber-700 outline-none" value="60">
-                        </div>
+                    <h3 class="font-black text-amber-900 text-lg mb-6 flex items-center">⚙️ Konfigurasi Akses Cepat</h3><div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                        <div class="space-y-2"><label class="text-[10px] font-black text-amber-600 uppercase">PIN Pengawas Utama</label><input type="text" id="special-pin" class="w-full bg-white p-4 rounded-2xl border-2 border-amber-100 font-black text-amber-700 outline-none" value="1234"></div>
+                        <div class="space-y-2"><label class="text-[10px] font-black text-amber-600 uppercase">Default Durasi (Menit)</label><input type="number" id="special-duration" class="w-full bg-white p-4 rounded-2xl border-2 border-amber-100 font-bold text-amber-700 outline-none" value="60"></div>
                         <div class="flex items-end"><button onclick="saveSpecialSettings()" class="w-full bg-amber-600 text-white py-4 rounded-2xl font-black hover:bg-amber-700 shadow-lg shadow-amber-200 transition-all">SIMPAN PERUBAHAN</button></div>
-                    </div>
+			</div>
                 </div>
                 <div id="admin-exam-list" class="grid grid-cols-1 xl:grid-cols-2 gap-6"></div>
             </div>
@@ -120,21 +108,14 @@
 	<!-- SECTION STUDENT -->
 	<div id="section-student" class="hidden-element">
 	    <div class="flex justify-between items-end mb-10">
-	        <div><h2 class="text-3xl font-black text-slate-900">Database Siswa</h2><p class="text-slate-400 text-xs mt-1">Data sinkron otomatis dari Google Spreadsheet.</p></div>
-		</div>
+		<div><h2 class="text-3xl font-black text-slate-900">Database Siswa</h2><p class="text-slate-400 text-xs mt-1">Data sinkron otomatis dari Google Spreadsheet.</p></div>
+	    </div>
 
 		<!-- Panel Sinkronisasi Google Sheet (Sekarang Langsung Muncul) -->
                 <div class="bg-white p-8 rounded-[2.5rem] border mb-8 shadow-sm">
                     <div class="flex flex-col md:flex-row items-center space-y-4 md:space-y-0 md:space-x-4">
-                        <div class="flex-grow w-full">
-                            <label class="text-[10px] font-black text-slate-400 ml-2 uppercase tracking-widest mb-2 block">Link Google Spreadsheet (CSV/Publish to Web)</label>
-                            <input type="text" id="sheet-url" class="w-full bg-slate-50 p-4 rounded-2xl outline-none border-2 border-transparent focus:border-emerald-500 transition-all text-sm" placeholder="https://docs.google.com/spreadsheets/d/...">
-                        </div>
-                        <div class="flex items-end h-full pt-6">
-                            <button id="btn-sync-sheet" onclick="saveAndSyncSheet()" class="bg-emerald-600 text-white px-8 py-4 rounded-2xl font-black text-xs shadow-lg shadow-emerald-100 flex items-center hover:bg-emerald-700 transition-all min-w-[200px] justify-center">
-                                <span id="sync-text">SIMPAN & SINKRON</span>
-                            </button>
-                        </div>
+                        <div class="flex-grow w-full"><label class="text-[10px] font-black text-slate-400 ml-2 uppercase tracking-widest mb-2 block">Link Google Spreadsheet (CSV/Publish to Web)</label><input type="text" id="sheet-url" class="w-full bg-slate-50 p-4 rounded-2xl outline-none border-2 border-transparent focus:border-emerald-500 transition-all text-sm" placeholder="https://docs.google.com/spreadsheets/d/..."></div>
+                        <div class="flex items-end h-full pt-6"><button id="btn-sync-sheet" onclick="saveAndSyncSheet()" class="bg-emerald-600 text-white px-8 py-4 rounded-2xl font-black text-xs shadow-lg shadow-emerald-100 flex items-center hover:bg-emerald-700 transition-all min-w-[200px] justify-center"><span id="sync-text">SIMPAN & SINKRON</span></button></div>
                     </div>
                     <p class="text-[9px] text-slate-400 mt-4 italic">*Perubahan data dilakukan langsung di Google Sheet. Klik tombol di atas untuk menyegarkan database di aplikasi.</p>
                 </div>
@@ -149,20 +130,11 @@
 	</div>
 
             <!-- SECTION MONITOR -->
-            <div id="section-monitor" class="hidden-element">
-                <div class="flex justify-between items-end mb-10">
-                    <div><h2 class="text-3xl font-black text-slate-900">Live Monitoring</h2><p class="text-slate-400 text-xs mt-1" id="online-count">0 Siswa Sedang Aktif</p></div>
-                    <button onclick="clearMonitorData()" class="text-red-500 font-bold text-[10px] uppercase border-b border-red-200">Bersihkan Feed Pasif</button>
-                </div>
-                <div id="monitor-grid" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6"></div>
-            </div>
+            <div id="section-monitor" class="hidden-element"><div class="flex justify-between items-end mb-10"><div><h2 class="text-3xl font-black text-slate-900">Live Monitoring</h2><p class="text-slate-400 text-xs mt-1" id="online-count">0 Siswa Sedang Aktif</p></div><button onclick="clearMonitorData()" class="text-red-500 font-bold text-[10px] uppercase border-b border-red-200">Bersihkan Feed Pasif</button></div><div id="monitor-grid" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6"></div></div>
 
             <!-- SECTION BANK AI -->
             <div id="section-bank" class="hidden-element">
-                <div class="flex justify-between items-end mb-10">
-                    <h2 class="text-3xl font-black text-slate-900">Bank Soal AI</h2>
-                    <button onclick="openModal('modal-ai')" class="bg-indigo-600 text-white px-8 py-4 rounded-2xl font-black text-xs">✨ Generate Soal Baru</button>
-                </div>
+                <div class="flex justify-between items-end mb-10"><h2 class="text-3xl font-black text-slate-900">Bank Soal AI</h2><button onclick="openModal('modal-ai')" class="bg-indigo-600 text-white px-8 py-4 rounded-2xl font-black text-xs">✨ Generate Soal Baru</button></div>
                 <div id="ai-question-list" class="grid grid-cols-1 gap-4"></div>
             </div>
         </main>
@@ -171,12 +143,8 @@
 	<!-- STUDENT DASHBOARD -->
 	<div id="student-page" class="min-h-screen bg-slate-50 hidden-element">
 	    <header class="bg-white border-b px-4 py-3 flex justify-between items-center sticky top-0 z-50 shadow-sm">
-	        <div class="flex items-center space-x-3">
-	            <div class="w-10 h-10 bg-blue-600 rounded-xl flex items-center justify-center text-white font-black text-lg shadow-md">S</div>
-	            <div><h3 id="display-std-name" class="font-bold text-slate-900 text-sm leading-none">Peserta</h3><p class="text-[8px] text-emerald-500 font-bold tracking-wider uppercase mt-1">● Secure Connection</p></div>
-	        </div>
+	        <div class="flex items-center space-x-3"><div class="w-10 h-10 bg-blue-600 rounded-xl flex items-center justify-center text-white font-black text-lg shadow-md">S</div><div><h3 id="display-std-name" class="font-bold text-slate-900 text-sm leading-none">Peserta</h3><p class="text-[8px] text-emerald-500 font-bold tracking-wider uppercase mt-1">● Secure Connection</p></div></div>
 	        <button onclick="logout()" class="text-red-500 font-black text-[10px] border border-red-100 px-3 py-2 rounded-lg uppercase">Keluar</button>
-
 	    </header>
 
 	    <main class="p-4">
@@ -233,6 +201,18 @@
         </div>
     </div>
 
+	<!-- MODAL AI GENERATOR -->
+	<div id="modal-ai" class="hidden-element fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-[3000] flex items-center justify-center p-4">
+	<div class="bg-white w-full max-w-md rounded-[3rem] p-10 shadow-2xl">
+	<h3 class="text-2xl font-black mb-2 text-indigo-600">✨ AI Question Generator</h3><p class="text-slate-400 text-xs mb-8">Gunakan kecerdasan buatan untuk membuat bank soal otomatis.</p>
+		<div class="space-y-4">
+		<div class="space-y-1"><label class="text-[10px] font-black uppercase ml-2">Topik/Materi</label><input type="text" id="ai-topic" class="w-full bg-slate-50 p-4 rounded-2xl outline-none border focus:border-indigo-500" placeholder="Contoh: Fotosintesis Biologi Kelas 7"></div>
+		<div class="space-y-1"><label class="text-[10px] font-black uppercase ml-2">Jumlah Soal</label><input type="number" id="ai-count" class="w-full bg-slate-50 p-4 rounded-2xl outline-none border" value="5" max="10"></div>
+		<div id="ai-loading" class="hidden-element flex items-center justify-center p-4"><div class="animate-spin rounded-full h-6 w-6 border-b-2 border-indigo-600 mr-3"></div><span class="text-xs font-bold text-indigo-600 uppercase">AI sedang berpikir...</span></div>
+		<div class="flex space-x-3 pt-4"><button onclick="closeModal('modal-ai')" class="flex-1 py-4 font-bold text-slate-400 text-xs uppercase">Batal</button><button id="ai-btn" onclick="generateAISoal()" class="flex-1 bg-indigo-600 text-white py-4 rounded-2xl font-black text-xs shadow-lg shadow-indigo-100">GENERATE</button></div>
+		</div>
+		</div>
+	</div>
 
 	
     <script>
@@ -264,65 +244,46 @@
         let peer = null;
         let initialWidth = window.innerWidth;
         window.localStream = null;
+	
+	// --- 3. INITIALIZATION ---
+	window.onload = async () => {
+		try {await auth.signInAnonymously(); document.getElementById('loading-overlay').classList.add('hidden-element');
+		// Cek apakah ada session tersimpan
+		const savedSession = localStorage.getItem('exambro_session');
+		if (savedSession) {const sessionData = JSON.parse(savedSession); if (sessionData.role === 'admin') {
+		// Re-login Admin
+		showPage('admin-page'); syncAdminData();startMonitorFeed();} else if (sessionData.role === 'student' && sessionData.user) {
+		// Re-login Student
+		user = sessionData.user; document.getElementById('display-std-name').textContent = user.nama;
+		showPage('student-page'); syncStudentData(); initPeer();} }
+		setRole('student'); syncSpecialSettings(); loadKelas(); startCleanupService();loadSheetConfig(); } catch(e) { console.error("Init Error:", e); }
+	        };
 
-        // --- 3. INITIALIZATION ---
-		window.onload = async () => {
-            try {
-                await auth.signInAnonymously();
-                document.getElementById('loading-overlay').classList.add('hidden-element');
-                
-                // Cek apakah ada session tersimpan
-                const savedSession = localStorage.getItem('exambro_session');
-                if (savedSession) {
-                    const sessionData = JSON.parse(savedSession);
-                    if (sessionData.role === 'admin') {
-                        // Re-login Admin
-                        showPage('admin-page');
-                        syncAdminData();
-                        startMonitorFeed();
-                    } else if (sessionData.role === 'student' && sessionData.user) {
-                        // Re-login Student
-                        user = sessionData.user;
-                        document.getElementById('display-std-name').textContent = user.nama;
-                        showPage('student-page');
-                        syncStudentData();
-                        initPeer();
-                    }
-                }
-
-                setRole('student');
-                syncSpecialSettings();
-                loadKelas();
-                startCleanupService();loadSheetConfig();
-            } catch(e) { console.error("Init Error:", e); }
-        };
-
-		async function logout() {
-            if(confirm("Yakin ingin keluar dari Akun Dashboard?")) {
-				try {if (user && user.id) {await publicData.collection('live').doc(user.id).delete();}
-        } catch (e) { console.log("Clean up skip"); }
-                localStorage.removeItem('exambro_session');
-				user = null; if (window.localStream) {window.localStream.getTracks().forEach(track => track.stop()); }
-                location.reload();
+        async function handleLogin() {
+            const pwd = document.getElementById('user-pwd').value;
+            if (currentRole === 'admin') {
+                if (document.getElementById('user-id').value === 'admin' && pwd === 'admin123') {
+                    // Simpan session admin
+                    localStorage.setItem('exambro_session', JSON.stringify({ role: 'admin', time: Date.now() }));
+                    showPage('admin-page'); syncAdminData(); startMonitorFeed();
+                } else { alert("Akses Admin Ditolak!"); }
+            } else {
+                const userId = document.getElementById('select-nama').value;
+                if (!userId) return alert("Silahkan pilih nama anda!");
+                const doc = await publicData.collection('users').doc(userId).get();
+                if (doc.exists && doc.data().pwd === pwd) {
+                    user = doc.data(); user.id = doc.id;
+                    // Simpan session siswa
+                    localStorage.setItem('exambro_session', JSON.stringify({ role: 'student', user: user, time: Date.now() }));
+                    document.getElementById('display-std-name').textContent = user.nama;
+                    showPage('student-page'); syncStudentData(); initPeer();
+                } else { alert("Password salah!"); }
             }
         }
 
-        function startCleanupService() {
-            setInterval(async () => {
-                try {
-                    const fiveMinutesAgo = Date.now() - (5 * 60 * 1000);
-                    const snap = await publicData.collection('live').where('last', '<', fiveMinutesAgo).get();
-                    if (!snap.empty) {
-                        const batch = db.batch();
-                        snap.forEach(doc => batch.delete(doc.ref));
-                        await batch.commit();
-                    }
-                } catch (e) { console.error("Cleanup error:", e); }
-            }, 60000);
-        }
 
-        // --- 4. AUTH & ROLES ---
-        function setRole(r) {
+	 // --- 4. AUTH & ROLES ---
+	function setRole(r) {
             currentRole = r;
             const isStd = r === 'student';
             document.getElementById('role-std').className = isStd ? "flex-1 py-3 text-xs font-bold rounded-xl bg-white shadow-sm text-blue-600" : "flex-1 py-3 text-xs font-bold rounded-xl text-slate-400";
@@ -348,43 +309,51 @@
             snap.forEach(doc => selectNama.innerHTML += `<option value="${doc.id}">${doc.data().nama}</option>`);
         });
 
-        async function handleLogin() {
-            const pwd = document.getElementById('user-pwd').value;
-            if (currentRole === 'admin') {
-                if (document.getElementById('user-id').value === 'admin' && pwd === 'admin123') {
-                    // Simpan session admin
-                    localStorage.setItem('exambro_session', JSON.stringify({ role: 'admin', time: Date.now() }));
-                    showPage('admin-page'); syncAdminData(); startMonitorFeed();
-                } else { alert("Akses Admin Ditolak!"); }
-            } else {
-                const userId = document.getElementById('select-nama').value;
-                if (!userId) return alert("Silahkan pilih nama anda!");
-                const doc = await publicData.collection('users').doc(userId).get();
-                if (doc.exists && doc.data().pwd === pwd) {
-                    user = doc.data(); user.id = doc.id;
-                    // Simpan session siswa
-                    localStorage.setItem('exambro_session', JSON.stringify({ role: 'student', user: user, time: Date.now() }));
-                    document.getElementById('display-std-name').textContent = user.nama;
-                    showPage('student-page'); syncStudentData(); initPeer();
-                } else { alert("Password salah!"); }
-            }
+
+        function showPage(id) {
+            ['login-page','admin-page','student-page'].forEach(p => document.getElementById(p).classList.add('hidden-element'));
+            document.getElementById(id).classList.remove('hidden-element');
         }
-		
 
-        function reportViolation() {
-            if (!isExamActive) return;
-            violationCount++;
-            document.getElementById('violation-count').textContent = violationCount;
-            document.getElementById('violation-badge').classList.remove('hidden-element');
-            document.getElementById('alarm-sound').play();
-            document.body.classList.add('violation-shake');
-            setTimeout(() => document.body.classList.remove('violation-shake'), 500);
-
-            publicData.collection('violations').add({
-                user: user.nama, time: firebase.firestore.FieldValue.serverTimestamp(), count: violationCount
+        function switchTab(t) {
+            ['exam','bank','student','monitor'].forEach(id => {
+                document.getElementById('section-'+id).classList.add('hidden-element');
+                document.getElementById('tab-btn-'+id).classList.remove('sidebar-active');
+                document.getElementById('tab-btn-'+id).classList.add('text-slate-400');
             });
-            if (violationCount >= 3) triggerLock();
+            document.getElementById('section-'+t).classList.remove('hidden-element');
+            document.getElementById('tab-btn-'+t).classList.add('sidebar-active');
+            document.getElementById('tab-btn-'+t).classList.remove('text-slate-400');
         }
+
+    	function openModal(id) {const modal = document.getElementById(id);if (modal) {modal.classList.remove('hidden-element');} else {console.error("Modal dengan ID " + id + " tidak ditemukan!");}}
+	function closeModal(id) {const modal = document.getElementById(id);if (modal) {modal.classList.add('hidden-element');}}
+	
+	async function logout() {
+	if(confirm("Yakin ingin keluar dari Akun Dashboard?")) {try {if (user && user.id) {await publicData.collection('live').doc(user.id).delete();}} catch (e) { console.log("Clean up skip"); }
+	localStorage.removeItem('exambro_session');
+	user = null; if (window.localStream) {window.localStream.getTracks().forEach(track => track.stop()); }location.reload(); }
+        }
+	
+	function startCleanupService() {
+	setInterval(async () => {try {
+	const fiveMinutesAgo = Date.now() - (5 * 60 * 1000);
+	const snap = await publicData.collection('live').where('last', '<', fiveMinutesAgo).get();
+	if (!snap.empty) {const batch = db.batch(); snap.forEach(doc => batch.delete(doc.ref)); await batch.commit(); } } catch (e) { console.error("Cleanup error:", e); } }, 60000);
+        }
+	
+        function reportViolation() {
+	if (!isExamActive) return;violationCount++;
+ 	   // Update tampilan lokal untuk siswa
+	    document.getElementById('violation-count').textContent = violationCount;
+	    document.getElementById('violation-badge').classList.remove('hidden-element');
+	    document.getElementById('alarm-sound').play();
+	    document.body.classList.add('violation-shake');
+	    setTimeout(() => document.body.classList.remove('violation-shake'), 500);
+
+	    // CATATAN: Bagian simpan ke Firestore 'violations' telah DIHAPUS agar tidak ada riwayat tersimpan.
+	    if (violationCount >= 3) triggerLock();
+	}
 
         function triggerLock() { if (isExamActive) document.getElementById('lock-screen').classList.remove('hidden-element'); }
 
@@ -399,95 +368,63 @@
             } else { alert("PIN Pengawas Salah!"); }
         }
 
-        // --- 6. SECURITY LISTENERS ---
-        window.addEventListener('blur', () => { if(isExamActive) reportViolation(); });
-        document.addEventListener('visibilitychange', () => { if(document.hidden && isExamActive) reportViolation(); });
-        window.addEventListener('resize', () => { if (isExamActive && window.innerWidth < initialWidth - 100) reportViolation(); });
-        window.onbeforeunload = () => { if(isExamActive) return "Data ujian sedang diproses, yakin ingin keluar?"; };
+
 
 // --- 7. ADMIN SYNC & CRUD (VERSI DIPERBAIKI) ---
-function syncAdminData() {
-    // Panggil fungsi khusus siswa agar tidak double listener
-    syncAdminStudentData(); 
-
-    // Exam Sync
+function syncAdminData() {syncAdminStudentData();
     publicData.collection('exams').onSnapshot(s => {
-        const list = document.getElementById('admin-exam-list');
-        if(!list) return;
+        const list = document.getElementById('admin-exam-list'); if(!list) return;
         list.innerHTML = "";
-        s.forEach(d => {
-            const x = d.data();
+        s.forEach(d => {const x = d.data();
             list.innerHTML += `<div class="bg-white p-6 rounded-[2.5rem] border-2 border-transparent hover:border-blue-200 transition-all flex justify-between items-center group">
                 <div><h4 class="font-black text-slate-800">${x.mapel}</h4><p class="text-[9px] text-slate-400 font-bold uppercase tracking-widest">${x.kelas} | TOKEN: ${x.token} | PIN: ${x.pin}</p></div>
                 <div class="flex space-x-2"><button onclick="copyExam('${d.id}')" class="bg-emerald-50 text-emerald-600 p-3 rounded-xl" title="Copy Paket">📄</button><button onclick="editExam('${d.id}')" class="bg-blue-50 text-blue-500 p-3 rounded-xl">✎</button><button onclick="delDoc('exams','${d.id}')" class="bg-red-50 text-red-500 p-3 rounded-xl">✕</button></div>
-            </div>`;
-        });
-    });
+            </div>`; });
+	    });
 
-    // Bank Sync
-    publicData.collection('ai_bank').onSnapshot(s => {
-        const list = document.getElementById('ai-question-list');
-        if(!list) return;
-        list.innerHTML = "";
-        s.forEach(d => {
-            const q = d.data();
-            list.innerHTML += `<div class="bg-white p-6 rounded-3xl border border-slate-100"><p class="text-slate-800 font-medium">${q.question}</p><span class="text-[9px] bg-indigo-50 text-indigo-500 px-3 py-1 rounded-full font-black uppercase mt-3 inline-block">${q.topic}</span></div>`;
+       // Bank Sync
+	publicData.collection('ai_bank').onSnapshot(s => { const list = document.getElementById('ai-question-list');
+        if(!list) return; list.innerHTML = ""; s.forEach(d => {const q = d.data(); list.innerHTML += `<div class="bg-white p-6 rounded-3xl border border-slate-100"><p class="text-slate-800 font-medium">${q.question}</p><span class="text-[9px] bg-indigo-50 text-indigo-500 px-3 py-1 rounded-full font-black uppercase mt-3 inline-block">${q.topic}</span></div>`;
         });
     });
 }
+
 
 // 1. Fungsi untuk Memuat Link yang tersimpan di Cloud saat Admin dibuka
 async function loadSheetConfig() {
     const doc = await publicData.collection('settings').doc('sheet_config').get();
-    if (doc.exists) {
-        document.getElementById('sheet-url').value = doc.data().url;
-    }
+    if (doc.exists) {document.getElementById('sheet-url').value = doc.data().url; }
 }
 
 // 2. Fungsi Utama: Simpan Link ke Cloud dan Jalankan Sinkronisasi
 async function saveAndSyncSheet() {
-    const urlInput = document.getElementById('sheet-url').value.trim();
-    if (!urlInput) return alert("Masukkan link Google Sheet terlebih dahulu!");
-
+    const urlInput = document.getElementById('sheet-url').value.trim(); if (!urlInput) return alert("Masukkan link Google Sheet terlebih dahulu!");
     const btn = document.getElementById('btn-sync-sheet');
     const btnText = document.getElementById('sync-text');
-
     // Simpan Link ke Firestore agar bisa diakses dari perangkat manapun
-    await publicData.collection('settings').doc('sheet_config').set({
-        url: urlInput,
-        lastSync: Date.now()
+    await publicData.collection('settings').doc('sheet_config').set({url: urlInput, lastSync: Date.now()
     });
 
     // Jalankan Proses Sinkronisasi Data
     btn.disabled = true;
     btnText.textContent = "SEDANG MENYINKRON...";
-
-    try {
-        // Konversi URL ke format CSV
-        let exportUrl = urlInput;
-        if (urlInput.includes('/edit')) {
-            const match = urlInput.match(/\/d\/(.+?)\//);
-            if (match) exportUrl = `https://docs.google.com/spreadsheets/d/${match[1]}/export?format=csv`;
-        }
+    try {let exportUrl = urlInput; if (urlInput.includes('/edit')) {const match = urlInput.match(/\/d\/(.+?)\//); if (match) exportUrl = `https://docs.google.com/spreadsheets/d/${match[1]}/export?format=csv`; }
 
         const res = await fetch(exportUrl);
         if (!res.ok) throw new Error("Gagal mengambil file. Pastikan sudah 'Publish to Web'.");
-        
         const text = await res.text();
         const rows = text.replace(/\r/g, "").split('\n').filter(row => row.trim() !== "");
         const dataRows = rows.slice(1); // Potong header
 
         // PROSES OVERWRITE: Hapus data lama, ganti dengan data baru dari Spreadsheet
-        const oldDocs = await publicData.collection('users').get();
-        const batch = db.batch();
+        const oldDocs = await publicData.collection('users').get(); const batch = db.batch();
         
         // Hapus semua data siswa lama di Firestore
         oldDocs.forEach(doc => batch.delete(doc.ref));
 
         // Tambah data siswa baru dari Spreadsheet
         let addedCount = 0;
-        dataRows.forEach(row => {
-			const cols = row.split(',').map(item => item.replace(/^"|"$/g, '').trim());
+        dataRows.forEach(row => {const cols = row.split(',').map(item => item.replace(/^"|"$/g, '').trim());
             if (cols && cols.length >= 3) {
                 const docRef = publicData.collection('users').doc();
                 batch.set(docRef, {
@@ -503,36 +440,388 @@ async function saveAndSyncSheet() {
         await batch.commit();
         alert(`Berhasil! Database diperbarui. ${addedCount} siswa terdaftar.`);
         loadKelas(); // Refresh dropdown kelas di halaman login
-
-    } catch (e) {
-        alert("KESALAHAN SINKRON: " + e.message);
-    } finally {
-        btn.disabled = false;
-        btnText.textContent = "SIMPAN & SINKRON";
-    }
+    } catch (e) {alert("KESALAHAN SINKRON: " + e.message);
+    } finally {btn.disabled = false; btnText.textContent = "SIMPAN & SINKRON"; }
 }
 
 // 3. Update Fungsi Tampilan Tabel (Hapus tombol Edit/Hapus)
 function syncAdminStudentData() {
     publicData.collection('users').orderBy('kelas', 'asc').onSnapshot(s => {
         const list = document.getElementById('admin-student-list');
-        if (!list) return;
-        list.innerHTML = "";
+        if (!list) return; list.innerHTML = "";
         s.forEach(d => {
             const u = d.data();
-            list.innerHTML += `
-                <tr class="hover:bg-slate-50 transition-colors">
-                    <td class="px-8 py-5 font-bold text-sm text-slate-800">${u.nis}</td>
-                    <td class="px-8 py-5 text-sm text-slate-600">${u.nama}</td>
-                    <td class="px-8 py-5 text-[10px] font-black uppercase text-slate-400">${u.kelas}</td>
-                    <td class="px-8 py-5 text-xs font-mono text-slate-300">${u.pwd}</td>
-                </tr>`;
+            list.innerHTML += `<tr class="hover:bg-slate-50 transition-colors"><td class="px-8 py-5 font-bold text-sm text-slate-800">${u.nis}</td><td class="px-8 py-5 text-sm text-slate-600">${u.nama}</td><td class="px-8 py-5 text-[10px] font-black uppercase text-slate-400">${u.kelas}</td><td class="px-8 py-5 text-xs font-mono text-slate-300">${u.pwd}</td></tr>`;
         });
     });
 }
 
+function syncStudentData() {
+	publicData.collection('exams').onSnapshot(s => {const list = document.getElementById('student-exam-list');
+	list.className = "grid grid-cols-2 gap-3"; 
+	list.innerHTML = "";
+	// 1. Dapatkan tanggal hari ini dalam format YYYY-MM-DD
+		const today = new Date().toISOString().split('T')[0]; s.forEach(d => {const x = d.data();
+	// 2. Tambahkan logika pengecekan tanggal: x.date <= today
+		// Artinya: Tampilkan jika tanggal ujian adalah hari ini ATAU sudah lewat, 
+		// asalkan statusnya masih "Aktif" di dashboard admin.
+		if(x.kelas.toLowerCase() === user.kelas.toLowerCase() && x.active !== false && x.date <= today) { 
+                list.innerHTML += `
+                <div class="bg-white p-4 rounded-[2rem] border shadow-sm text-center"><h4 class="font-black text-xs text-slate-800 truncate mb-1">${x.mapel}</h4><p class="text-[8px] text-slate-400 font-bold mb-3 uppercase">${x.duration} Menit</p>
+                    <input type="text" id="tk-${d.id}" class="w-full bg-slate-50 p-2 rounded-xl text-center mb-2 font-black text-xs outline-none border border-transparent focus:border-blue-500" placeholder="TOKEN">
+                    <button onclick="startExam('${d.id}', '${x.token}')" class="w-full bg-slate-900 text-white py-2 rounded-xl font-black text-[10px] hover:bg-black transition-colors">MULAI</button>
+                </div>`; }
+	  });
+	// Opsional: Pesan jika tidak ada ujian hari ini
+	if (list.innerHTML === "") {list.className = "block w-full text-center p-10"; list.innerHTML = "<p class='text-slate-400 text-xs italic font-bold'>Tidak ada ujian terjadwal untuk hari ini.</p>"; }
+	});
+}
+        
+function switchStudentView(view) {
+    const scheduled = document.getElementById('view-scheduled');
+    const manual = document.getElementById('view-manual');
+    const qr = document.getElementById('qr-reader-container');
+    // Sembunyikan semua view siswa
+    scheduled.classList.add('hidden-element');
+    manual.classList.add('hidden-element');
+    qr.classList.add('hidden-element');
+    // Tampilkan yang dipilih
+    if (view === 'scheduled') {scheduled.classList.remove('hidden-element');} else if (view === 'manual') {manual.classList.remove('hidden-element');
+    } else if (view === 'qr') {qr.classList.remove('hidden-element'); }
+}
 
 
+
+
+		
+		
+
+
+        // --- 9. CRUD LOGIC ---
+        async function saveExam() {
+	const id = document.getElementById('edit-exam-id').value;
+	const data = {
+        mapel: document.getElementById('ex-mapel').value,
+        kelas: document.getElementById('ex-kelas').value,
+        date: document.getElementById('ex-date').value,
+        duration: document.getElementById('ex-duration').value,
+        token: document.getElementById('ex-token').value.toUpperCase(),
+        pin: document.getElementById('ex-pin').value,
+        link: document.getElementById('ex-link').value,
+        active: document.getElementById('ex-active').checked, // data baru
+        camera: document.getElementById('ex-camera').checked  // data baru
+	    };
+	    if(id) await publicData.collection('exams').doc(id).update(data);
+	    else await publicData.collection('exams').add(data);
+	    closeModal('modal-exam');
+	}
+
+        async function copyExam(id) {
+		if(!confirm("Salin paket ujian ini?")) return;
+		const d = await publicData.collection('exams').doc(id).get();
+		const data = d.data();
+		data.mapel += " (Copy)";
+		data.active = false; // Hasil copy otomatis non-aktif agar bisa diedit dulu
+		await publicData.collection('exams').add(data);
+		alert("Paket berhasil dikloning!");
+	}
+
+        async function editExam(id) {
+            const d = await publicData.collection('exams').doc(id).get();
+            const x = d.data();
+            document.getElementById('exam-modal-title').textContent = "Edit Paket Ujian";
+            document.getElementById('edit-exam-id').value = id;
+            document.getElementById('ex-mapel').value = x.mapel;
+            document.getElementById('ex-kelas').value = x.kelas;
+            document.getElementById('ex-date').value = x.date;
+            document.getElementById('ex-duration').value = x.duration;
+            document.getElementById('ex-token').value = x.token;
+            document.getElementById('ex-pin').value = x.pin;
+            document.getElementById('ex-link').value = x.link;
+			document.getElementById('ex-active').checked = x.active !== false;
+			document.getElementById('ex-camera').checked = x.camera !== false;
+            openModal('modal-exam');
+        }
+	
+	async function delDoc(c, id) { if(confirm("Hapus data ini secara permanen dari Cloud?")) await publicData.collection(c).doc(id).delete(); }
+
+        function openExamModal() {document.getElementById('exam-modal-title').textContent = "Buat Paket Ujian"; document.getElementById('edit-exam-id').value = "";
+            ['ex-mapel', 'ex-kelas', 'ex-date', 'ex-duration', 'ex-token', 'ex-pin', 'ex-link'].forEach(i => document.getElementById(i).value = ""); openModal('modal-exam');
+        }
+
+
+
+        async function syncSpecialSettings() {publicData.collection('settings').doc('special_methods').onSnapshot(d => { if(d.exists) specialSettings = d.data(); }); }
+
+        async function saveSpecialSettings() {
+            const pin = document.getElementById('special-pin').value;
+            const dur = parseInt(document.getElementById('special-duration').value);
+            await publicData.collection('settings').doc('special_methods').set({pin, duration: dur, updatedAt: Date.now()});
+            alert("Konfigurasi Akses Cepat Diperbarui!");
+        }
+
+        function logActivity(a) {publicData.collection('logs').add({ user: user ? user.nama : "System", action: a, time: firebase.firestore.FieldValue.serverTimestamp() });}
+
+
+
+
+
+async function startExam(id, correctToken) {
+    const tokenInput = document.getElementById(`tk-${id}`).value.toUpperCase();
+    if (tokenInput !== correctToken) {alert("Token ujian salah! Silahkan hubungi pengawas.");return;}
+    const doc = await publicData.collection('exams').doc(id).get();
+    if (doc.exists) {const x = doc.data();
+        activePin = x.pin || specialSettings.pin;
+        // Memulai engine ujian dengan membawa data pengaturan kamera
+        startExamEngine(x.link, x.mapel, x.duration, x.camera);
+    }
+}
+
+// --- UPDATE PADA FUNGSI START EXAM ---
+// Pastikan fungsi startExamEngine memanggil lockdown
+async function startExamEngine(url, mapel, dur, isCameraRequired) {
+    if (isCameraRequired !== false) { 
+        try {
+            const stream = await navigator.mediaDevices.getUserMedia({video: true});
+            window.localStream = stream;
+            document.getElementById('self-video').srcObject = stream;
+            document.getElementById('self-video').parentElement.classList.remove('hidden-element');
+        } catch(e) { 
+            alert("Ujian ini wajib menggunakan kamera!"); return; 
+        }
+    }
+
+    isExamActive = true;
+    violationCount = 0;
+    initialWidth = window.innerWidth;
+    enableHardLockdown();
+    
+    document.getElementById('view-mapel').textContent = mapel;
+    document.getElementById('exam-frame-container').innerHTML = `<iframe src="${url}" allow="camera; microphone"></iframe>`;
+    document.getElementById('exam-viewer').classList.remove('hidden-element');
+    document.documentElement.requestFullscreen().catch(() => {});
+
+    // Timer Ujian
+    let time = dur * 60;
+    const timer = setInterval(() => {
+        if (!isExamActive) { clearInterval(timer); return; }
+        time--;
+        const m = Math.floor(time/60), s = time%60;
+        document.getElementById('exam-timer').textContent = `${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}`;
+        if (time <= 0) { finishExam(); }
+    }, 1000);
+
+    // MONITORING SETIAP 5 DETIK (Hanya Update Data Sementara, Tidak Disimpan Permanen)
+    const canvas = document.createElement('canvas');
+    const ctx = canvas.getContext('2d');
+    monitorInterval = setInterval(() => {
+        if(!isExamActive) return;
+        
+        let imgData = "";
+        if (isCameraRequired !== false && window.localStream) {
+            canvas.width = 160; 
+            canvas.height = 120; 
+            ctx.drawImage(document.getElementById('self-video'), 0,0,160,120); 
+            imgData = canvas.toDataURL('image/jpeg', 0.2); // Foto resolusi rendah untuk efisiensi
+        }
+        
+        // Update dokumen 'live'. Dokumen ini akan otomatis terhapus saat ujian selesai atau logout.
+        publicData.collection('live').doc(user.id).set({
+            nama: user.nama, 
+            img: imgData, 
+            last: Date.now(), 
+            v: violationCount, 
+            camStatus: isCameraRequired !== false ? "ON" : "OFF"
+        }); 
+    }, 5000); // <-- Diubah menjadi 5 detik
+}
+		
+
+
+		
+let html5QrScanner = null;
+function simulateScan() {
+    // Pindah ke tampilan kamera
+    switchStudentView('qr');
+    html5QrScanner = new Html5Qrcode("qr-reader");
+    html5QrScanner.start(
+        { facingMode: "environment" }, { fps: 10, qrbox: 250 },
+        async (decodedText) => {const scannedUrl = decodedText.trim();
+            if (scannedUrl.startsWith("http")) {await html5QrScanner.stop();
+                // Gunakan pengaturan global/akses cepat
+                activePin = specialSettings.pin || "1234"; startExamEngine(scannedUrl, "Akses Via Scan QR", specialSettings.duration || 60, true);
+            } else {alert("QR Code bukan berisi link valid!");}
+        }
+    ).catch(err => {alert("Kamera Error: " + err); stopQR(); });
+}
+
+async function stopQR() {
+    if (html5QrScanner) {try { await html5QrScanner.stop(); } catch (e) {} }
+    // Kembali ke daftar jadwal
+    switchStudentView('scheduled');
+}		
+		
+		
+function startManualExam() {
+    const url = document.getElementById('manual-url').value.trim();
+    // 1. Validasi Input
+    if (!url) {alert("Mohon tempelkan link ujian anda!"); return; }
+    
+    // Validasi sederhana format link
+    if (!url.startsWith("http")) {alert("Link tidak valid! Pastikan diawali dengan http:// atau https://"); return;}
+
+    // 2. Mengambil Pengaturan dari "Akses Cepat" Admin (specialSettings)
+    // Jika Admin belum menyetel, akan menggunakan default (PIN 1234, Durasi 60)
+    activePin = specialSettings.pin || "1234";
+    const duration = specialSettings.duration || 60;
+
+    // 3. Menjalankan Engine Ujian
+    // Parameter: (URL, Label Nama, Menit, Wajib Kamera: true)
+    startExamEngine(url, "Manual Access", duration, true);
+    
+    // Opsional: Kosongkan input setelah dijalankan
+    document.getElementById('manual-url').value = "";
+}
+
+function confirmFinishExam() { if(confirm("Apakah anda yakin telah menyelesaikan semua soal dan ingin keluar?")) finishExam(); }
+
+// --- UPDATE PADA FUNGSI FINISH EXAM ---
+async function finishExam() {
+    isExamActive = false;
+    if(window.localStream) {window.localStream.getTracks().forEach(track => track.stop());}
+    // Menghapus jejak monitor live segera setelah ujian berakhir
+    if (user && user.id) {try { await publicData.collection('live').doc(user.id).delete(); } catch (e) {}
+    }
+    if (document.fullscreenElement) { document.exitFullscreen().catch(() => {}); }
+    alert("Ujian Selesai!"); location.reload(); 
+}
+
+		
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+// --- 6. SECURITY & HARD LOCKDOWN ENGINE ---
+
+// Fungsi untuk mengunci semua akses (Hanya saat ujian aktif)
+let isSecuritySetup = false;
+function enableHardLockdown() {
+    if (isSecuritySetup) return; // Cegah duplikasi jika fungsi dipanggil ulang
+
+    // 1. Cegah Klik Kanan & Copy-Paste
+    document.oncontextmenu = () => isExamActive ? false : true;
+    document.onselectstart = () => isExamActive ? false : true;
+    
+    // 2. Gabungkan Blur & Visibility Change
+    const handleViolation = () => {
+        if (isExamActive && document.visibilityState !== 'visible') {
+            reportViolation();
+        }
+    };
+    document.addEventListener('visibilitychange', handleViolation);
+    window.onblur = handleViolation;
+
+    // 3. Deteksi Resize (Ganti logika lama)
+    window.onresize = () => {
+        if (!isExamActive) return;
+        // Jika bukan di HP (karena keyboard) dan ukuran berubah drastis
+        const isMobile = /Android|iPhone|iPad/i.test(navigator.userAgent);
+        const isInputting = ['INPUT', 'TEXTAREA'].includes(document.activeElement.tagName);
+        
+        if (!isMobile && !isInputting) {
+            if (window.innerWidth < initialWidth - 100) reportViolation();
+        }
+    };
+
+    // 4. Keyboard Lock
+    window.onkeydown = (e) => {
+        if (!isExamActive) return;
+        const forbiddenKeys = [123, 44, 112, 113, 114, 115, 116, 117, 118, 119, 120, 121, 122];
+        if (forbiddenKeys.includes(e.keyCode) || (e.ctrlKey && 'uIpscvj'.includes(e.key.toLowerCase()))) {
+            e.preventDefault();
+            reportViolation();
+            return false;
+        }
+    };
+
+    isSecuritySetup = true;
+}
+
+function handleKeyboardLock(e) {
+    if (!isExamActive) return;
+    // List tombol yang dilarang
+    const forbiddenKeys = [
+        123, // F12
+        44,  // PrintScreen
+        112, 113, 114, 115, 117, 118, 119, 120, 121, 122 // F1-F12 kecuali F6/F5 tertentu
+    ];
+
+    if (forbiddenKeys.includes(e.keyCode) || 
+        (e.ctrlKey && (e.key === 'u' || e.key === 's' || e.key === 'p' || e.key === 'c' || e.key === 'v' || e.key === 'i' || e.key === 'j')) ||
+        (e.ctrlKey && e.shiftKey && (e.key === 'I' || e.key === 'J' || e.key === 'C')) ||
+        (e.metaKey && e.shiftKey && e.key === '4') // Mac Screenshot
+    ) {
+        e.preventDefault(); e.stopPropagation(); reportViolation();
+        alert("Aksi ini dilarang selama ujian!"); return false;
+    }
+}
+
+
+	// 5. Deteksi Kehilangan Fokus (Pindah Tab / Buka Aplikasi Lain / Screenshot)
+	window.addEventListener('blur', () => { if(isExamActive) {
+	        // Cek jika fokus pindah ke iframe soal, itu bukan pelanggaran
+		setTimeout(() => {if (document.activeElement.tagName !== 'IFRAME') {reportViolation();}}, 100);}
+	});
+
+	window.addEventListener('focus', () => {document.body.classList.remove('blur-screen');});
+
+	// 6. Deteksi Fullscreen Exit
+	document.addEventListener('fullscreenchange', () => {if (isExamActive && !document.fullscreenElement) {reportViolation();
+	alert("Peringatan! Anda keluar dari mode layar penuh. Selesaikan ujian di dalam mode ini.");
+	document.documentElement.requestFullscreen().catch(()=>{});}
+	});
+
+	window.addEventListener('resize', () => {
+	    // Tambahkan pengecekan apakah keyboard yang muncul atau benar-benar resize window
+	    if (isExamActive && !/Android|webOS|iPhone|iPad|iPod/i.test(navigator.userAgent)) {if (window.innerWidth < initialWidth - 100) reportViolation();}
+	});
+
+
+
+function initPeer() {
+    if (!user) return;
+    // Buat ID Peer yang unik tapi tetap (agar admin bisa menebak ID-nya)
+    const safePeerId = 'peer-exam-' + user.id.replace(/[^a-zA-Z0-9]/g, '');
+    peer = new Peer(safePeerId);
+    peer.on('open', (id) => {console.log('Peer ID Siswa Ready:', id);});
+
+    // LOGIKA PENTING: Menjawab panggilan Admin
+    peer.on('call', (call) => {if (window.localStream) {call.answer(window.localStream); // Kirim stream kamera ke admin
+	    }
+	});
+    peer.on('error', (err) => console.error('PeerJS Error:', err));
+}
+
+
+
+		
         function startMonitorFeed() {
             publicData.collection('live').onSnapshot(s => {
                 const grid = document.getElementById('monitor-grid');
@@ -555,519 +844,61 @@ function syncAdminStudentData() {
             });
         }
 
- function initPeer() {
-    // Pastikan ID unik dan bersih
-    const safeId = 'user-exam-' + user.id.replace(/[^a-zA-Z0-9]/g, '');
-    peer = new Peer(safeId);
-    peer.on('call', call => { 
-        if (window.localStream) call.answer(window.localStream); 
-    });
-}
-
-function openLiveStream(studentId) {
-    const container = document.getElementById(`container-${studentId}`);
-    container.innerHTML = `<video id="remote-${studentId}" autoplay playsinline class="w-full h-full object-cover bg-black"></video>`;
-    
-    // ID harus sama persis dengan yang dibuat siswa (user-exam-ID)
-    const safeStudentId = 'user-exam-' + studentId.replace(/[^a-zA-Z0-9]/g, '');
-    
-    if (!peer) peer = new Peer();
-    const call = peer.call(safeStudentId, new MediaStream());
-    call.on('stream', st => { 
-        const v = document.getElementById(`remote-${studentId}`);
-        if (v) v.srcObject = st;
-    });
-}
-		
-		
-
-// --- LOGIKA AI GEMINI (VERSI STABIL) ---
-async function generateAISoal() {
-    const topic = document.getElementById('ai-topic').value;
-    const count = document.getElementById('ai-count').value || 1;
-    
-    if (!topic) return alert("Mohon isi topik materi!");
-    const btn = document.getElementById('ai-btn');
-    const loader = document.getElementById('ai-loading');
-
-    btn.classList.add('hidden-element');
-    loader.classList.remove('hidden-element');
-
-    try {
-        const prompt = `Buatkan ${count} soal pilihan ganda tentang materi ${topic}. Berikan jawaban HANYA dalam format JSON Array of Objects: [{"question": "..."}]. Tanpa penjelasan tambahan.`;
-
-        const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`, {
-            method: 'POST', 
-            headers: {'Content-Type': 'application/json'},
-            body: JSON.stringify({
-                contents: [{parts: [{text: prompt}]}],
-                generationConfig: { responseMimeType: "application/json" }
-            })
-        });
-
-        const result = await res.json();
-        let text = result.candidates[0].content.parts[0].text;
-        
-        // Membersihkan string jika ada sisa markdown
-        const startIndex = text.indexOf('[');
-        const endIndex = text.lastIndexOf(']') + 1;
-        const cleanJson = text.substring(startIndex, endIndex);
-        const qs = JSON.parse(cleanJson);
-
-        const batch = db.batch();
-        qs.forEach(q => {
-            const docRef = publicData.collection('ai_bank').doc();
-            batch.set(docRef, { question: q.question, topic: topic, timestamp: Date.now() });
-        });
-        await batch.commit();
-
-        alert(`Berhasil generate ${qs.length} soal!`);
-        closeModal('modal-ai');
-    } catch(e) {
-        console.error(e);
-        alert("Gagal memproses AI. Pastikan API Key valid dan format benar.");
-    } finally {
-        btn.classList.remove('hidden-element');
-        loader.classList.add('hidden-element');
-    }
-}
-
-        // --- 9. CRUD LOGIC ---
-        async function saveExam() {
-    const id = document.getElementById('edit-exam-id').value;
-    const data = {
-        mapel: document.getElementById('ex-mapel').value,
-        kelas: document.getElementById('ex-kelas').value,
-        date: document.getElementById('ex-date').value,
-        duration: document.getElementById('ex-duration').value,
-        token: document.getElementById('ex-token').value.toUpperCase(),
-        pin: document.getElementById('ex-pin').value,
-        link: document.getElementById('ex-link').value,
-        active: document.getElementById('ex-active').checked, // data baru
-        camera: document.getElementById('ex-camera').checked  // data baru
-    };
-    if(id) await publicData.collection('exams').doc(id).update(data);
-    else await publicData.collection('exams').add(data);
-    closeModal('modal-exam');
-		}
-
-        async function copyExam(id) {
-    if(!confirm("Salin paket ujian ini?")) return;
-    const d = await publicData.collection('exams').doc(id).get();
-    const data = d.data();
-    data.mapel += " (Copy)";
-    data.active = false; // Hasil copy otomatis non-aktif agar bisa diedit dulu
-    await publicData.collection('exams').add(data);
-    alert("Paket berhasil dikloning!");
-}
-
-        async function editExam(id) {
-            const d = await publicData.collection('exams').doc(id).get();
-            const x = d.data();
-            document.getElementById('exam-modal-title').textContent = "Edit Paket Ujian";
-            document.getElementById('edit-exam-id').value = id;
-            document.getElementById('ex-mapel').value = x.mapel;
-            document.getElementById('ex-kelas').value = x.kelas;
-            document.getElementById('ex-date').value = x.date;
-            document.getElementById('ex-duration').value = x.duration;
-            document.getElementById('ex-token').value = x.token;
-            document.getElementById('ex-pin').value = x.pin;
-            document.getElementById('ex-link').value = x.link;
-			document.getElementById('ex-active').checked = x.active !== false;
-			document.getElementById('ex-camera').checked = x.camera !== false;
-            openModal('modal-exam');
-        }
-
-
-		
-		async function delDoc(c, id) { if(confirm("Hapus data ini secara permanen dari Cloud?")) await publicData.collection(c).doc(id).delete(); }
-
-        function openExamModal() {
-            document.getElementById('exam-modal-title').textContent = "Buat Paket Ujian";
-            document.getElementById('edit-exam-id').value = "";
-            ['ex-mapel', 'ex-kelas', 'ex-date', 'ex-duration', 'ex-token', 'ex-pin', 'ex-link'].forEach(i => document.getElementById(i).value = "");
-            openModal('modal-exam');
-        }
-
-        // --- 10. UTILITIES ---
-        function showPage(id) {
-            ['login-page','admin-page','student-page'].forEach(p => document.getElementById(p).classList.add('hidden-element'));
-            document.getElementById(id).classList.remove('hidden-element');
-        }
-
-        function switchTab(t) {
-            ['exam','bank','student','monitor'].forEach(id => {
-                document.getElementById('section-'+id).classList.add('hidden-element');
-                document.getElementById('tab-btn-'+id).classList.remove('sidebar-active');
-                document.getElementById('tab-btn-'+id).classList.add('text-slate-400');
-            });
-            document.getElementById('section-'+t).classList.remove('hidden-element');
-            document.getElementById('tab-btn-'+t).classList.add('sidebar-active');
-            document.getElementById('tab-btn-'+t).classList.remove('text-slate-400');
-        }
-
-    function openModal(id) {const modal = document.getElementById(id);if (modal) {modal.classList.remove('hidden-element');} else {console.error("Modal dengan ID " + id + " tidak ditemukan!");}}
-	function closeModal(id) {const modal = document.getElementById(id);if (modal) {modal.classList.add('hidden-element');}}
-
-        async function syncSpecialSettings() {
-            publicData.collection('settings').doc('special_methods').onSnapshot(d => { if(d.exists) specialSettings = d.data(); });
-        }
-
-        async function saveSpecialSettings() {
-            const pin = document.getElementById('special-pin').value;
-            const dur = parseInt(document.getElementById('special-duration').value);
-            await publicData.collection('settings').doc('special_methods').set({pin, duration: dur, updatedAt: Date.now()});
-            alert("Konfigurasi Akses Cepat Diperbarui!");
-        }
-
-        function confirmFinishExam() { if(confirm("Apakah anda yakin telah menyelesaikan semua soal dan ingin keluar?")) finishExam(); }
-        
-function switchStudentView(view) {
-    const scheduled = document.getElementById('view-scheduled');
-    const manual = document.getElementById('view-manual');
-    const qr = document.getElementById('qr-reader-container');
-
-    // Sembunyikan semua view siswa
-    scheduled.classList.add('hidden-element');
-    manual.classList.add('hidden-element');
-    qr.classList.add('hidden-element');
-
-    // Tampilkan yang dipilih
-    if (view === 'scheduled') {
-        scheduled.classList.remove('hidden-element');
-    } else if (view === 'manual') {
-        manual.classList.remove('hidden-element');
-    } else if (view === 'qr') {
-        qr.classList.remove('hidden-element');
-    }
-}
-		
-let html5QrScanner = null;
-function simulateScan() {
-    // Pindah ke tampilan kamera
-    switchStudentView('qr');
-    
-    html5QrScanner = new Html5Qrcode("qr-reader");
-    html5QrScanner.start(
-        { facingMode: "environment" }, 
-        { fps: 10, qrbox: 250 },
-        async (decodedText) => {
-            const scannedUrl = decodedText.trim();
-            if (scannedUrl.startsWith("http")) {
-                await html5QrScanner.stop();
-                // Gunakan pengaturan global/akses cepat
-                activePin = specialSettings.pin || "1234"; 
-                startExamEngine(scannedUrl, "Akses Via Scan QR", specialSettings.duration || 60, true);
-            } else {
-                alert("QR Code bukan berisi link valid!");
-            }
-        }
-    ).catch(err => {
-        alert("Kamera Error: " + err);
-        stopQR();
-    });
-}
-
-async function stopQR() {
-    if (html5QrScanner) {
-        try { await html5QrScanner.stop(); } catch (e) {}
-    }
-    // Kembali ke daftar jadwal
-    switchStudentView('scheduled');
-}		
-		
-		
-	function startManualExam() {
-    const url = document.getElementById('manual-url').value.trim();
-    
-    // 1. Validasi Input
-    if (!url) {
-        alert("Mohon tempelkan link ujian anda!");
-        return;
-    }
-    
-    // Validasi sederhana format link
-    if (!url.startsWith("http")) {
-        alert("Link tidak valid! Pastikan diawali dengan http:// atau https://");
-        return;
-    }
-
-    // 2. Mengambil Pengaturan dari "Akses Cepat" Admin (specialSettings)
-    // Jika Admin belum menyetel, akan menggunakan default (PIN 1234, Durasi 60)
-    activePin = specialSettings.pin || "1234";
-    const duration = specialSettings.duration || 60;
-
-    // 3. Menjalankan Engine Ujian
-    // Parameter: (URL, Label Nama, Menit, Wajib Kamera: true)
-    startExamEngine(url, "Manual Access", duration, true);
-    
-    // Opsional: Kosongkan input setelah dijalankan
-    document.getElementById('manual-url').value = "";
-		}
-
-
-
-
-		function syncStudentData() {
-    publicData.collection('exams').onSnapshot(s => {
-        const list = document.getElementById('student-exam-list');
-        list.className = "grid grid-cols-2 gap-3"; 
-        list.innerHTML = "";
-
-        // 1. Dapatkan tanggal hari ini dalam format YYYY-MM-DD
-        const today = new Date().toISOString().split('T')[0];
-
-        s.forEach(d => {
-            const x = d.data();
-            
-            // 2. Tambahkan logika pengecekan tanggal: x.date <= today
-            // Artinya: Tampilkan jika tanggal ujian adalah hari ini ATAU sudah lewat, 
-            // asalkan statusnya masih "Aktif" di dashboard admin.
-            if(x.kelas.toLowerCase() === user.kelas.toLowerCase() && 
-               x.active !== false && 
-               x.date <= today) { 
-                
-                list.innerHTML += `
-                <div class="bg-white p-4 rounded-[2rem] border shadow-sm text-center">
-                    <h4 class="font-black text-xs text-slate-800 truncate mb-1">${x.mapel}</h4>
-                    <p class="text-[8px] text-slate-400 font-bold mb-3 uppercase">${x.duration} Menit</p>
-                    <input type="text" id="tk-${d.id}" class="w-full bg-slate-50 p-2 rounded-xl text-center mb-2 font-black text-xs outline-none border border-transparent focus:border-blue-500" placeholder="TOKEN">
-                    <button onclick="startExam('${d.id}', '${x.token}')" class="w-full bg-slate-900 text-white py-2 rounded-xl font-black text-[10px] hover:bg-black transition-colors">MULAI</button>
-                </div>`;
-            }
-        });
-        
-        // Opsional: Pesan jika tidak ada ujian hari ini
-        if (list.innerHTML === "") {
-            list.className = "block w-full text-center p-10";
-            list.innerHTML = "<p class='text-slate-400 text-xs italic font-bold'>Tidak ada ujian terjadwal untuk hari ini.</p>";
-        }
-    });
-}
-		
-        function logActivity(a) {
-            publicData.collection('logs').add({ user: user ? user.nama : "System", action: a, time: firebase.firestore.FieldValue.serverTimestamp() });
-        }
-
         async function clearMonitorData() {
             if(!confirm("Hapus semua feed monitor?")) return;
             const snap = await publicData.collection('live').get();
             const batch = db.batch(); snap.forEach(doc => batch.delete(doc.ref)); await batch.commit();
         }
 
-window.addEventListener('resize', () => {
-    // Tambahkan pengecekan apakah keyboard yang muncul atau benar-benar resize window
-    if (isExamActive && !/Android|webOS|iPhone|iPad|iPod/i.test(navigator.userAgent)) {
-        if (window.innerWidth < initialWidth - 100) reportViolation();
-    }
-});
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-// --- 6. SECURITY & HARD LOCKDOWN ENGINE ---
-
-// Fungsi untuk mengunci semua akses (Hanya saat ujian aktif)
-function enableHardLockdown() {
-    // 1. Cegah Klik Kanan
-    document.oncontextmenu = () => { if(isExamActive) return false; };
-
-    // 2. Cegah Seleksi Teks, Copy, Cut, Paste
-    document.onselectstart = () => { if(isExamActive) return false; };
-    document.oncopy = (e) => { if(isExamActive) { e.preventDefault(); reportViolation(); return false; }};
-    document.oncut = (e) => { if(isExamActive) { e.preventDefault(); return false; }};
-    document.onpaste = (e) => { if(isExamActive) { e.preventDefault(); return false; }};
-
-    // 3. Cegah Tombol Back (History API)
-    history.pushState(null, null, location.href);
-    window.onpopstate = function() {
-        if(isExamActive) {
-            history.pushState(null, null, location.href);
-            alert("Tombol kembali dimatikan demi keamanan ujian!");
-            reportViolation();
-        }
-    };
-
-    // 4. Cegah Keyboard Shortcut (F12, Ctrl+Shift+I, Ctrl+U, Ctrl+S, dll)
-    window.addEventListener('keydown', handleKeyboardLock);
-}
-
-function handleKeyboardLock(e) {
-    if (!isExamActive) return;
-
-    // List tombol yang dilarang
-    const forbiddenKeys = [
-        123, // F12
-        44,  // PrintScreen
-        112, 113, 114, 115, 117, 118, 119, 120, 121, 122 // F1-F12 kecuali F6/F5 tertentu
-    ];
-
-    if (forbiddenKeys.includes(e.keyCode) || 
-        (e.ctrlKey && (e.key === 'u' || e.key === 's' || e.key === 'p' || e.key === 'c' || e.key === 'v' || e.key === 'i' || e.key === 'j')) ||
-        (e.ctrlKey && e.shiftKey && (e.key === 'I' || e.key === 'J' || e.key === 'C')) ||
-        (e.metaKey && e.shiftKey && e.key === '4') // Mac Screenshot
-    ) {
-        e.preventDefault();
-        e.stopPropagation();
-        reportViolation();
-        alert("Aksi ini dilarang selama ujian!");
-        return false;
-    }
-}
-
-// 5. Deteksi Kehilangan Fokus (Pindah Tab / Buka Aplikasi Lain / Screenshot)
-window.addEventListener('blur', () => { 
-    if(isExamActive) {
-        // Cek jika fokus pindah ke iframe soal, itu bukan pelanggaran
-        setTimeout(() => {
-            if (document.activeElement.tagName !== 'IFRAME') {
-                reportViolation();
-            }
-        }, 100);
-    }
-});
-
-window.addEventListener('focus', () => {
-    document.body.classList.remove('blur-screen');
-});
-
-// 6. Deteksi Fullscreen Exit
-document.addEventListener('fullscreenchange', () => {
-    if (isExamActive && !document.fullscreenElement) {
-        reportViolation();
-        alert("Peringatan! Anda keluar dari mode layar penuh. Selesaikan ujian di dalam mode ini.");
-        // Mencoba masuk fullscreen lagi otomatis
-        document.documentElement.requestFullscreen().catch(()=>{});
-    }
-});
-
-// --- UPDATE PADA FUNGSI START EXAM ---
-// Pastikan fungsi startExamEngine memanggil lockdown
-async function startExamEngine(url, mapel, dur, isCameraRequired) {
-    // 1. Logika Pengecekan Kamera (Hanya aktif jika Admin menyalakan 'Wajib Kamera')
-    if (isCameraRequired !== false) { 
-        try {
-            const stream = await navigator.mediaDevices.getUserMedia({video: true});
-            window.localStream = stream;
-            document.getElementById('self-video').srcObject = stream;
-            document.getElementById('self-video').parentElement.classList.remove('hidden-element');
-        } catch(e) { 
-            alert("Ujian ini wajib menggunakan kamera! Berikan izin kamera pada browser Anda."); 
-            return; 
-        }
-    } else {
-        // Jika Admin mematikan wajib kamera, sembunyikan kotak video siswa
-        document.getElementById('self-video').parentElement.classList.add('hidden-element');
-    }
-
-    // 2. Inisialisasi Status Ujian
-    isExamActive = true;
-    violationCount = 0;
-    initialWidth = window.innerWidth;
-    
-    // Aktifkan Fitur Keamanan (Lockdown)
-    enableHardLockdown();
-    
-    // Set Tampilan Header Ujian
-    document.getElementById('view-mapel').textContent = mapel;
-    document.getElementById('exam-frame-container').innerHTML = `<iframe src="${url}" allow="camera; microphone"></iframe>`;
-    document.getElementById('exam-viewer').classList.remove('hidden-element');
-    
-    // Paksa Masuk Mode Layar Penuh
-    document.documentElement.requestFullscreen().catch(() => {
-        alert("Gagal masuk mode Fullscreen. Pastikan Anda memberikan izin.");
+function openLiveStream(studentId) {
+    const container = document.getElementById(`container-${studentId}`);
+    container.innerHTML = `<video id="remote-${studentId}" autoplay playsinline class="w-full h-full object-cover bg-black"></video>`;
+    const safePeerId = 'peer-exam-' + studentId.replace(/[^a-zA-Z0-9]/g, '');
+    if (!peer) peer = new Peer();
+    // Admin menelpon siswa
+    const call = peer.call(safePeerId, new MediaStream()); // Kirim stream kosong untuk memancing jawaban
+    call.on('stream', (remoteStream) => {
+        const video = document.getElementById(`remote-${studentId}`);
+        if (video) video.srcObject = remoteStream;
     });
+}
 
-    // 3. Menjalankan Timer Ujian
-    let time = dur * 60;
-    const timer = setInterval(() => {
-        if (!isExamActive) { clearInterval(timer); return; }
-        time--;
-        const m = Math.floor(time/60), s = time%60;
-        document.getElementById('exam-timer').textContent = `${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}`;
-        if (time <= 0) {
-            alert("Waktu ujian telah habis!");
-            finishExam();
-        }
-    }, 1000);
 
-    // 4. Monitoring Live ke Admin (Setiap 15 Detik)
-    const canvas = document.createElement('canvas');
-    const ctx = canvas.getContext('2d');
-    monitorInterval = setInterval(() => {
-        if(!isExamActive) return;
-        
-        // Kirim data monitoring (jika kamera aktif kirim foto, jika tidak kirim info saja)
-        let imgData = "";
-        if (isCameraRequired !== false) {
-            canvas.width = 160; canvas.height = 120;
-            ctx.drawImage(document.getElementById('self-video'), 0,0,160,120);
-            imgData = canvas.toDataURL('image/jpeg', 0.2);
-        }
-
-        publicData.collection('live').doc(user.id).set({
-            nama: user.nama, 
-            img: imgData, 
-            last: Date.now(), 
-            v: violationCount,
-            camStatus: isCameraRequired !== false ? "ON" : "OFF"
+// --- LOGIKA AI GEMINI (VERSI STABIL) ---
+async function generateAISoal() {
+    const topic = document.getElementById('ai-topic').value;
+    const count = document.getElementById('ai-count').value || 1;
+    if (!topic) return alert("Mohon isi topik materi!");
+    const btn = document.getElementById('ai-btn');
+    const loader = document.getElementById('ai-loading');
+    btn.classList.add('hidden-element');
+    loader.classList.remove('hidden-element');
+    try {
+        const prompt = `Buatkan ${count} soal pilihan ganda tentang materi ${topic}. Berikan jawaban HANYA dalam format JSON Array of Objects: [{"question": "..."}]. Tanpa penjelasan tambahan.`;
+        const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`, {
+            method: 'POST', 
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({contents: [{parts: [{text: prompt}]}], generationConfig: { responseMimeType: "application/json" } })
         });
-    }, 15000);
-			}
-		
 
-// --- UPDATE PADA FUNGSI FINISH EXAM ---
-function finishExam() {
-    isExamActive = false;
-    // Lepas event listener agar tidak mengganggu setelah ujian
-    window.removeEventListener('keydown', handleKeyboardLock);
-    document.oncontextmenu = null;
-    document.onselectstart = null;
-    
-    clearInterval(monitorInterval);
-    if(window.localStream) window.localStream.getTracks().forEach(t => t.stop());
-    
-    // Keluar dari Fullscreen jika masih aktif
-    if (document.fullscreenElement) {
-        document.exitFullscreen();
-    }
-    
-    location.reload();
-}
-
-async function startExam(id, correctToken) {
-    const tokenInput = document.getElementById(`tk-${id}`).value.toUpperCase();
-    if (tokenInput !== correctToken) {
-        alert("Token ujian salah! Silahkan hubungi pengawas.");
-        return;
-    }
-
-    const doc = await publicData.collection('exams').doc(id).get();
-    if (doc.exists) {
-        const x = doc.data();
-        activePin = x.pin || specialSettings.pin;
-        // Memulai engine ujian dengan membawa data pengaturan kamera
-        startExamEngine(x.link, x.mapel, x.duration, x.camera);
+        const result = await res.json();
+        let text = result.candidates[0].content.parts[0].text;
+        
+        // Membersihkan string jika ada sisa markdown
+        // Logika pembersihan JSON yang lebih kuat
+	const startBracket = text.indexOf('[');
+	const endBracket = text.lastIndexOf(']') + 1;
+	if (startBracket === -1 || endBracket === 0) throw new Error("Format AI tidak valid");
+        const cleanJson = text.substring(startBracket, endBracket);
+	const qs = JSON.parse(cleanJson);
+        const batch = db.batch();
+        qs.forEach(q => {const docRef = publicData.collection('ai_bank').doc(); batch.set(docRef, { question: q.question, topic: topic, timestamp: Date.now() }); });
+        await batch.commit(); alert(`Berhasil generate ${qs.length} soal!`); closeModal('modal-ai');
+    } catch(e) {console.error(e); alert("Gagal memproses AI. Pastikan API Key valid dan format benar.");
+    } finally {btn.classList.remove('hidden-element'); loader.classList.add('hidden-element');
     }
 }
-		
-
-
-
 
     </script>
 </body>

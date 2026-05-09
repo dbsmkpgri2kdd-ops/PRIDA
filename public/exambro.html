@@ -419,7 +419,7 @@ async function handleLogin() {
 	    setTimeout(() => document.body.classList.remove('violation-shake'), 500);
 
 	    // CATATAN: Bagian simpan ke Firestore 'violations' telah DIHAPUS agar tidak ada riwayat tersimpan.
-	    if (violationCount >= 5) triggerLock();
+	    if (violationCount >= 3) triggerLock();
 	}
 
         function triggerLock() { if (isExamActive) document.getElementById('lock-screen').classList.remove('hidden-element'); }
@@ -629,22 +629,7 @@ function switchStudentView(view) {
 
         function logActivity(a) {publicData.collection('logs').add({ user: user ? user.nama : "System", action: a, time: firebase.firestore.FieldValue.serverTimestamp() });}
 
-// Fungsi untuk menghapus isi clipboard
-async function clearClipboard() {
-    try {
-        // Mengisi clipboard dengan teks kosong
-        await navigator.clipboard.writeText("");
-        console.log("Clipboard cleared successfully.");
-    } catch (err) {
-        // Fallback jika API navigator.clipboard tidak didukung atau gagal
-        const input = document.createElement("input");
-        input.value = " ";
-        document.body.appendChild(input);
-        input.select();
-        document.execCommand("copy");
-        document.body.removeChild(input);
-    }
-}
+
 
 
 
@@ -662,7 +647,7 @@ async function startExam(id, correctToken) {
 // --- UPDATE PADA FUNGSI START EXAM ---
 // Pastikan fungsi startExamEngine memanggil lockdown
 async function startExamEngine(url, mapel, dur, isCameraRequired) {
-    await clearClipboard();
+    // 1. Validasi Izin Kamera jika diwajibkan
     if (isCameraRequired !== false) { 
         try {
             const stream = await navigator.mediaDevices.getUserMedia({ 
@@ -681,10 +666,10 @@ async function startExamEngine(url, mapel, dur, isCameraRequired) {
     isExamActive = true;
     violationCount = 0;
     initialWidth = window.innerWidth;
+    
+    // Aktifkan Pengamanan Ketat
     enableHardLockdown();
-    if (!isResuming) {const endTime = Date.now() + (dur * 60 * 1000);
-        localStorage.setItem('active_exam_state', JSON.stringify({url, mapel, endTime, isCamera: isCameraRequired, pin: activePin}));
-    }
+    
     // 3. Setup UI Viewer
     document.getElementById('view-mapel').textContent = mapel;
     document.getElementById('exam-frame-container').innerHTML = `<iframe src="${url}" allow="camera; microphone"></iframe>`;
@@ -796,7 +781,6 @@ function confirmFinishExam() { if(confirm("Apakah anda yakin telah menyelesaikan
 // --- UPDATE PADA FUNGSI FINISH EXAM ---
 async function finishExam() {
     isExamActive = false;
-    localStorage.removeItem('active_exam_state');
     if(window.localStream) {window.localStream.getTracks().forEach(track => track.stop());}
     // Menghapus jejak monitor live segera setelah ujian berakhir
     if (user && user.id) {try { await publicData.collection('live').doc(user.id).delete(); } catch (e) {}
@@ -899,7 +883,7 @@ function handleKeyboardLock(e) {
 		setTimeout(() => {if (document.activeElement.tagName !== 'IFRAME') {reportViolation();}}, 100);}
 	});
 
-	window.addEventListener('focus', () => {document.body.classList.remove('blur-screen'); if (isExamActive) {clearClipboard();} });
+	window.addEventListener('focus', () => {document.body.classList.remove('blur-screen');});
 
 	// 6. Deteksi Fullscreen Exit
 	document.addEventListener('fullscreenchange', () => {if (isExamActive && !document.fullscreenElement) {reportViolation();

@@ -42,7 +42,7 @@
     <audio id="alarm-sound" src="https://assets.mixkit.co/active_storage/sfx/951/951-preview.mp3" preload="auto"></audio>
 
     <!-- LOCK SCREEN (HIGH Z-INDEX) -->
-    <div id="lock-screen" class="fixed inset-0 bg-slate-900/98 z-[1000] flex flex-col items-center justify-center p-6 hidden-element">
+    <div id="lock-screen" class="fixed inset-0 bg-slate-900/98 z-[9999] flex flex-col items-center justify-center p-6 hidden-element">
         <div class="bg-white rounded-[2.5rem] p-10 max-w-md w-full text-center shadow-2xl">
             <div class="w-20 h-20 bg-red-100 text-red-600 rounded-full flex items-center justify-center mx-auto mb-6 font-black text-4xl">!</div>
             <h2 class="text-2xl font-black mb-2 text-slate-900">Akses Terkunci</h2><p class="text-slate-500 mb-8 text-sm">Terdeteksi aktivitas mencurigakan atau pelanggaran batas. Silahkan masukkan PIN Pengawas.</p>
@@ -243,6 +243,7 @@
         // --- 2. GLOBAL STATE ---
         let user = null;
         let isExamActive = false;
+	let isResuming = false;
         let activePin = "1234";
         let violationCount = 0;
         let monitorInterval = null;
@@ -286,20 +287,12 @@ async function handleLogin() {
             startMonitorFeed();
             
             // Bersihkan input
-            pwdInput.value = "";
-            userIdInput.value = "";
-        } else { 
-            alert("Username atau Password Admin Salah!"); 
-        }
+            pwdInput.value = ""; userIdInput.value = "";
+        } else {alert("Username atau Password Admin Salah!"); }
     } else {
         // --- LOGIKA LOGIN SISWA ---
         const userId = selectNamaInput.value;
-        
-        if (!userId) {
-            alert("Silahkan pilih nama Anda terlebih dahulu!");
-            return;
-        }
-
+        if (!userId) {alert("Silahkan pilih nama Anda terlebih dahulu!"); return; }
         try {
             // Ambil data user dari Firestore berdasarkan ID (Dokumen ID)
             const doc = await publicData.collection('users').doc(userId).get();
@@ -335,16 +328,9 @@ async function handleLogin() {
                     
                     // Bersihkan password
                     pwdInput.value = "";
-                } else {
-                    alert("Password salah! Silahkan coba lagi.");
-                }
-            } else {
-                alert("Data siswa tidak ditemukan di server.");
-            }
-        } catch (error) {
-            console.error("Login Error:", error);
-            alert("Terjadi kesalahan koneksi saat login.");
-        }
+                } else {alert("Password salah! Silahkan coba lagi."); }
+            } else {alert("Data siswa tidak ditemukan di server."); }
+        } catch (error) {console.error("Login Error:", error); alert("Terjadi kesalahan koneksi saat login."); }
     }
 }
 
@@ -419,7 +405,7 @@ async function handleLogin() {
 	    setTimeout(() => document.body.classList.remove('violation-shake'), 500);
 
 	    // CATATAN: Bagian simpan ke Firestore 'violations' telah DIHAPUS agar tidak ada riwayat tersimpan.
-	    if (violationCount >= 3) triggerLock();
+	    if (violationCount >= 5) triggerLock();
 	}
 
         function triggerLock() { if (isExamActive) document.getElementById('lock-screen').classList.remove('hidden-element'); }
@@ -629,7 +615,22 @@ function switchStudentView(view) {
 
         function logActivity(a) {publicData.collection('logs').add({ user: user ? user.nama : "System", action: a, time: firebase.firestore.FieldValue.serverTimestamp() });}
 
-
+// Fungsi untuk menghapus isi clipboard
+async function clearClipboard() {
+    try {
+        // Mengisi clipboard dengan teks kosong
+        await navigator.clipboard.writeText("");
+        console.log("Clipboard cleared successfully.");
+    } catch (err) {
+        // Fallback jika API navigator.clipboard tidak didukung atau gagal
+        const input = document.createElement("input");
+        input.value = " ";
+        document.body.appendChild(input);
+        input.select();
+        document.execCommand("copy");
+        document.body.removeChild(input);
+    }
+}
 
 
 
@@ -647,29 +648,22 @@ async function startExam(id, correctToken) {
 // --- UPDATE PADA FUNGSI START EXAM ---
 // Pastikan fungsi startExamEngine memanggil lockdown
 async function startExamEngine(url, mapel, dur, isCameraRequired) {
-    // 1. Validasi Izin Kamera jika diwajibkan
+    await clearClipboard();
     if (isCameraRequired !== false) { 
-        try {
-            const stream = await navigator.mediaDevices.getUserMedia({ 
-                video: { width: 320, height: 240, frameRate: 15 } 
-            });
+        try {const stream = await navigator.mediaDevices.getUserMedia({video: { width: 320, height: 240, frameRate: 15 } });
             window.localStream = stream;
             document.getElementById('self-video').srcObject = stream;
             document.getElementById('self-video').parentElement.classList.remove('hidden-element');
-        } catch(e) {
-            alert("Ujian ini wajib menggunakan akses kamera!"); 
-            return; 
-        }
+        } catch(e) {alert("Ujian ini wajib menggunakan akses kamera!"); return; }
     }
 
     // 2. Inisialisasi Status Ujian
     isExamActive = true;
     violationCount = 0;
     initialWidth = window.innerWidth;
-    
-    // Aktifkan Pengamanan Ketat
     enableHardLockdown();
-    
+    if (typeof isResuming !== 'undefined' && !isResuming) {const endTime = Date.now() + (dur * 60 * 1000);
+        localStorage.setItem('active_exam_state', JSON.stringify({url, mapel, endTime, isCamera: isCameraRequired, pin: activePin})); }
     // 3. Setup UI Viewer
     document.getElementById('view-mapel').textContent = mapel;
     document.getElementById('exam-frame-container').innerHTML = `<iframe src="${url}" allow="camera; microphone"></iframe>`;
@@ -683,23 +677,18 @@ async function startExamEngine(url, mapel, dur, isCameraRequired) {
     const timer = setInterval(() => {
         if (!isExamActive) { clearInterval(timer); return; }
         time--;
+	if (time <= 0) { clearInterval(timer); finishExam(); return; }
         const m = Math.floor(time/60);
         const s = time % 60;
         document.getElementById('exam-timer').textContent = `${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}`;
-        
-        if (time <= 0) { 
-            clearInterval(timer);
-            finishExam(); 
-        }
     }, 1000);
 
     // 5. Engine Monitoring Real-time (Setiap 5 Detik)
+    if(monitorInterval) clearInterval(monitorInterval);
     const canvas = document.createElement('canvas');
     const ctx = canvas.getContext('2d');
-    
     monitorInterval = setInterval(async () => {
         if(!isExamActive) return;
-        
         let imgData = "";
         // Ambil gambar dari video jika kamera aktif
         if (isCameraRequired !== false && window.localStream) {
@@ -709,10 +698,7 @@ async function startExamEngine(url, mapel, dur, isCameraRequired) {
             imgData = canvas.toDataURL('image/jpeg', 0.2); // Kompresi 20% untuk kecepatan
         }
         
-        try {
-            // Update data ke Firestore koleksi 'live'
-            // Pastikan user.kelas terkirim di sini
-            await publicData.collection('live').doc(user.id).set({
+        try {await publicData.collection('live').doc(user.id).set({
                 nama: user.nama,
                 kelas: user.kelas || "Tanpa Kelas", // Mengatasi 'Kelas tidak dikenal'
                 img: imgData,
@@ -720,12 +706,7 @@ async function startExamEngine(url, mapel, dur, isCameraRequired) {
                 v: violationCount,
                 camStatus: isCameraRequired !== false ? "ON" : "OFF"
             }, { merge: true });
-        } catch (err) {
-            console.error("Gagal sinkron monitoring:", err);
-        }
-    }, 5000); 
-
-    // Log Aktivitas ke Cloud
+        } catch (err) {console.error("Gagal sinkron monitoring:", err); }}, 5000); 
     logActivity(`Memulai ujian: ${mapel}`);
 }
 		
@@ -781,12 +762,16 @@ function confirmFinishExam() { if(confirm("Apakah anda yakin telah menyelesaikan
 // --- UPDATE PADA FUNGSI FINISH EXAM ---
 async function finishExam() {
     isExamActive = false;
-    if(window.localStream) {window.localStream.getTracks().forEach(track => track.stop());}
-    // Menghapus jejak monitor live segera setelah ujian berakhir
-    if (user && user.id) {try { await publicData.collection('live').doc(user.id).delete(); } catch (e) {}
-    }
+    // 1. Matikan Interval Monitoring (Penting agar tidak boros database)
+    if (monitorInterval) {clearInterval(monitorInterval);monitorInterval = null; }
+    // 2. Hapus Sesi & Stop Kamera
+    localStorage.removeItem('active_exam_state');
+    if(window.localStream) {window.localStream.getTracks().forEach(track => track.stop()); window.localStream = null;}
+    // 3. Hapus data live dari dashboard admin segera
+    if (user && user.id) {try { await publicData.collection('live').doc(user.id).delete(); } catch (e) { console.log("Gagal menghapus data live"); }}
+    // 4. Keluar Fullscreen
     if (document.fullscreenElement) { document.exitFullscreen().catch(() => {}); }
-    alert("Ujian Selesai!"); location.reload(); 
+    alert("Ujian Selesai! Menutup sistem...");location.reload(); 
 }
 
 		
@@ -817,17 +802,12 @@ async function finishExam() {
 let isSecuritySetup = false;
 function enableHardLockdown() {
     if (isSecuritySetup) return; // Cegah duplikasi jika fungsi dipanggil ulang
-
     // 1. Cegah Klik Kanan & Copy-Paste
     document.oncontextmenu = () => isExamActive ? false : true;
     document.onselectstart = () => isExamActive ? false : true;
-    
     // 2. Gabungkan Blur & Visibility Change
     const handleViolation = () => {
-        if (isExamActive && document.visibilityState !== 'visible') {
-            reportViolation();
-        }
-    };
+        if (isExamActive && document.visibilityState !== 'visible') {reportViolation(); }};
     document.addEventListener('visibilitychange', handleViolation);
     window.onblur = handleViolation;
 
@@ -883,7 +863,7 @@ function handleKeyboardLock(e) {
 		setTimeout(() => {if (document.activeElement.tagName !== 'IFRAME') {reportViolation();}}, 100);}
 	});
 
-	window.addEventListener('focus', () => {document.body.classList.remove('blur-screen');});
+	window.addEventListener('focus', () => {document.body.classList.remove('blur-screen'); if (isExamActive) {clearClipboard();} });
 
 	// 6. Deteksi Fullscreen Exit
 	document.addEventListener('fullscreenchange', () => {if (isExamActive && !document.fullscreenElement) {reportViolation();

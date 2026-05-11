@@ -260,39 +260,47 @@
         window.localStream = null;
 	
 	// --- 3. INITIALIZATION ---
-	window.onload = async () => {
-		if ('serviceWorker' in navigator) {navigator.serviceWorker.getRegistrations().then(function(registrations) {
-		for(let registration of registrations) {registration.unregister(); }}); }
-	try {
-        await auth.signInAnonymously(); 
+window.onload = async () => {
+    // Registrasi Service Worker cleanup (opsional)
+    if ('serviceWorker' in navigator) {
+        navigator.serviceWorker.getRegistrations().then(function(registrations) {
+            for(let registration of registrations) { registration.unregister(); }
+        });
+    }
+
+    try {
+        await auth.signInAnonymously();
         document.getElementById('loading-overlay').classList.add('hidden-element');
 
         // 1. CEK SESSION LOGIN
         const savedSession = localStorage.getItem('exambro_session');
         if (savedSession) {
-            const sessionData = JSON.parse(savedSession); 
+            const sessionData = JSON.parse(savedSession);
             if (sessionData.role === 'admin') {
-                showPage('admin-page'); 
-                syncAdminData(); 
+                currentRole = 'admin'; // <--- Set Role Global
+                showPage('admin-page');
+                initPeer(); // <--- Inisialisasi PeerJS untuk Admin
+                syncAdminData();
                 startMonitorFeed();
             } else if (sessionData.role === 'student' && sessionData.user) {
-                user = sessionData.user; 
+                currentRole = 'student'; // <--- Set Role Global
+                user = sessionData.user;
                 document.getElementById('display-std-name').textContent = user.nama;
-                showPage('student-page'); 
-                syncStudentData(); 
-                initPeer(); 
-                listenForAdminCommands(); 
-            } 
+                showPage('student-page');
+                syncStudentData();
+                initPeer(); // <--- Inisialisasi PeerJS untuk Siswa
+                listenForAdminCommands();
+            }
         }
 
-        // 2. LOGIKA AUTO-RESUME UJIAN
+        // 2. LOGIKA AUTO-RESUME UJIAN (Hanya untuk Siswa)
         const activeExam = localStorage.getItem('active_exam_state');
         if (activeExam) {
             const examData = JSON.parse(activeExam);
             const now = Date.now();
             if (now < examData.endTime) {
-                isResuming = true; 
-                activePin = examData.pin; 
+                isResuming = true;
+                activePin = examData.pin;
                 const remainingMinutes = Math.round((examData.endTime - now) / 60000);
                 startExamEngine(examData.url, examData.mapel, remainingMinutes, examData.isCamera);
             } else {
@@ -301,10 +309,10 @@
         }
 
         // 3. JALANKAN SERVICE DASAR
-        setRole('student'); 
-        syncSpecialSettings(); 
-        loadKelas(); 
-        startCleanupService(); 
+        if (!currentRole) setRole('student');
+        syncSpecialSettings();
+        loadKelas();
+        startCleanupService();
         loadSheetConfig();
 
     } catch (e) {
@@ -328,7 +336,7 @@ async function handleLogin() {
         if (currentRole === 'admin') {
             if (userIdInput.value === 'admin' && pwd === 'admin123') {
                 localStorage.setItem('exambro_session', JSON.stringify({ role: 'admin', time: Date.now() }));
-                showPage('admin-page'); 
+                showPage('admin-page'); initPeer();
                 syncAdminData(); 
                 startMonitorFeed();
                 pwdInput.value = ""; userIdInput.value = "";
@@ -961,14 +969,12 @@ function startMonitorFeed() {
         const grid = document.getElementById('monitor-grid');
         if (!grid) return;
 
-        // Simpan referensi ke data snapshot untuk grouping kelas
         const students = [];
         s.forEach(d => {
             const data = d.data();
             students.push({ id: d.id, ...data });
         });
 
-        // 1. Render UI Grid Monitor
         grid.innerHTML = ""; 
         grid.className = "flex flex-col gap-10";
         
@@ -989,7 +995,7 @@ function startMonitorFeed() {
 
             const subGrid = document.getElementById(sectionId);
             students.filter(st => (st.kelas || "Tanpa Kelas") === kelas).forEach(l => {
-                const isOnline = (Date.now() - l.last) < 15000;
+                const isOnline = (Date.now() - l.last) < 20000;
                 const isLocked = l.isLocked === true;
                 
                 const card = document.createElement('div');
@@ -1003,7 +1009,7 @@ function startMonitorFeed() {
                         <img src="" class="w-full h-full object-cover hidden-element" id="img-p2p-${l.id}">
                         <div class="no-cam-placeholder w-full h-full flex flex-col items-center justify-center text-slate-300">
                             <span class="text-xl">👤</span>
-                            <span class="text-[7px] font-bold uppercase">Menunggu Gambar...</span>
+                            <span class="text-[7px] font-bold uppercase">OFFLINE / NO P2P</span>
                         </div>
                         <div class="absolute top-2 left-2 flex flex-col gap-1">
                             <div class="${isOnline ? 'bg-emerald-500' : 'bg-slate-400'} status-ping"></div>
@@ -1021,33 +1027,34 @@ function startMonitorFeed() {
                 `;
                 subGrid.appendChild(card);
 
-                // 2. Hubungkan PeerJS Data untuk Snapshot jika belum terhubung
+                // LOGIKA KONEKSI P2P DATA (Snapshot)
                 const safePeerId = 'peer-exam-' + l.id.replace(/[^a-zA-Z0-9]/g, '');
+                
                 if (isOnline && !studentConnections[l.id]) {
-                    const conn = peer.connect(safePeerId);
-                    studentConnections[l.id] = conn;
-                    
-                    conn.on('open', () => console.log("Connected P2P to: " + l.nama));
-                    conn.on('data', (payload) => {
-                        if (payload.type === 'snapshot') {
-                            const imgEl = document.getElementById(`img-p2p-${l.id}`);
-                            const placeholder = document.querySelector(`#container-${l.id} .no-cam-placeholder`);
-                            if (imgEl) {
-                                imgEl.src = payload.data;
-                                imgEl.classList.remove('hidden-element');
-                                if (placeholder) placeholder.classList.add('hidden-element');
+                    if (peer && !peer.destroyed && peer.open) {
+                        const conn = peer.connect(safePeerId);
+                        studentConnections[l.id] = conn;
+                        
+                        conn.on('data', (payload) => {
+                            if (payload.type === 'snapshot') {
+                                const imgEl = document.getElementById(`img-p2p-${l.id}`);
+                                const placeholder = document.querySelector(`#container-${l.id} .no-cam-placeholder`);
+                                if (imgEl) {
+                                    imgEl.src = payload.data;
+                                    imgEl.classList.remove('hidden-element');
+                                    if (placeholder) placeholder.classList.add('hidden-element');
+                                }
                             }
-                        }
-                    });
-                    conn.on('close', () => { delete studentConnections[l.id]; });
-                    conn.on('error', () => { delete studentConnections[l.id]; });
+                        });
+                        conn.on('close', () => { delete studentConnections[l.id]; });
+                        conn.on('error', () => { delete studentConnections[l.id]; });
+                    }
                 }
             });
         });
-        document.getElementById('online-count').textContent = students.length + " Siswa Aktif";
+        document.getElementById('online-count').textContent = students.length + " Siswa Terdeteksi";
     });
 }
-
 
 function listenForAdminCommands() {
     if (!user || !user.id) return;
@@ -1076,23 +1083,45 @@ let activeDataConnections = {};
 
 // Inisialisasi PeerJS untuk menerima koneksi data
 function initPeer() {
-    if (!user) return;
-    const safePeerId = 'peer-exam-' + user.id.replace(/[^a-zA-Z0-9]/g, '');
-    if (peer) peer.destroy();
-    
-    peer = new Peer(safePeerId);
+    let peerId;
+    if (currentRole === 'admin') {
+        // Admin menggunakan ID acak agar tidak bentrok jika membuka banyak tab
+        peerId = 'admin-' + Math.random().toString(36).substr(2, 9);
+    } else {
+        if (!user || !user.id) return;
+        // ID Siswa harus statis/tetap agar Admin bisa menelpon/menghubungi
+        peerId = 'peer-exam-' + user.id.replace(/[^a-zA-Z0-9]/g, '');
+    }
 
-    // Mendengarkan permintaan koneksi data dari Admin
-    peer.on('connection', (conn) => {
-        activeDataConnections[conn.peer] = conn;
-        
-        conn.on('close', () => {
-            delete activeDataConnections[conn.peer];
-        });
+    // Jika sudah ada peer yang aktif, hancurkan dulu sebelum buat baru
+    if (peer) {
+        try { peer.destroy(); } catch (e) {}
+    }
+
+    peer = new Peer(peerId);
+
+    peer.on('open', (id) => {
+        console.log('Sistem P2P Aktif dengan ID: ' + id);
     });
 
+    // Menangani koneksi DATA (Snapshot gambar)
+    peer.on('connection', (conn) => {
+        activeDataConnections[conn.peer] = conn;
+        conn.on('close', () => { delete activeDataConnections[conn.peer]; });
+    });
+
+    // Menangani koneksi VIDEO (Live Stream)
     peer.on('call', (call) => {
-        if (window.localStream) call.answer(window.localStream);
+        if (window.localStream) {
+            call.answer(window.localStream);
+        }
+    });
+
+    peer.on('error', (err) => {
+        console.warn('PeerJS Error Type:', err.type);
+        if (err.type === 'unavailable-id' && currentRole === 'admin') {
+            initPeer(); // Ulangi jika ID Admin bentrok
+        }
     });
 }
 

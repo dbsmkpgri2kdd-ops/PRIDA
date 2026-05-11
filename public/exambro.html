@@ -889,7 +889,7 @@ async function finishExam() {
     if (user && user.id) {try { await publicData.collection('live').doc(user.id).delete(); } catch (e) { console.log("Gagal menghapus data live"); }}
     // 4. Keluar Fullscreen
     if (document.fullscreenElement) { document.exitFullscreen().catch(() => {}); }
-    alert("Ujian Selesai! Menutup sistem...");location.reload(); 
+    alert("Ujian Selesai! Apakah anda yankin sudah mengirimkan jawaban");location.reload(); 
 }
 
 		

@@ -234,9 +234,15 @@
             appId: "1:578574487721:web:c153cee7b19304b75d59b8"
         };
 
+
         firebase.initializeApp(firebaseConfig);
         const auth = firebase.auth();
         const db = firebase.firestore();
+        // FIX: Tambahkan try-catch dan merge: true untuk stabilitas
+        try {
+            db.settings({experimentalForceLongPolling: true, merge: true });
+        } catch (e) { console.warn("Firestore settings already set"); }
+
         const appId = 'exambro-system-2026';
         const publicData = db.collection('artifacts').doc(appId).collection('public').doc('data');
 
@@ -253,9 +259,11 @@
         let initialWidth = window.innerWidth;
         window.localStream = null;
 	
-// --- 3. INITIALIZATION ---
-window.onload = async () => {
-    try {
+	// --- 3. INITIALIZATION ---
+	window.onload = async () => {
+		if ('serviceWorker' in navigator) {navigator.serviceWorker.getRegistrations().then(function(registrations) {
+		for(let registration of registrations) {registration.unregister(); }}); }
+	try {
         await auth.signInAnonymously(); 
         document.getElementById('loading-overlay').classList.add('hidden-element');
 
@@ -309,65 +317,48 @@ async function handleLogin() {
     const pwd = pwdInput.value;
     const userIdInput = document.getElementById('user-id');
     const selectNamaInput = document.getElementById('select-nama');
+    const loginBtn = document.querySelector('button[onclick="handleLogin()"]');
 
-    if (currentRole === 'admin') {
-        // --- LOGIKA LOGIN ADMIN ---
-        if (userIdInput.value === 'admin' && pwd === 'admin123') {
-            // Simpan session admin ke local storage
-            localStorage.setItem('exambro_session', JSON.stringify({ 
-                role: 'admin', 
-                time: Date.now() 
-            }));
-            
-            showPage('admin-page'); 
-            syncAdminData(); 
-            startMonitorFeed();
-            
-            // Bersihkan input
-            pwdInput.value = ""; userIdInput.value = "";
-        } else {alert("Username atau Password Admin Salah!"); }
-    } else {
-        // --- LOGIKA LOGIN SISWA ---
-        const userId = selectNamaInput.value;
-        if (!userId) {alert("Silahkan pilih nama Anda terlebih dahulu!"); return; }
-        try {
-            // Ambil data user dari Firestore berdasarkan ID (Dokumen ID)
+    if (!pwd) { alert("Password tidak boleh kosong!"); return; }
+
+    loginBtn.disabled = true;
+    loginBtn.innerHTML = "Memproses...";
+
+    try {
+        if (currentRole === 'admin') {
+            if (userIdInput.value === 'admin' && pwd === 'admin123') {
+                localStorage.setItem('exambro_session', JSON.stringify({ role: 'admin', time: Date.now() }));
+                showPage('admin-page'); 
+                syncAdminData(); 
+                startMonitorFeed();
+                pwdInput.value = ""; userIdInput.value = "";
+            } else { alert("Username atau Password Admin Salah!"); }
+        } else {
+            const userId = selectNamaInput.value;
+            if (!userId) { alert("Silahkan pilih nama Anda terlebih dahulu!"); loginBtn.disabled = false; loginBtn.innerHTML = "MASUK SISTEM"; return; }
+
             const doc = await publicData.collection('users').doc(userId).get();
-
             if (doc.exists) {
                 const userData = doc.data();
-
-                // Verifikasi Password
-                if (userData.pwd === pwd) {
-                    // SET GLOBAL USER: Pastikan semua field penting masuk (ID, Nama, Kelas)
-                    user = {
-                        id: doc.id,
-                        nama: userData.nama,
-                        kelas: userData.kelas || "Umum", // Mengambil data kelas dari Firestore
-                        nis: userData.nis
-                    };
-
-                    // Simpan session siswa ke local storage agar jika refresh tidak logout
-                    localStorage.setItem('exambro_session', JSON.stringify({ 
-                        role: 'student', 
-                        user: user, 
-                        time: Date.now() 
-                    }));
-
-                    // Update UI Nama di Header Siswa
+                // Menggunakan toString() agar jika password di Excel berupa angka tetap bisa login
+                if (userData.pwd.toString() === pwd.toString()) {
+                    user = { id: doc.id, nama: userData.nama, kelas: userData.kelas || "Umum", nis: userData.nis || "-" };
+                    localStorage.setItem('exambro_session', JSON.stringify({ role: 'student', user: user, time: Date.now() }));
                     document.getElementById('display-std-name').textContent = user.nama;
-                    
-                    // Pindah ke halaman siswa & jalankan engine
                     showPage('student-page'); 
-                    syncStudentData(); // Sinkronisasi jadwal ujian
-                    initPeer(); // Siapkan koneksi video P2P
-                    listenForAdminCommands(); // Dengar perintah unlock dari admin
-                    
-                    // Bersihkan password
+                    syncStudentData(); 
+                    initPeer(); 
+                    listenForAdminCommands(); 
                     pwdInput.value = "";
-                } else {alert("Password salah! Silahkan coba lagi."); }
-            } else {alert("Data siswa tidak ditemukan di server."); }
-        } catch (error) {console.error("Login Error:", error); alert("Terjadi kesalahan koneksi saat login."); }
+                } else { alert("Password salah!"); }
+            } else { alert("Data siswa tidak ditemukan!"); }
+        }
+    } catch (error) {
+        console.error(error);
+        alert("Koneksi gagal! Pastikan internet aktif.");
+    } finally {
+        loginBtn.disabled = false;
+        loginBtn.innerHTML = "MASUK SISTEM";
     }
 }
 
@@ -463,15 +454,26 @@ async function handleLogin() {
 	    if (violationCount >= 5) triggerLock();
 	}
 
-        function triggerLock() { if (isExamActive) document.getElementById('lock-screen').classList.remove('hidden-element'); }
+	async function triggerLock() { 
+	    if (isExamActive) {document.getElementById('lock-screen').classList.remove('hidden-element');
+	        if (user && user.id) {
+	            try {await publicData.collection('live').doc(user.id).update({
+	                    isLocked: true, v: violationCount, lastStatus: 'TERKUNCI - BUTUH PIN' }); } 
+		catch (e) { console.error("Gagal lapor status kunci"); } }
+	    } 
+	}
 
-        function unlockApp() {
+        async function unlockApp() {
             if (document.getElementById('unlock-pwd').value === activePin) {
                 document.getElementById('lock-screen').classList.add('hidden-element');
                 document.getElementById('unlock-pwd').value = "";
                 violationCount = 0;
                 document.getElementById('violation-count').textContent = "0";
                 document.getElementById('violation-badge').classList.add('hidden-element');
+			// BERITAHU ADMIN: Update status bahwa sudah terbuka
+		        if (user && user.id) {await publicData.collection('live').doc(user.id).update({
+	                isLocked: false, v: 0, lastStatus: 'AKTIF'}); }
+
                 setTimeout(() => document.documentElement.requestFullscreen().catch(() => {}), 500);
             } else { alert("PIN Pengawas Salah!"); }
         }
@@ -506,33 +508,38 @@ async function loadSheetConfig() {
 
 // 2. Fungsi Utama: Simpan Link ke Cloud dan Jalankan Sinkronisasi
 async function saveAndSyncSheet() {
-    const urlInput = document.getElementById('sheet-url').value.trim(); if (!urlInput) return alert("Masukkan link Google Sheet terlebih dahulu!");
+    const urlInput = document.getElementById('sheet-url').value.trim(); 
+    if (!urlInput) return alert("Masukkan link Google Sheet terlebih dahulu!");
     const btn = document.getElementById('btn-sync-sheet');
     const btnText = document.getElementById('sync-text');
-    // Simpan Link ke Firestore agar bisa diakses dari perangkat manapun
-    await publicData.collection('settings').doc('sheet_config').set({url: urlInput, lastSync: Date.now()
-    });
+    
+    await publicData.collection('settings').doc('sheet_config').set({url: urlInput, lastSync: Date.now()});
 
-    // Jalankan Proses Sinkronisasi Data
     btn.disabled = true;
     btnText.textContent = "SEDANG MENYINKRON...";
-    try {let exportUrl = urlInput; if (urlInput.includes('/edit')) {const match = urlInput.match(/\/d\/(.+?)\//); if (match) exportUrl = `https://docs.google.com/spreadsheets/d/${match[1]}/export?format=csv`; }
+    try {
+        let exportUrl = urlInput; 
+        if (urlInput.includes('/edit')) {
+            const match = urlInput.match(/\/d\/(.+?)\//); 
+            if (match) exportUrl = `https://docs.google.com/spreadsheets/d/${match[1]}/export?format=csv`; 
+        }
 
         const res = await fetch(exportUrl);
-        if (!res.ok) throw new Error("Gagal mengambil file. Pastikan sudah 'Publish to Web'.");
+        if (!res.ok) throw new Error("Gagal mengambil file.");
         const text = await res.text();
-        const rows = text.replace(/\r/g, "").split('\n').filter(row => row.trim() !== "");
-        const dataRows = rows.slice(1); // Potong header
-
-        // PROSES OVERWRITE: Hapus data lama, ganti dengan data baru dari Spreadsheet
-        const oldDocs = await publicData.collection('users').get(); const batch = db.batch();
         
-        // Hapus semua data siswa lama di Firestore
+        // Perbaikan: Regex agar aman terhadap koma di dalam kutip (Contoh: "Budi, S.Kom")
+        const rows = text.split(/\r?\n/);
+        const dataRows = rows.slice(1); 
+
+        const oldDocs = await publicData.collection('users').get(); 
+        const batch = db.batch();
         oldDocs.forEach(doc => batch.delete(doc.ref));
 
-        // Tambah data siswa baru dari Spreadsheet
         let addedCount = 0;
-        dataRows.forEach(row => {const cols = row.split(',').map(item => item.replace(/^"|"$/g, '').trim());
+        dataRows.forEach(row => {
+            // Regex Sakti untuk memisahkan CSV dengan benar
+            const cols = row.match(/(".*?"|[^",\s]+)(?=\s*,|\s*$)/g);
             if (cols && cols.length >= 3) {
                 const docRef = publicData.collection('users').doc();
                 batch.set(docRef, {
@@ -546,10 +553,10 @@ async function saveAndSyncSheet() {
         });
 
         await batch.commit();
-        alert(`Berhasil! Database diperbarui. ${addedCount} siswa terdaftar.`);
-        loadKelas(); // Refresh dropdown kelas di halaman login
-    } catch (e) {alert("KESALAHAN SINKRON: " + e.message);
-    } finally {btn.disabled = false; btnText.textContent = "SIMPAN & SINKRON"; }
+        alert(`Berhasil! ${addedCount} siswa terdaftar.`);
+        loadKelas(); 
+    } catch (e) { alert("KESALAHAN SINKRON: " + e.message); } 
+    finally { btn.disabled = false; btnText.textContent = "SIMPAN & SINKRON"; }
 }
 
 // 3. Update Fungsi Tampilan Tabel (Hapus tombol Edit/Hapus)
@@ -912,39 +919,31 @@ async function finishExam() {
 // Fungsi untuk mengunci semua akses (Hanya saat ujian aktif)
 let isSecuritySetup = false;
 function enableHardLockdown() {
-    if (isSecuritySetup) return; // Cegah duplikasi jika fungsi dipanggil ulang
-    // 1. Cegah Klik Kanan & Copy-Paste
+    if (isSecuritySetup) return;
     document.oncontextmenu = () => isExamActive ? false : true;
     document.onselectstart = () => isExamActive ? false : true;
-    // 2. Gabungkan Blur & Visibility Change
+
     const handleViolation = () => {
-        if (isExamActive && document.visibilityState !== 'visible') {reportViolation(); }};
+        if (isExamActive && document.visibilityState !== 'visible') { reportViolation(); }
+    };
     document.addEventListener('visibilitychange', handleViolation);
     window.onblur = handleViolation;
 
-    // 3. Deteksi Resize (Ganti logika lama)
-    window.onresize = () => {
-        if (!isExamActive) return;
-        // Jika bukan di HP (karena keyboard) dan ukuran berubah drastis
-        const isMobile = /Android|iPhone|iPad/i.test(navigator.userAgent);
-        const isInputting = ['INPUT', 'TEXTAREA'].includes(document.activeElement.tagName);
-        
-        if (!isMobile && !isInputting) {
-            if (window.innerWidth < initialWidth - 100) reportViolation();
-        }
-    };
-
-    // 4. Keyboard Lock
+    // Perbaikan: Integrasi handleKeyboardLock ke onkeydown
     window.onkeydown = (e) => {
         if (!isExamActive) return;
+        
         const forbiddenKeys = [123, 44, 112, 113, 114, 115, 116, 117, 118, 119, 120, 121, 122];
-        if (forbiddenKeys.includes(e.keyCode) || (e.ctrlKey && 'uIpscvj'.includes(e.key.toLowerCase()))) {
+        const isControlAction = e.ctrlKey && 'uIpscvj'.includes(e.key.toLowerCase());
+        const isShiftAction = e.ctrlKey && e.shiftKey && 'IJ'.includes(e.key.toUpperCase());
+
+        if (forbiddenKeys.includes(e.keyCode) || isControlAction || isShiftAction) {
             e.preventDefault();
+            e.stopPropagation();
             reportViolation();
             return false;
         }
     };
-
     isSecuritySetup = true;
 }
 
@@ -1024,53 +1023,53 @@ function startMonitorFeed() {
 
             const subGrid = document.getElementById(sectionId);
 
-            students.filter(st => (st.kelas || "Tanpa Kelas") === kelas).forEach(l => {
-                const isOnline = (Date.now() - l.last) < 15000; // Aktif dalam 15 detik terakhir
-                const card = document.createElement('div');
-                card.className = `monitor-card bg-white rounded-[2rem] border ${l.v > 0 ? 'border-red-200 ring-4 ring-red-50' : 'border-slate-100'} overflow-hidden shadow-sm`;
-                
-                card.innerHTML = `
-                    <!-- Preview Box -->
-                    <div class="aspect-[4/3] bg-slate-100 relative group" id="container-${l.id}">
-                        ${l.img ? 
-                            `<img src="${l.img}" class="w-full h-full object-cover">` : 
-                            `<div class="w-full h-full flex flex-col items-center justify-center bg-slate-50 text-slate-300">
-                                <span class="text-2xl mb-1">👤</span>
-                                <span class="text-[8px] font-bold uppercase tracking-tighter">No Camera Feed</span>
-                             </div>`
-                        }
-                        
-                        <!-- Status Overlays -->
-                        <div class="absolute top-3 left-3 flex gap-2">
-                            <div class="${isOnline ? 'bg-emerald-500' : 'bg-slate-400'} status-ping"></div>
-                            ${l.v > 0 ? `<div class="bg-red-600 text-white text-[8px] font-black px-2 py-0.5 rounded shadow-lg animate-bounce">⚠️ ${l.v} Pelanggaran</div>` : ''}
-                        </div>
+	// ... di dalam loop s.forEach pada fungsi startMonitorFeed ...
+	students.filter(st => (st.kelas || "Tanpa Kelas") === kelas).forEach(l => {
+	    const isOnline = (Date.now() - l.last) < 15000;
+	    const isLocked = l.isLocked === true || l.v >= 5; // Cek status kunci
+    
+	    const card = document.createElement('div');
+	    // Jika terkunci, beri border merah tebal dan efek shadow menyala
+	    card.className = `monitor-card bg-white rounded-[2rem] border-2 transition-all ${
+	        isLocked ? 'border-red-600 ring-4 ring-red-500/50 shadow-2xl scale-105 z-10' : 
+	        l.v > 0 ? 'border-amber-400' : 'border-slate-100'
+	    } overflow-hidden relative`;
+    
+	    card.innerHTML = `
+	        <!-- Overlay Bahaya Jika Terkunci -->
+	        ${isLocked ? `<div class="absolute inset-0 bg-red-600/5 animate-pulse pointer-events-none z-20"></div>` : ''}
 
-                        <!-- Dark Overlay on Hover -->
-                        <div class="absolute inset-0 bg-slate-900/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2">
-                             <button onclick="openLiveStream('${l.id}')" class="bg-white text-slate-900 p-2 rounded-xl shadow-xl hover:scale-110 transition-transform">
-                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z"></path></svg>
-                             </button>
-                        </div>
-                    </div>
+	        <!-- Preview Box -->
+	        <div class="aspect-[4/3] bg-slate-100 relative group" id="container-${l.id}">
+	            ${l.img ? `<img src="${l.img}" class="w-full h-full object-cover">` : `<div class="w-full h-full flex flex-col items-center justify-center bg-slate-50 text-slate-300"><span class="text-2xl mb-1">👤</span><span class="text-[8px] font-bold uppercase">No Camera</span></div>`}
+            
+	            <!-- Status Overlays -->
+	            <div class="absolute top-3 left-3 flex flex-col gap-2 z-30">
+	                <div class="flex items-center gap-2">
+	                    <div class="${isOnline ? 'bg-emerald-500' : 'bg-slate-400'} status-ping"></div>
+	                    ${isLocked ? `<span class="bg-red-600 text-white text-[10px] font-black px-2 py-1 rounded shadow-lg">⚠️ TERKUNCI</span>` : ''}
+	                </div>
+	                ${l.v > 0 && !isLocked ? `<div class="bg-amber-500 text-white text-[8px] font-black px-2 py-0.5 rounded shadow-lg">Pelanggaran: ${l.v}</div>` : ''}
+	            </div>
+	        </div>
 
-                    <!-- Info Box -->
-                    <div class="p-4">
-                        <div class="flex flex-col mb-3">
-                            <span class="text-[10px] font-black text-slate-800 truncate uppercase leading-tight">${l.nama}</span>
-                            <span class="text-[8px] font-bold text-slate-400 uppercase mt-0.5">NIS: ${l.id.slice(-6)}</span>
-                        </div>
-                        
-                        <div class="grid grid-cols-2 gap-2">
-                            <button onclick="openLiveStream('${l.id}')" class="bg-blue-50 text-blue-600 text-[8px] font-black py-2 rounded-xl hover:bg-blue-600 hover:text-white transition-all uppercase">Live Feed</button>
-                            <button onclick="remoteUnlockStudent('${l.id}')" class="bg-slate-50 text-slate-500 text-[8px] font-black py-2 rounded-xl hover:bg-emerald-500 hover:text-white transition-all uppercase">Bypass</button>
-                        </div>
-                    </div>
-                `;
-                subGrid.appendChild(card);
-            });
+	        <!-- Info Box -->
+	        <div class="p-4 relative z-30">
+	            <div class="flex flex-col mb-3">
+	                <span class="text-[10px] font-black ${isLocked ? 'text-red-600' : 'text-slate-800'} truncate uppercase">${l.nama}</span>
+	                <span class="text-[8px] font-bold text-slate-400 uppercase">NIS: ${l.id.slice(-6)}</span>
+	            </div>
+            
+	            <div class="grid grid-cols-2 gap-2">
+	                <button onclick="openLiveStream('${l.id}')" class="bg-blue-50 text-blue-600 text-[8px] font-black py-2 rounded-xl hover:bg-blue-600 hover:text-white transition-all uppercase">Pantau</button>
+	                <button onclick="remoteUnlockStudent('${l.id}')" class="${isLocked ? 'bg-red-600 text-white' : 'bg-slate-50 text-slate-500'} text-[8px] font-black py-2 rounded-xl hover:opacity-80 transition-all uppercase">
+	                    ${isLocked ? 'BUKA PIN' : 'BYPASS'}
+	                </button>
+	            </div>
+	        </div>
+	    `;
+	    subGrid.appendChild(card); });
         });
-
         document.getElementById('online-count').textContent = s.size + " Siswa Terdeteksi";
     });
 }
@@ -1099,6 +1098,8 @@ function forceUnlockLocally() {
     violationCount = 0;
     document.getElementById('violation-count').textContent = "0";
     document.getElementById('violation-badge').classList.add('hidden-element');
+    // Memberi tahu siswa untuk klik agar fullscreen bisa aktif kembali
+    alert("Akses dibuka oleh pengawas. Klik OK untuk lanjut.");
     document.documentElement.requestFullscreen().catch(() => {});
 }
 
@@ -1145,24 +1146,19 @@ function openLiveStream(studentId) {
 }
 
 function stopLiveStream(studentId) {
-    // 1. Cari elemen video
     const videoElement = document.getElementById(`remote-video-${studentId}`);
-    
     if (videoElement) {
-        // 2. Matikan semua track stream (audio/video) agar koneksi P2P benar-benar putus
         const stream = videoElement.srcObject;
         if (stream) {
             stream.getTracks().forEach(track => track.stop());
         }
-        
-        // 3. Hapus elemen video dari DOM
         videoElement.remove();
     }
-
-    // 4. Panggil ulang monitor feed untuk menampilkan kembali foto thumbnail terbaru
-    // Sekarang pengecekan 'if video return' akan lolos karena video sudah dihapus
+    
+    // Paksa refresh grid untuk memunculkan kembali foto thumbnail terakhir
     startMonitorFeed();
 }
+
 
 async function clearMonitorData() {
 	if(!confirm("Bersihkan?")) return;

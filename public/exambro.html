@@ -987,97 +987,98 @@ function handleKeyboardLock(e) {
 function startMonitorFeed() {
     publicData.collection('live').onSnapshot(s => {
         const grid = document.getElementById('monitor-grid');
-        
-        // Jangan refresh grid jika sedang ada live video stream aktif agar tidak terputus
-        if (document.querySelector('video[id^="remote-video-"]')) return;
+        if (!grid) return;
 
-        grid.innerHTML = ""; 
-        grid.className = "flex flex-col gap-10"; // Layout vertikal untuk grup kelas
-        
-        const students = [];
+        // Ambil ID semua siswa yang aktif saat ini dari snapshot
+        const activeIds = [];
+
         s.forEach(d => {
-            const data = d.data();
-            students.push({ id: d.id, ...data });
-        });
+            const l = d.data();
+            const studentId = d.id;
+            activeIds.push(studentId);
 
-        // Grouping berdasarkan Kelas
-        const daftarKelas = [...new Set(students.map(st => st.kelas || "Tanpa Kelas"))].sort();
-
-        daftarKelas.forEach(kelas => {
-            const section = document.createElement('div');
-            const sectionId = `grid-kelas-${kelas.replace(/\s+/g, '-')}`;
+            const isOnline = (Date.now() - l.last) < 15000;
+            const isLocked = l.isLocked === true || l.v >= 5;
             
-            section.innerHTML = `
-                <div class="flex items-center mb-6">
-                    <h3 class="text-xs font-black text-slate-500 uppercase tracking-[0.2em] bg-slate-200/50 px-4 py-1.5 rounded-full">${kelas}</h3>
-                    <div class="h-[1px] flex-grow bg-slate-200 ml-4"></div>
-                    <span class="ml-4 text-[10px] font-bold text-slate-400">${students.filter(st => st.kelas === kelas).length} Siswa</span>
-                </div>
-                <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-6 gap-5" id="${sectionId}"></div>
-            `;
-            grid.appendChild(section);
+            // Cari apakah kartu siswa sudah ada di DOM
+            let card = document.getElementById(`card-${studentId}`);
 
-            const subGrid = document.getElementById(sectionId);
-
-            students.filter(st => (st.kelas || "Tanpa Kelas") === kelas).forEach(l => {
-                const isOnline = (Date.now() - l.last) < 15000;
-                const isLocked = l.isLocked === true || l.v >= 5;
-                const studentId = l.id;
-            
-                const card = document.createElement('div');
+            // JIKA KARTU BELUM ADA, BUAT BARU
+            if (!card) {
+                card = document.createElement('div');
                 card.id = `card-${studentId}`;
-                card.className = `monitor-card bg-white rounded-[2rem] border-2 transition-all ${
-                    isLocked ? 'border-red-600 ring-4 ring-red-500/50 shadow-2xl scale-105 z-10' : 
-                    l.v > 0 ? 'border-amber-400' : 'border-slate-100'
-                } overflow-hidden relative`;
-            
+                card.className = `monitor-card bg-white rounded-[2rem] border-2 transition-all overflow-hidden relative`;
+                
                 card.innerHTML = `
-                    ${isLocked ? `<div class="absolute inset-0 bg-red-600/5 animate-pulse pointer-events-none z-20"></div>` : ''}
-
-                    <!-- Preview Box -->
                     <div class="aspect-[4/3] bg-slate-100 relative group" id="container-${studentId}">
-                        <!-- Gambar ditarik via P2P (Bukan Firebase) -->
-                        <img id="p2p-img-${studentId}" class="w-full h-full object-cover hidden-element">
-                        
-                        <!-- Placeholder saat loading P2P -->
-                        <div id="p2p-loader-${studentId}" class="w-full h-full flex flex-col items-center justify-center bg-slate-50 text-slate-300">
+                        <img id="p2p-img-${studentId}" class="w-full h-full object-cover opacity-0 transition-opacity duration-500">
+                        <div id="p2p-loader-${studentId}" class="absolute inset-0 flex flex-col items-center justify-center bg-slate-50 text-slate-300">
                             <span class="text-xl mb-1 animate-bounce">👤</span>
-                            <span class="text-[7px] font-black uppercase tracking-tighter">${isOnline ? 'Menghubungkan P2P...' : 'Offline'}</span>
+                            <span class="text-[7px] font-black uppercase tracking-tighter">Menghubungkan P2P...</span>
                         </div>
-                    
-                        <div class="absolute top-3 left-3 flex flex-col gap-2 z-30">
-                            <div class="flex items-center gap-2">
-                                <div class="${isOnline ? 'bg-emerald-500' : 'bg-slate-400'} status-ping"></div>
-                                ${isLocked ? `<span class="bg-red-600 text-white text-[10px] font-black px-2 py-1 rounded shadow-lg">⚠️ TERKUNCI</span>` : ''}
-                            </div>
-                            ${l.v > 0 && !isLocked ? `<div class="bg-amber-500 text-white text-[8px] font-black px-2 py-0.5 rounded shadow-lg">Pelanggaran: ${l.v}</div>` : ''}
-                        </div>
+                        <div class="absolute top-3 left-3 flex flex-col gap-2 z-30" id="status-container-${studentId}"></div>
                     </div>
-
-                    <!-- Info Box -->
                     <div class="p-4 relative z-30">
                         <div class="flex flex-col mb-3">
-                            <span class="text-[10px] font-black ${isLocked ? 'text-red-600' : 'text-slate-800'} truncate uppercase">${l.nama}</span>
+                            <span id="name-${studentId}" class="text-[10px] font-black truncate uppercase"></span>
                             <span class="text-[8px] font-bold text-slate-400 uppercase">NIS: ${studentId.slice(-6)}</span>
                         </div>
-                    
                         <div class="grid grid-cols-2 gap-2">
                             <button onclick="openLiveStream('${studentId}')" class="bg-blue-50 text-blue-600 text-[8px] font-black py-2 rounded-xl hover:bg-blue-600 hover:text-white transition-all uppercase">Live</button>
-                            <button onclick="remoteUnlockStudent('${studentId}')" class="${isLocked ? 'bg-red-600 text-white' : 'bg-slate-50 text-slate-500'} text-[8px] font-black py-2 rounded-xl uppercase">
-                                ${isLocked ? 'BUKA' : 'BYPASS'}
-                            </button>
+                            <button id="btn-unlock-${studentId}" onclick="remoteUnlockStudent('${studentId}')" class="text-[8px] font-black py-2 rounded-xl uppercase"></button>
                         </div>
                     </div>
                 `;
-                subGrid.appendChild(card);
+                grid.appendChild(card);
+            }
 
-                // Jika siswa online, mulai ambil thumbnail via P2P Data Connection
-                if (isOnline) {
-                    connectToStudentP2P(studentId);
-                }
-            });
+            // UPDATE DATA YANG SERING BERUBAH TANPA MERUSAK STRUKTUR
+            
+            // 1. Update Nama & Warna Border
+            const nameEl = document.getElementById(`name-${studentId}`);
+            nameEl.textContent = l.nama;
+            nameEl.className = `text-[10px] font-black truncate uppercase ${isLocked ? 'text-red-600' : 'text-slate-800'}`;
+            card.className = `monitor-card bg-white rounded-[2rem] border-2 transition-all overflow-hidden relative ${
+                isLocked ? 'border-red-600 ring-4 ring-red-500/50 shadow-2xl' : l.v > 0 ? 'border-amber-400' : 'border-slate-100'
+            }`;
+
+            // 2. Update Status Badge (Online/Locked/Violation)
+            const statusBox = document.getElementById(`status-container-${studentId}`);
+            statusBox.innerHTML = `
+                <div class="flex items-center gap-2">
+                    <div class="${isOnline ? 'bg-emerald-500' : 'bg-slate-400'} status-ping"></div>
+                    ${isLocked ? `<span class="bg-red-600 text-white text-[10px] font-black px-2 py-1 rounded shadow-lg">⚠️ TERKUNCI</span>` : ''}
+                </div>
+                ${l.v > 0 && !isLocked ? `<div class="bg-amber-500 text-white text-[8px] font-black px-2 py-0.5 rounded shadow-lg">Pelanggaran: ${l.v}</div>` : ''}
+            `;
+
+            // 3. Update Tombol Unlock
+            const btnUnlock = document.getElementById(`btn-unlock-${studentId}`);
+            btnUnlock.className = `${isLocked ? 'bg-red-600 text-white' : 'bg-slate-50 text-slate-500'} text-[8px] font-black py-2 rounded-xl uppercase`;
+            btnUnlock.textContent = isLocked ? 'BUKA' : 'BYPASS';
+
+            // 4. Trigger Koneksi P2P jika Online
+            if (isOnline) {
+                connectToStudentP2P(studentId);
+            } else {
+                const loader = document.getElementById(`p2p-loader-${studentId}`);
+                if (loader) loader.innerHTML = `<span class="text-[7px] font-black text-slate-400 uppercase">OFFLINE</span>`;
+            }
         });
-        document.getElementById('online-count').textContent = s.size + " Siswa Terdaftar";
+
+        // (Opsional) Hapus kartu jika siswa sudah tidak ada di database live
+        Array.from(grid.children).forEach(child => {
+            const id = child.id.replace('card-', '');
+            if (!activeIds.includes(id)) {
+                if (activeP2PConnections[id]) {
+                    activeP2PConnections[id].close();
+                    delete activeP2PConnections[id];
+                }
+                child.remove();
+            }
+        });
+
+        document.getElementById('online-count').textContent = s.size + " Siswa Terpantau";
     });
 }
 
@@ -1086,77 +1087,56 @@ function startMonitorFeed() {
 const activeP2PConnections = {};
 
 function connectToStudentP2P(studentId) {
-    // 1. Validasi keberadaan objek Peer (Pencegahan error 'peer is null')
-    if (!peer || peer.destroyed) {
-        console.warn("Peer belum siap, mencoba inisialisasi ulang...");
-        initPeer(); // Memanggil fungsi inisialisasi peer ID untuk Admin
-        return;
-    }
+    // 1. Validasi awal
+    if (!peer || peer.destroyed) return;
 
-    // 2. Format ID tujuan (Harus sama dengan format ID yang dibuat di sisi siswa)
-    const safePeerId = 'peer-exam-' + studentId.replace(/[^a-zA-Z0-9]/g, '');
-    
-    // 3. Cek apakah koneksi ke siswa ini sudah ada dan masih terbuka
+    // 2. JIKA SUDAH ADA KONEKSI YANG TERBUKA, JANGAN RECONNECT
     if (activeP2PConnections[studentId] && activeP2PConnections[studentId].open) {
-        return; // Jangan buat koneksi baru jika yang lama masih aktif
+        // Kita hanya perlu minta update gambar
+        activeP2PConnections[studentId].send('REQUEST_SNAPSHOT');
+        return; 
     }
 
-    try {
-        // 4. Membuka jalur data (Data Connection) ke siswa
-        const conn = peer.connect(safePeerId);
-        activeP2PConnections[studentId] = conn;
+    // 3. Buat koneksi baru jika belum ada atau sudah tertutup
+    const safePeerId = 'peer-exam-' + studentId.replace(/[^a-zA-Z0-9]/g, '');
+    const conn = peer.connect(safePeerId, {
+        reliable: false // Menggunakan mode tidak handal lebih cepat untuk streaming gambar
+    });
 
-        // Saat koneksi berhasil terbuka
-        conn.on('open', () => {
-            console.log(`Terhubung P2P ke siswa: ${studentId}`);
-            
-            // Minta gambar pertama kali
-            conn.send('REQUEST_SNAPSHOT');
-            
-            // Atur interval untuk meminta gambar secara berkala (Misal tiap 10 detik)
-            const snapInterval = setInterval(() => {
-                if (conn.open) {
-                    conn.send('REQUEST_SNAPSHOT');
-                } else {
-                    // Jika koneksi putus, hentikan interval dan hapus dari daftar aktif
-                    clearInterval(snapInterval);
-                    delete activeP2PConnections[studentId];
-                }
-            }, 10000);
-        });
+    activeP2PConnections[studentId] = conn;
 
-        // Menangani data yang masuk dari siswa
-        conn.on('data', (data) => {
-            if (data.type === 'THUMBNAIL') {
-                const imgElement = document.getElementById(`p2p-img-${studentId}`);
-                const loader = document.getElementById(`p2p-loader-${studentId}`);
+    conn.on('open', () => {
+        console.log(`P2P tersambung ke: ${studentId}`);
+        // Minta gambar pertama kali
+        conn.send('REQUEST_SNAPSHOT');
+    });
+
+    conn.on('data', (data) => {
+        if (data.type === 'THUMBNAIL') {
+            const imgElement = document.getElementById(`p2p-img-${studentId}`);
+            const loader = document.getElementById(`p2p-loader-${studentId}`);
+            
+            if (imgElement) {
+                imgElement.src = data.image;
+                imgElement.classList.remove('opacity-0'); // Munculkan gambar dengan transisi
                 
-                if (imgElement) {
-                    imgElement.src = data.image; // Data image base64 dari siswa
-                    imgElement.classList.remove('hidden-element');
-                    
-                    // Sembunyikan placeholder/loading jika gambar sudah diterima
-                    if (loader) {
-                        loader.classList.add('hidden-element');
-                    }
+                if (loader) {
+                    loader.classList.add('hidden-element'); // Sembunyikan loader selamanya setelah gambar masuk
                 }
             }
-        });
+        }
+    });
 
-        // Menangani jika koneksi ditutup atau error
-        conn.on('close', () => {
-            console.log(`Koneksi P2P ditutup untuk siswa: ${studentId}`);
-            delete activeP2PConnections[studentId];
-        });
+    conn.on('close', () => {
+        console.log(`P2P terputus untuk: ${studentId}`);
+        delete activeP2PConnections[studentId];
+    });
 
-        conn.on('error', (err) => {
-            console.error(`P2P Error pada siswa ${studentId}:`, err);
-            delete activeP2PConnections[studentId];
-        });
-
-    } catch (e) {
-        console.error("Gagal melakukan permintaan koneksi P2P:", e);
-    }
+    conn.on('error', (err) => {
+        console.error(`P2P Error ${studentId}:`, err);
+        delete activeP2PConnections[studentId];
+    });
+	
 }
 
 async function remoteUnlockStudent(studentId) {
@@ -1246,7 +1226,7 @@ function sendSnapshotP2P(conn) {
         canvas.width = 160;
         canvas.height = 120;
         ctx.drawImage(video, 0, 0, 160, 120);
-        const imgData = canvas.toDataURL('image/jpeg', 0.2);
+        const imgData = canvas.toDataURL('image/jpeg', 0.1);
         conn.send({ type: 'THUMBNAIL', image: imgData });
     }
 }

@@ -1005,8 +1005,8 @@ function startMonitorFeed() {
         if (!grid) return;
 
         const activeIds = [];
-        
-        // 1. Kelompokkan Siswa Berdasarkan Kelas (Agar rapi)
+
+        // 1. Kelompokkan Siswa Berdasarkan Kelas
         const studentData = [];
         snapshot.forEach(doc => {
             const data = doc.data();
@@ -1027,7 +1027,7 @@ function startMonitorFeed() {
         sortedClasses.forEach(kelasName => {
             const kelasId = `group-${kelasName.replace(/\s+/g, '-')}`;
             let section = document.getElementById(kelasId);
-            
+
             if (!section) {
                 section = document.createElement('div');
                 section.id = kelasId;
@@ -1045,10 +1045,10 @@ function startMonitorFeed() {
             const subGrid = document.getElementById(`subgrid-${kelasId}`);
             groups[kelasName].forEach(siswa => {
                 const sid = siswa.id;
-                const isOnline = (Date.now() - siswa.last) < 15000;
+                const isOnline = (Date.now() - (siswa.last || 0)) < 15000;
                 const isLocked = siswa.isLocked === true;
 
-                // 3. Cek apakah kartu siswa sudah ada, jika belum buat baru
+                // 3. Cek apakah kartu siswa sudah ada
                 let card = document.getElementById(`card-${sid}`);
                 if (!card) {
                     card = document.createElement('div');
@@ -1073,48 +1073,58 @@ function startMonitorFeed() {
                     subGrid.appendChild(card);
                 }
 
-                // 4. Update Status Teks (Data dari Firebase)
+                // 4. Update Status Teks
                 document.getElementById(`name-${sid}`).textContent = siswa.nama;
                 const vBadge = document.getElementById(`v-badge-${sid}`);
                 vBadge.textContent = `⚠️ ${siswa.v || 0}`;
-                vBadge.className = isLocked ? "bg-red-600 text-white px-2 py-1 rounded-lg shadow-sm font-black text-[10px]" : "bg-white/90 px-2 py-1 rounded-lg shadow-sm border font-black text-[10px]";
-                
+                vBadge.className = isLocked ? 
+                    "bg-red-600 text-white px-2 py-1 rounded-lg shadow-sm font-black text-[10px]" : 
+                    "bg-white/90 px-2 py-1 rounded-lg shadow-sm border font-black text-[10px]";
+
                 const ping = document.getElementById(`status-ping-${sid}`);
                 ping.className = isOnline ? "status-ping bg-emerald-500" : "status-ping bg-slate-300";
 
                 const unlockBtn = document.getElementById(`btn-unlock-${sid}`);
-                unlockBtn.className = isLocked ? "bg-red-50 text-red-600 text-[9px] font-black py-2 rounded-xl" : "bg-slate-50 text-slate-300 text-[9px] font-black py-2 rounded-xl";
+                unlockBtn.className = isLocked ? 
+                    "bg-red-50 text-red-600 text-[9px] font-black py-2 rounded-xl" : 
+                    "bg-slate-50 text-slate-300 text-[9px] font-black py-2 rounded-xl";
 
-                // 5. REQUEST GAMBAR VIA P2P (Hanya jika siswa online)
-                if (isOnline && peer && !peer.destroyed) {
-                    const peerTargetId = 'peer-' + sid.replace(/[^a-zA-Z0-9]/g, '');
-                    const conn = peer.connect(peerTargetId, { reliable: false });
+                // 5. REQUEST GAMBAR VIA P2P
+                if (isOnline && typeof peer !== 'undefined' && !peer.destroyed) {
+                    const peerTargetId = 'peer-v1-' + sid.replace(/[^a-zA-Z0-9]/g, '');
                     
-                    conn.on('open', () => {
-                        conn.send('SNAPSHOT_REQ'); // Admin minta gambar
-                        conn.on('data', (data) => {
-                            if (data.type === 'THUMB') {
-                                const imgElement = document.getElementById(`p2p-img-${sid}`);
-                                if (imgElement) imgElement.src = data.img;
-                                conn.close(); // Tutup koneksi setelah gambar diterima untuk hemat bandwidth
-                            }
-                        });
-                    });
-                }
-            });
-        });
+                    // Pastikan object activeP2PConnections sudah diinisialisasi di luar fungsi ini
+                    if (typeof activeP2PConnections !== 'undefined' && !activeP2PConnections[sid]) {
+                        const conn = peer.connect(peerTargetId, { reliable: false });
 
-        // 6. Cleanup: Hapus kartu siswa yang sudah tidak ada di collection 'live'
+                        conn.on('open', () => {
+                            conn.send('SNAPSHOT_REQ');
+                            conn.on('data', (data) => {
+                                if (data.type === 'THUMB') {
+                                    const imgElement = document.getElementById(`p2p-img-${sid}`);
+                                    if (imgElement) imgElement.src = data.img;
+                                    conn.close();
+                                }
+                            });
+                        });
+                    }
+                }
+            }); // Tutup forEach siswa
+        }); // Tutup forEach kelasName
+
+        // 6. Cleanup
         const allCards = grid.querySelectorAll('.monitor-card');
         allCards.forEach(c => {
             const id = c.id.replace('card-', '');
             if (!activeIds.includes(id)) c.remove();
         });
 
-        document.getElementById('online-count').textContent = snapshot.size + " Siswa Terpantau";
+        const onlineCounter = document.getElementById('online-count');
+        if (onlineCounter) {
+            onlineCounter.textContent = snapshot.size + " Siswa Terpantau";
+        }
     });
 }
-
 
 // --- FUNGSI PENDUKUNG UNTUK AMBIL GAMBAR P2P ---
 function connectToStudentP2P(studentId) {
@@ -1129,7 +1139,7 @@ function connectToStudentP2P(studentId) {
     }
 
     // 3. Buat koneksi baru jika belum ada atau sudah tertutup
-    const safePeerId = 'peer-exam-' + studentId.replace(/[^a-zA-Z0-9]/g, '');
+    const safePeerId = 'peer-v1-' + studentId.replace(/[^a-zA-Z0-9]/g, '');
     const conn = peer.connect(safePeerId, {
         reliable: false // Menggunakan mode tidak handal lebih cepat untuk streaming gambar
     });
@@ -1208,7 +1218,7 @@ function initPeer() {
 
     if (user && user.id) {
         // ID untuk Siswa
-        peerId = 'peer-exam-' + user.id.replace(/[^a-zA-Z0-9]/g, '');
+        peerId = 'peer-v1-' + user.id.replace(/[^a-zA-Z0-9]/g, '');
     } else if (session && session.role === 'admin') {
         // ID untuk Admin (acak agar tidak bentrok)
         peerId = 'admin-' + Math.random().toString(36).substr(2, 9);
@@ -1299,7 +1309,7 @@ function openLiveStream(studentId) {
         <button onclick="stopLiveStream('${studentId}')" class="absolute bottom-2 right-2 z-40 bg-white/20 hover:bg-red-600 text-white text-[8px] font-bold px-2 py-1 rounded-lg backdrop-blur-md transition-colors uppercase">Tutup</button>
     `;
 
-    const safePeerId = 'peer-exam-' + studentId.replace(/[^a-zA-Z0-9]/g, '');
+    const safePeerId = 'peer-v1-' + studentId.replace(/[^a-zA-Z0-9]/g, '');
     
     // Kirim panggilan video ke siswa
     const call = peer.call(safePeerId, new MediaStream());

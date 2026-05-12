@@ -273,7 +273,7 @@
             const sessionData = JSON.parse(savedSession); 
             if (sessionData.role === 'admin') {
                 showPage('admin-page'); 
-                syncAdminData(); 
+                syncAdminData(); initPeer();
                 startMonitorFeed();
             } else if (sessionData.role === 'student' && sessionData.user) {
                 user = sessionData.user; 
@@ -329,7 +329,7 @@ async function handleLogin() {
             if (userIdInput.value === 'admin' && pwd === 'admin123') {
                 localStorage.setItem('exambro_session', JSON.stringify({ role: 'admin', time: Date.now() }));
                 showPage('admin-page'); 
-                syncAdminData(); 
+                syncAdminData(); initPeer();
                 startMonitorFeed();
                 pwdInput.value = ""; userIdInput.value = "";
             } else { alert("Username atau Password Admin Salah!"); }
@@ -508,38 +508,33 @@ async function loadSheetConfig() {
 
 // 2. Fungsi Utama: Simpan Link ke Cloud dan Jalankan Sinkronisasi
 async function saveAndSyncSheet() {
-    const urlInput = document.getElementById('sheet-url').value.trim(); 
-    if (!urlInput) return alert("Masukkan link Google Sheet terlebih dahulu!");
+    const urlInput = document.getElementById('sheet-url').value.trim(); if (!urlInput) return alert("Masukkan link Google Sheet terlebih dahulu!");
     const btn = document.getElementById('btn-sync-sheet');
     const btnText = document.getElementById('sync-text');
-    
-    await publicData.collection('settings').doc('sheet_config').set({url: urlInput, lastSync: Date.now()});
+    // Simpan Link ke Firestore agar bisa diakses dari perangkat manapun
+    await publicData.collection('settings').doc('sheet_config').set({url: urlInput, lastSync: Date.now()
+    });
 
+    // Jalankan Proses Sinkronisasi Data
     btn.disabled = true;
     btnText.textContent = "SEDANG MENYINKRON...";
-    try {
-        let exportUrl = urlInput; 
-        if (urlInput.includes('/edit')) {
-            const match = urlInput.match(/\/d\/(.+?)\//); 
-            if (match) exportUrl = `https://docs.google.com/spreadsheets/d/${match[1]}/export?format=csv`; 
-        }
+    try {let exportUrl = urlInput; if (urlInput.includes('/edit')) {const match = urlInput.match(/\/d\/(.+?)\//); if (match) exportUrl = `https://docs.google.com/spreadsheets/d/${match[1]}/export?format=csv`; }
 
         const res = await fetch(exportUrl);
-        if (!res.ok) throw new Error("Gagal mengambil file.");
+        if (!res.ok) throw new Error("Gagal mengambil file. Pastikan sudah 'Publish to Web'.");
         const text = await res.text();
-        
-        // Perbaikan: Regex agar aman terhadap koma di dalam kutip (Contoh: "Budi, S.Kom")
-        const rows = text.split(/\r?\n/);
-        const dataRows = rows.slice(1); 
+        const rows = text.replace(/\r/g, "").split('\n').filter(row => row.trim() !== "");
+        const dataRows = rows.slice(1); // Potong header
 
-        const oldDocs = await publicData.collection('users').get(); 
-        const batch = db.batch();
+        // PROSES OVERWRITE: Hapus data lama, ganti dengan data baru dari Spreadsheet
+        const oldDocs = await publicData.collection('users').get(); const batch = db.batch();
+        
+        // Hapus semua data siswa lama di Firestore
         oldDocs.forEach(doc => batch.delete(doc.ref));
 
+        // Tambah data siswa baru dari Spreadsheet
         let addedCount = 0;
-        dataRows.forEach(row => {
-            // Regex Sakti untuk memisahkan CSV dengan benar
-            const cols = row.match(/(".*?"|[^",\s]+)(?=\s*,|\s*$)/g);
+        dataRows.forEach(row => {const cols = row.split(',').map(item => item.replace(/^"|"$/g, '').trim());
             if (cols && cols.length >= 3) {
                 const docRef = publicData.collection('users').doc();
                 batch.set(docRef, {
@@ -553,11 +548,12 @@ async function saveAndSyncSheet() {
         });
 
         await batch.commit();
-        alert(`Berhasil! ${addedCount} siswa terdaftar.`);
-        loadKelas(); 
-    } catch (e) { alert("KESALAHAN SINKRON: " + e.message); } 
-    finally { btn.disabled = false; btnText.textContent = "SIMPAN & SINKRON"; }
+        alert(`Berhasil! Database diperbarui. ${addedCount} siswa terdaftar.`);
+        loadKelas(); // Refresh dropdown kelas di halaman login
+    } catch (e) {alert("KESALAHAN SINKRON: " + e.message);
+    } finally {btn.disabled = false; btnText.textContent = "SIMPAN & SINKRON"; }
 }
+
 
 // 3. Update Fungsi Tampilan Tabel (Hapus tombol Edit/Hapus)
 function syncAdminStudentData() {
@@ -986,17 +982,17 @@ function handleKeyboardLock(e) {
 	    if (isExamActive && !/Android|webOS|iPhone|iPad|iPod/i.test(navigator.userAgent)) {if (window.innerWidth < initialWidth - 100) reportViolation();}
 	});
 
-
 		
-// --- MONITORING ENGINE (OPTIMIZED) ---
+// --- MONITORING ENGINE (P2P VERSION - NO FIREBASE STORAGE) ---
 function startMonitorFeed() {
     publicData.collection('live').onSnapshot(s => {
         const grid = document.getElementById('monitor-grid');
-        // Jangan refresh jika sedang ada stream video aktif agar tidak flicker
+        
+        // Jangan refresh grid jika sedang ada live video stream aktif agar tidak terputus
         if (document.querySelector('video[id^="remote-video-"]')) return;
 
         grid.innerHTML = ""; 
-        grid.className = "flex flex-col gap-10"; // Container utama vertikal
+        grid.className = "flex flex-col gap-10"; // Layout vertikal untuk grup kelas
         
         const students = [];
         s.forEach(d => {
@@ -1023,55 +1019,144 @@ function startMonitorFeed() {
 
             const subGrid = document.getElementById(sectionId);
 
-	// ... di dalam loop s.forEach pada fungsi startMonitorFeed ...
-	students.filter(st => (st.kelas || "Tanpa Kelas") === kelas).forEach(l => {
-	    const isOnline = (Date.now() - l.last) < 15000;
-	    const isLocked = l.isLocked === true || l.v >= 5; // Cek status kunci
-    
-	    const card = document.createElement('div');
-	    // Jika terkunci, beri border merah tebal dan efek shadow menyala
-	    card.className = `monitor-card bg-white rounded-[2rem] border-2 transition-all ${
-	        isLocked ? 'border-red-600 ring-4 ring-red-500/50 shadow-2xl scale-105 z-10' : 
-	        l.v > 0 ? 'border-amber-400' : 'border-slate-100'
-	    } overflow-hidden relative`;
-    
-	    card.innerHTML = `
-	        <!-- Overlay Bahaya Jika Terkunci -->
-	        ${isLocked ? `<div class="absolute inset-0 bg-red-600/5 animate-pulse pointer-events-none z-20"></div>` : ''}
-
-	        <!-- Preview Box -->
-	        <div class="aspect-[4/3] bg-slate-100 relative group" id="container-${l.id}">
-	            ${l.img ? `<img src="${l.img}" class="w-full h-full object-cover">` : `<div class="w-full h-full flex flex-col items-center justify-center bg-slate-50 text-slate-300"><span class="text-2xl mb-1">👤</span><span class="text-[8px] font-bold uppercase">No Camera</span></div>`}
+            students.filter(st => (st.kelas || "Tanpa Kelas") === kelas).forEach(l => {
+                const isOnline = (Date.now() - l.last) < 15000;
+                const isLocked = l.isLocked === true || l.v >= 5;
+                const studentId = l.id;
             
-	            <!-- Status Overlays -->
-	            <div class="absolute top-3 left-3 flex flex-col gap-2 z-30">
-	                <div class="flex items-center gap-2">
-	                    <div class="${isOnline ? 'bg-emerald-500' : 'bg-slate-400'} status-ping"></div>
-	                    ${isLocked ? `<span class="bg-red-600 text-white text-[10px] font-black px-2 py-1 rounded shadow-lg">⚠️ TERKUNCI</span>` : ''}
-	                </div>
-	                ${l.v > 0 && !isLocked ? `<div class="bg-amber-500 text-white text-[8px] font-black px-2 py-0.5 rounded shadow-lg">Pelanggaran: ${l.v}</div>` : ''}
-	            </div>
-	        </div>
-
-	        <!-- Info Box -->
-	        <div class="p-4 relative z-30">
-	            <div class="flex flex-col mb-3">
-	                <span class="text-[10px] font-black ${isLocked ? 'text-red-600' : 'text-slate-800'} truncate uppercase">${l.nama}</span>
-	                <span class="text-[8px] font-bold text-slate-400 uppercase">NIS: ${l.id.slice(-6)}</span>
-	            </div>
+                const card = document.createElement('div');
+                card.id = `card-${studentId}`;
+                card.className = `monitor-card bg-white rounded-[2rem] border-2 transition-all ${
+                    isLocked ? 'border-red-600 ring-4 ring-red-500/50 shadow-2xl scale-105 z-10' : 
+                    l.v > 0 ? 'border-amber-400' : 'border-slate-100'
+                } overflow-hidden relative`;
             
-	            <div class="grid grid-cols-2 gap-2">
-	                <button onclick="openLiveStream('${l.id}')" class="bg-blue-50 text-blue-600 text-[8px] font-black py-2 rounded-xl hover:bg-blue-600 hover:text-white transition-all uppercase">Pantau</button>
-	                <button onclick="remoteUnlockStudent('${l.id}')" class="${isLocked ? 'bg-red-600 text-white' : 'bg-slate-50 text-slate-500'} text-[8px] font-black py-2 rounded-xl hover:opacity-80 transition-all uppercase">
-	                    ${isLocked ? 'BUKA PIN' : 'BYPASS'}
-	                </button>
-	            </div>
-	        </div>
-	    `;
-	    subGrid.appendChild(card); });
+                card.innerHTML = `
+                    ${isLocked ? `<div class="absolute inset-0 bg-red-600/5 animate-pulse pointer-events-none z-20"></div>` : ''}
+
+                    <!-- Preview Box -->
+                    <div class="aspect-[4/3] bg-slate-100 relative group" id="container-${studentId}">
+                        <!-- Gambar ditarik via P2P (Bukan Firebase) -->
+                        <img id="p2p-img-${studentId}" class="w-full h-full object-cover hidden-element">
+                        
+                        <!-- Placeholder saat loading P2P -->
+                        <div id="p2p-loader-${studentId}" class="w-full h-full flex flex-col items-center justify-center bg-slate-50 text-slate-300">
+                            <span class="text-xl mb-1 animate-bounce">👤</span>
+                            <span class="text-[7px] font-black uppercase tracking-tighter">${isOnline ? 'Menghubungkan P2P...' : 'Offline'}</span>
+                        </div>
+                    
+                        <div class="absolute top-3 left-3 flex flex-col gap-2 z-30">
+                            <div class="flex items-center gap-2">
+                                <div class="${isOnline ? 'bg-emerald-500' : 'bg-slate-400'} status-ping"></div>
+                                ${isLocked ? `<span class="bg-red-600 text-white text-[10px] font-black px-2 py-1 rounded shadow-lg">⚠️ TERKUNCI</span>` : ''}
+                            </div>
+                            ${l.v > 0 && !isLocked ? `<div class="bg-amber-500 text-white text-[8px] font-black px-2 py-0.5 rounded shadow-lg">Pelanggaran: ${l.v}</div>` : ''}
+                        </div>
+                    </div>
+
+                    <!-- Info Box -->
+                    <div class="p-4 relative z-30">
+                        <div class="flex flex-col mb-3">
+                            <span class="text-[10px] font-black ${isLocked ? 'text-red-600' : 'text-slate-800'} truncate uppercase">${l.nama}</span>
+                            <span class="text-[8px] font-bold text-slate-400 uppercase">NIS: ${studentId.slice(-6)}</span>
+                        </div>
+                    
+                        <div class="grid grid-cols-2 gap-2">
+                            <button onclick="openLiveStream('${studentId}')" class="bg-blue-50 text-blue-600 text-[8px] font-black py-2 rounded-xl hover:bg-blue-600 hover:text-white transition-all uppercase">Live</button>
+                            <button onclick="remoteUnlockStudent('${studentId}')" class="${isLocked ? 'bg-red-600 text-white' : 'bg-slate-50 text-slate-500'} text-[8px] font-black py-2 rounded-xl uppercase">
+                                ${isLocked ? 'BUKA' : 'BYPASS'}
+                            </button>
+                        </div>
+                    </div>
+                `;
+                subGrid.appendChild(card);
+
+                // Jika siswa online, mulai ambil thumbnail via P2P Data Connection
+                if (isOnline) {
+                    connectToStudentP2P(studentId);
+                }
+            });
         });
-        document.getElementById('online-count').textContent = s.size + " Siswa Terdeteksi";
+        document.getElementById('online-count').textContent = s.size + " Siswa Terdaftar";
     });
+}
+
+// --- FUNGSI PENDUKUNG UNTUK AMBIL GAMBAR P2P ---
+// Objek global untuk menyimpan koneksi aktif agar tidak duplikat
+const activeP2PConnections = {};
+
+function connectToStudentP2P(studentId) {
+    // 1. Validasi keberadaan objek Peer (Pencegahan error 'peer is null')
+    if (!peer || peer.destroyed) {
+        console.warn("Peer belum siap, mencoba inisialisasi ulang...");
+        initPeer(); // Memanggil fungsi inisialisasi peer ID untuk Admin
+        return;
+    }
+
+    // 2. Format ID tujuan (Harus sama dengan format ID yang dibuat di sisi siswa)
+    const safePeerId = 'peer-exam-' + studentId.replace(/[^a-zA-Z0-9]/g, '');
+    
+    // 3. Cek apakah koneksi ke siswa ini sudah ada dan masih terbuka
+    if (activeP2PConnections[studentId] && activeP2PConnections[studentId].open) {
+        return; // Jangan buat koneksi baru jika yang lama masih aktif
+    }
+
+    try {
+        // 4. Membuka jalur data (Data Connection) ke siswa
+        const conn = peer.connect(safePeerId);
+        activeP2PConnections[studentId] = conn;
+
+        // Saat koneksi berhasil terbuka
+        conn.on('open', () => {
+            console.log(`Terhubung P2P ke siswa: ${studentId}`);
+            
+            // Minta gambar pertama kali
+            conn.send('REQUEST_SNAPSHOT');
+            
+            // Atur interval untuk meminta gambar secara berkala (Misal tiap 10 detik)
+            const snapInterval = setInterval(() => {
+                if (conn.open) {
+                    conn.send('REQUEST_SNAPSHOT');
+                } else {
+                    // Jika koneksi putus, hentikan interval dan hapus dari daftar aktif
+                    clearInterval(snapInterval);
+                    delete activeP2PConnections[studentId];
+                }
+            }, 10000);
+        });
+
+        // Menangani data yang masuk dari siswa
+        conn.on('data', (data) => {
+            if (data.type === 'THUMBNAIL') {
+                const imgElement = document.getElementById(`p2p-img-${studentId}`);
+                const loader = document.getElementById(`p2p-loader-${studentId}`);
+                
+                if (imgElement) {
+                    imgElement.src = data.image; // Data image base64 dari siswa
+                    imgElement.classList.remove('hidden-element');
+                    
+                    // Sembunyikan placeholder/loading jika gambar sudah diterima
+                    if (loader) {
+                        loader.classList.add('hidden-element');
+                    }
+                }
+            }
+        });
+
+        // Menangani jika koneksi ditutup atau error
+        conn.on('close', () => {
+            console.log(`Koneksi P2P ditutup untuk siswa: ${studentId}`);
+            delete activeP2PConnections[studentId];
+        });
+
+        conn.on('error', (err) => {
+            console.error(`P2P Error pada siswa ${studentId}:`, err);
+            delete activeP2PConnections[studentId];
+        });
+
+    } catch (e) {
+        console.error("Gagal melakukan permintaan koneksi P2P:", e);
+    }
 }
 
 async function remoteUnlockStudent(studentId) {
@@ -1103,19 +1188,94 @@ function forceUnlockLocally() {
     document.documentElement.requestFullscreen().catch(() => {});
 }
 
+// --- MODIFIKASI MONITORING SISWA (P2P DATA) ---
+let dataConn = null;
 function initPeer() {
-    if (!user) return;
-    const safePeerId = 'peer-exam-' + user.id.replace(/[^a-zA-Z0-9]/g, '');
-    if (peer) peer.destroy();
-    peer = new Peer(safePeerId);
+    // Tentukan ID Peer
+    let peerId = null;
+    const session = JSON.parse(localStorage.getItem('exambro_session'));
+
+    if (user && user.id) {
+        // ID untuk Siswa
+        peerId = 'peer-exam-' + user.id.replace(/[^a-zA-Z0-9]/g, '');
+    } else if (session && session.role === 'admin') {
+        // ID untuk Admin (acak agar tidak bentrok)
+        peerId = 'admin-' + Math.random().toString(36).substr(2, 9);
+    }
+
+    if (!peerId) return;
+
+    // Jika peer sudah ada dan tidak hancur, jangan buat baru
+    if (peer && !peer.destroyed) return;
+
+    peer = new Peer(peerId);
+
+    peer.on('open', (id) => {
+        console.log('Peer ID terdaftar: ' + id);
+    });
+
+    // Handler untuk Siswa (Menerima koneksi)
     peer.on('call', (call) => {
         if (window.localStream) call.answer(window.localStream);
     });
+
+    peer.on('connection', (conn) => {
+        conn.on('data', (data) => {
+            if (data === 'REQUEST_SNAPSHOT') {
+                sendSnapshotP2P(conn);
+            }
+        });
+    });
+
+    peer.on('error', (err) => {
+        console.error('PeerJS Error:', err.type);
+        if (err.type === 'peer-unavailable') {
+            // Abaikan jika siswa offline
+        }
+    });
 }
+
+function sendSnapshotP2P(conn) {
+    if (!conn || !isExamActive || !window.localStream) return;
+    
+    const canvas = document.createElement('canvas');
+    const ctx = canvas.getContext('2d');
+    const video = document.getElementById('self-video');
+    
+    if (video) {
+        canvas.width = 160;
+        canvas.height = 120;
+        ctx.drawImage(video, 0, 0, 160, 120);
+        const imgData = canvas.toDataURL('image/jpeg', 0.2);
+        conn.send({ type: 'THUMBNAIL', image: imgData });
+    }
+}
+
+// Update Firebase hanya untuk status TEKS saja
+monitorInterval = setInterval(async () => {
+    if (!isExamActive) return;
+    try {
+        await publicData.collection('live').doc(user.id).set({
+            nama: user.nama,
+            kelas: user.kelas || "Umum",
+            last: Date.now(),
+            v: violationCount,
+            isLocked: violationCount >= 5,
+            // img: imgData, <-- BAGIAN INI DIHAPUS (TIDAK SIMPAN KE FIREBASE)
+        }, { merge: true });
+    } catch (err) { console.error(err); }
+}, 5000);
 
 function openLiveStream(studentId) {
     const container = document.getElementById(`container-${studentId}`);
     
+    // Gunakan instance peer yang sudah ada, jangan buat 'new Peer()' lagi
+    if (!peer || peer.destroyed) {
+        initPeer();
+        alert("Peer belum siap, mencoba menyambung ulang...");
+        return;
+    }
+
     container.innerHTML = `
         <div class="absolute inset-0 bg-black flex flex-col items-center justify-center z-30">
             <div class="animate-spin rounded-full h-5 w-5 border-2 border-white/20 border-t-white mb-2"></div>
@@ -1128,8 +1288,9 @@ function openLiveStream(studentId) {
         <button onclick="stopLiveStream('${studentId}')" class="absolute bottom-2 right-2 z-40 bg-white/20 hover:bg-red-600 text-white text-[8px] font-bold px-2 py-1 rounded-lg backdrop-blur-md transition-colors uppercase">Tutup</button>
     `;
 
-    if (!peer || peer.destroyed) peer = new Peer();
     const safePeerId = 'peer-exam-' + studentId.replace(/[^a-zA-Z0-9]/g, '');
+    
+    // Kirim panggilan video ke siswa
     const call = peer.call(safePeerId, new MediaStream());
 
     call.on('stream', (remoteStream) => {
@@ -1138,10 +1299,16 @@ function openLiveStream(studentId) {
             videoElement.srcObject = remoteStream;
             videoElement.onloadedmetadata = () => {
                 videoElement.play();
-                // Hapus loading overlay
-                container.firstElementChild.remove();
+                const loader = container.querySelector('div.bg-black');
+                if (loader) loader.remove();
             };
         }
+    });
+
+    call.on('error', (err) => {
+        console.error("Gagal Live Stream:", err);
+        alert("Siswa tidak dapat dijangkau untuk Live Stream");
+        stopLiveStream(studentId);
     });
 }
 

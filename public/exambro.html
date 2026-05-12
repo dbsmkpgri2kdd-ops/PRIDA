@@ -137,7 +137,8 @@
 	</div>
 
             <!-- SECTION MONITOR -->
-            <div id="section-monitor" class="hidden-element"><div class="flex justify-between items-end mb-10"><div><h2 class="text-3xl font-black text-slate-900">Live Monitoring</h2><p class="text-slate-400 text-xs mt-1" id="online-count">0 Siswa Sedang Aktif</p></div><button onclick="clearMonitorData()" class="text-red-500 font-bold text-[10px] uppercase border-b border-red-200">Bersihkan Feed Pasif</button></div><div id="monitor-grid" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6"></div></div>
+            <div id="section-monitor" class="hidden-element"><div class="flex justify-between items-end mb-10"><div><h2 class="text-3xl font-black text-slate-900">Live Monitoring</h2><p class="text-slate-400 text-xs mt-1" id="online-count">0 Siswa Sedang Aktif</p></div><button onclick="clearMonitorData()" class="text-red-500 font-bold text-[10px] uppercase border-b border-red-200">Bersihkan Feed Pasif</button></div>
+		<div id="monitor-grid" class="space-y-12"></div></div>
 
             <!-- SECTION BANK AI -->
             <div id="section-bank" class="hidden-element">
@@ -736,95 +737,96 @@ async function startExam(id, correctToken) {
 }
 
 // --- UPDATE PADA FUNGSI START EXAM ---
-    async function startExamEngine(url, mapel, dur, isCameraRequired) {
-        await clearClipboard();
-        
-        // Setup Kamera jika diwajibkan
-        if (isCameraRequired !== false) {
-            try {
-                const stream = await navigator.mediaDevices.getUserMedia({
-                    video: { width: 320, height: 240, frameRate: 15 }
-                });
-                window.localStream = stream;
-                document.getElementById('self-video').srcObject = stream;
-                document.getElementById('self-video').parentElement.classList.remove('hidden-element');
-            } catch (e) {
-                alert("Ujian ini wajib menggunakan akses kamera!");
-                return;
-            }
+async function startExamEngine(url, mapel, dur, isCameraRequired) {
+    // 1. Bersihkan sisa-sisa ujian sebelumnya (jika ada)
+    if (window.localStream) {
+        window.localStream.getTracks().forEach(track => track.stop());
+    }
+    if (monitorInterval) clearInterval(monitorInterval);
+
+    // 2. Setup Akses Kamera (Hanya jika diwajibkan oleh paket ujian)
+    if (isCameraRequired !== false) {
+        try {
+            const stream = await navigator.mediaDevices.getUserMedia({
+                video: { width: 320, height: 240, frameRate: 15 }
+            });
+            window.localStream = stream;
+            const selfVideo = document.getElementById('self-video');
+            selfVideo.srcObject = stream;
+            selfVideo.parentElement.classList.remove('hidden-element');
+        } catch (e) {
+            alert("Ujian ini wajib akses kamera! Pastikan izin kamera telah diberikan di browser Anda.");
+            return; // Batalkan ujian jika kamera gagal
         }
-
-        isExamActive = true;
-        violationCount = 0;
-        initialWidth = window.innerWidth;
-        enableHardLockdown();
-
-        // SIMPAN STATE KE LOCALSTORAGE (Hanya jika bukan sedang resume)
-        if (!isResuming) {
-            const endTime = Date.now() + (dur * 60 * 1000);
-            localStorage.setItem('active_exam_state', JSON.stringify({
-                url: url,
-                mapel: mapel,
-                endTime: endTime,
-                isCamera: isCameraRequired,
-                pin: activePin
-            }));
-        }
-        
-        // UI Setup
-        document.getElementById('view-mapel').textContent = mapel;
-        document.getElementById('exam-frame-container').innerHTML = `<iframe src="${url}" allow="camera; microphone"></iframe>`;
-        document.getElementById('exam-viewer').classList.remove('hidden-element');
-        
-        // Reset flag resume setelah engine jalan
-        isResuming = false;
-
-        // Paksa Fullscreen
-        document.documentElement.requestFullscreen().catch(() => {});
-
-        // Timer Logic
-        let time = dur * 60;
-        const timer = setInterval(() => {
-            if (!isExamActive) { clearInterval(timer); return; }
-            time--;
-            if (time <= 0) {
-                clearInterval(timer);
-                finishExam();
-                return;
-            }
-            const m = Math.floor(time / 60);
-            const s = time % 60;
-            document.getElementById('exam-timer').textContent = `${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`;
-        }, 1000);
-
-        // Monitoring Loop
-        if (monitorInterval) clearInterval(monitorInterval);
-        const canvas = document.createElement('canvas');
-        const ctx = canvas.getContext('2d');
-        
-        monitorInterval = setInterval(async () => {
-            if (!isExamActive) return;
-            let imgData = "";
-            if (isCameraRequired !== false && window.localStream) {
-                canvas.width = 160;
-                canvas.height = 120;
-                ctx.drawImage(document.getElementById('self-video'), 0, 0, 160, 120);
-                imgData = canvas.toDataURL('image/jpeg', 0.2);
-            }
-
-            try {
-                await publicData.collection('live').doc(user.id).set({
-                    nama: user.nama,
-                    kelas: user.kelas || "Umum",
-                    img: imgData,
-                    last: Date.now(),
-                    v: violationCount,
-                    camStatus: isCameraRequired !== false ? "ON" : "OFF"
-                }, { merge: true });
-            } catch (err) { console.error(err); }
-        }, 5000);
     }
 
+    // 3. Inisialisasi State Ujian
+    isExamActive = true;
+    violationCount = 0;
+    initialWidth = window.innerWidth;
+    
+    // Reset UI Pelanggaran
+    document.getElementById('violation-count').textContent = "0";
+    document.getElementById('violation-badge').classList.add('hidden-element');
+
+    // 4. Fitur Keamanan & Hard Lockdown
+    await clearClipboard();      // Hapus data Copy-Paste
+    enableHardLockdown();        // Aktifkan pemblokir tombol & deteksi pindah tab
+    document.documentElement.requestFullscreen().catch(() => {
+        console.warn("Fullscreen gagal otomatis, pastikan ada interaksi pengguna.");
+    });
+
+    // 5. Setup Tampilan UI & Iframe Soal
+    document.getElementById('view-mapel').textContent = mapel;
+    document.getElementById('exam-frame-container').innerHTML = `
+        <iframe src="${url}" allow="camera; microphone; display-capture"></iframe>
+    `;
+    document.getElementById('exam-viewer').classList.remove('hidden-element');
+
+    // 6. Logika Timer (Hitung Mundur)
+    let timeRemaining = dur * 60;
+    const timerDisplay = document.getElementById('exam-timer');
+    const timerInterval = setInterval(() => {
+        if (!isExamActive) { clearInterval(timerInterval); return; }
+        
+        if (timeRemaining <= 0) {
+            clearInterval(timerInterval);
+            finishExam(); // Otomatis selesai jika waktu habis
+            return;
+        }
+
+        timeRemaining--;
+        const mins = Math.floor(timeRemaining / 60);
+        const secs = timeRemaining % 60;
+        timerDisplay.textContent = `${String(mins).padStart(2, '0')}:${String(secs).padStart(2, '0')}`;
+    }, 1000);
+
+    // 7. MONITORING STATUS (HANYA DATA TEKS - TANPA GAMBAR KE FIREBASE)
+    monitorInterval = setInterval(async () => {
+        if (!isExamActive) return;
+
+        try {
+            // Mengirim data ringan ke Firestore (Hemat Kuota & Tanpa Simpan Foto)
+            await publicData.collection('live').doc(user.id).set({
+                nama: user.nama,
+                kelas: user.kelas || "Umum",
+                last: Date.now(),         // Untuk deteksi status Online di Admin
+                v: violationCount,        // Jumlah pelanggaran
+                isLocked: violationCount >= 5, 
+                camStatus: (isCameraRequired !== false) ? "ON" : "OFF",
+                lastStatus: violationCount >= 5 ? "TERKUNCI" : "AKTIF"
+            }, { merge: true });
+
+            /* 
+               PENTING: 
+               Pengiriman gambar snapshot dilakukan secara reaktif melalui fungsi initPeer() 
+               saat ada permintaan REQUEST_SNAPSHOT dari Admin via jalur P2P (PeerJS).
+            */
+        } catch (err) {
+            console.error("Gagal sinkron status ke cloud:", err);
+        }
+    }, 5000); // Update status teks setiap 5 detik
+}
 
 
 		
@@ -876,17 +878,28 @@ function confirmFinishExam() { if(confirm("Apakah anda yakin telah menyelesaikan
 
 // --- UPDATE PADA FUNGSI FINISH EXAM ---
 async function finishExam() {
+    // 1. Nonaktifkan status ujian agar monitoring berhenti
     isExamActive = false;
-    // 1. Matikan Interval Monitoring (Penting agar tidak boros database)
-    if (monitorInterval) {clearInterval(monitorInterval);monitorInterval = null; }
-    // 2. Hapus Sesi & Stop Kamera
+
+    // 2. Hentikan interval pengiriman status teks ke Firebase
+    if (monitorInterval) {clearInterval(monitorInterval); monitorInterval = null; }
+
+    // 3. Matikan Kamera & Lepas Stream (Sangat penting untuk privasi)
+    if (window.localStream) {window.localStream.getTracks().forEach(track => {track.stop(); });
+        window.localStream = null; const selfVideo = document.getElementById('self-video'); if (selfVideo) selfVideo.srcObject = null; }
+
+    // 4. Hapus data monitoring dari Firebase (Collection 'live')
+    // Ini akan secara otomatis menghapus kartu siswa dari Dashboard Admin secara instan
+    if (user && user.id) {try {await publicData.collection('live').doc(user.id).delete();console.log("Data monitoring siswa telah dibersihkan dari Cloud.");
+        } catch (e) {console.warn("Gagal menghapus data live (mungkin koneksi terputus):", e);} }
+
+    // 5. Hapus "Active State" dari LocalStorage
     localStorage.removeItem('active_exam_state');
-    if(window.localStream) {window.localStream.getTracks().forEach(track => track.stop()); window.localStream = null;}
-    // 3. Hapus data live dari dashboard admin segera
-    if (user && user.id) {try { await publicData.collection('live').doc(user.id).delete(); } catch (e) { console.log("Gagal menghapus data live"); }}
-    // 4. Keluar Fullscreen
-    if (document.fullscreenElement) { document.exitFullscreen().catch(() => {}); }
-    alert("Ujian Selesai! Apakah anda yankin sudah mengirimkan jawaban");location.reload(); 
+    // 6. Tutup koneksi PeerJS (P2P) jika masih terbuka
+    if (peer && !peer.destroyed) {console.log("Koneksi P2P dinonaktifkan.");}
+    if (document.fullscreenElement) {document.exitFullscreen().catch(err => console.log("Gagal keluar fullscreen:", err));}
+    alert("Ujian Telah Selesai! Pastikan Anda sudah menekan tombol SUBMIT di dalam lembar soal sebelum menutup halaman ini.");
+    location.reload();
 }
 
 		
@@ -985,145 +998,123 @@ function handleKeyboardLock(e) {
 
 		
 // --- MONITORING ENGINE (P2P VERSION - NO FIREBASE STORAGE) ---
+// FUNGSI MONITORING SISI ADMIN (VERSI P2P - TANPA DATABASE STORAGE)
 function startMonitorFeed() {
-    publicData.collection('live').onSnapshot(s => {
+    publicData.collection('live').onSnapshot(snapshot => {
         const grid = document.getElementById('monitor-grid');
         if (!grid) return;
 
         const activeIds = [];
-        const studentData = [];
         
-        // Ambil semua data dari snapshot
-        s.forEach(d => {
-            const data = d.data();
-            data.id = d.id;
+        // 1. Kelompokkan Siswa Berdasarkan Kelas (Agar rapi)
+        const studentData = [];
+        snapshot.forEach(doc => {
+            const data = doc.data();
+            data.id = doc.id;
             studentData.push(data);
-            activeIds.push(d.id);
+            activeIds.push(doc.id);
         });
 
-        // Kelompokkan siswa berdasarkan Kelas
-        const groups = studentData.reduce((acc, student) => {
-            const kelas = student.kelas || "Tanpa Kelas";
-            if (!acc[kelas]) acc[kelas] = [];
-            acc[kelas].push(student);
+        const groups = studentData.reduce((acc, s) => {
+            const k = s.kelas || "Umum";
+            if (!acc[k]) acc[k] = [];
+            acc[k].push(s);
             return acc;
         }, {});
 
+        // 2. Render Header Kelas dan Grid
         const sortedClasses = Object.keys(groups).sort();
-
-        // Render per kelompok kelas
         sortedClasses.forEach(kelasName => {
             const kelasId = `group-${kelasName.replace(/\s+/g, '-')}`;
-            
             let section = document.getElementById(kelasId);
+            
             if (!section) {
                 section = document.createElement('div');
                 section.id = kelasId;
-                section.className = "mb-10 w-full block"; // Menjamin baris baru per kelas
+                section.className = "w-full mb-12";
                 section.innerHTML = `
-                    <div class="flex items-center mb-6 w-full px-2">
-                        <div class="bg-blue-600 text-white text-[10px] font-black px-4 py-1.5 rounded-lg uppercase tracking-widest shadow-md shadow-blue-100">${kelasName}</div>
-                        <div class="h-[1px] flex-grow bg-slate-200 ml-4"></div>
-                        <span class="ml-4 text-[10px] font-bold text-slate-400 uppercase tracking-widest" id="count-${kelasId}">0 SISWA</span>
+                    <div class="flex items-center mb-6 px-4">
+                        <div class="bg-slate-900 text-white text-[10px] font-black px-5 py-2 rounded-2xl uppercase tracking-widest shadow-xl">${kelasName}</div>
+                        <div class="h-[1px] flex-grow bg-slate-200 ml-6"></div>
                     </div>
-                    <!-- GRID SISTEM: 1 kolom di HP, 2 di Tablet, 3-5 di Desktop -->
-                    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-6 w-full" id="subgrid-${kelasId}"></div>
+                    <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-6" id="subgrid-${kelasId}"></div>
                 `;
                 grid.appendChild(section);
-
-                // Urutkan section kelas secara alfabetis di UI
-                const allSections = Array.from(grid.querySelectorAll('[id^="group-"]'));
-                allSections.sort((a, b) => a.id.localeCompare(b.id));
-                allSections.forEach(sec => grid.appendChild(sec));
             }
 
             const subGrid = document.getElementById(`subgrid-${kelasId}`);
-            const studentsInClass = groups[kelasName];
-            document.getElementById(`count-${kelasId}`).textContent = `${studentsInClass.length} SISWA`;
+            groups[kelasName].forEach(siswa => {
+                const sid = siswa.id;
+                const isOnline = (Date.now() - siswa.last) < 15000;
+                const isLocked = siswa.isLocked === true;
 
-            studentsInClass.forEach(l => {
-                const studentId = l.id;
-                const isOnline = (Date.now() - l.last) < 15000;
-                const isLocked = l.isLocked === true || l.v >= 5;
-
-                let card = document.getElementById(`card-${studentId}`);
+                // 3. Cek apakah kartu siswa sudah ada, jika belum buat baru
+                let card = document.getElementById(`card-${sid}`);
                 if (!card) {
                     card = document.createElement('div');
-                    card.id = `card-${studentId}`;
-                    // Lebar kartu otomatis (w-full) mengikuti kolom grid
-                    card.className = `monitor-card bg-white rounded-[2rem] border-2 transition-all overflow-hidden relative flex flex-col w-full shadow-sm`;
+                    card.id = `card-${sid}`;
+                    card.className = `monitor-card bg-white rounded-[2rem] border-2 transition-all duration-300 overflow-hidden relative flex flex-col shadow-sm`;
                     card.innerHTML = `
-                        <div class="aspect-video bg-slate-100 relative overflow-hidden" id="container-${studentId}">
-                            <img id="p2p-img-${studentId}" class="w-full h-full object-cover opacity-0 transition-opacity duration-500">
-                            <div id="p2p-loader-${studentId}" class="absolute inset-0 flex flex-col items-center justify-center bg-slate-50 text-slate-300">
-                                <span class="text-xl mb-1">👤</span>
-                                <span class="text-[7px] font-black uppercase tracking-tighter">P2P Sync...</span>
+                        <div class="aspect-video bg-slate-100 relative overflow-hidden">
+                            <img id="p2p-img-${sid}" class="w-full h-full object-cover transition-opacity duration-500">
+                            <div class="absolute top-3 left-3 flex space-x-2">
+                                <div id="status-ping-${sid}" class="status-ping mr-1"></div>
+                                <div id="v-badge-${sid}" class="bg-white/90 px-2 py-1 rounded-lg shadow-sm border font-black text-[10px]">⚠️ 0</div>
                             </div>
-                            <div class="absolute top-3 left-3 flex flex-col gap-2 z-30" id="status-container-${studentId}"></div>
                         </div>
-                        <div class="p-4 flex-grow flex flex-col justify-between">
-                            <div class="mb-3">
-                                <h4 id="name-${studentId}" class="text-[11px] font-black truncate uppercase leading-tight"></h4>
-                                <p class="text-[8px] font-bold text-slate-400 mt-1 uppercase">ID: ${studentId.slice(-6)}</p>
-                            </div>
-                            <div class="grid grid-cols-2 gap-2">
-                                <button onclick="openLiveStream('${studentId}')" class="bg-blue-600 text-white text-[9px] font-black py-2 rounded-xl hover:bg-blue-700 transition-all uppercase">Live</button>
-                                <button id="btn-unlock-${studentId}" onclick="remoteUnlockStudent('${studentId}')" class="text-[9px] font-black py-2 rounded-xl uppercase"></button>
+                        <div class="p-4">
+                            <h4 id="name-${sid}" class="text-[11px] font-black truncate uppercase text-slate-800"></h4>
+                            <div class="grid grid-cols-2 gap-2 mt-3">
+                                <button onclick="viewLiveP2P('${sid}')" class="bg-blue-600 text-white text-[9px] font-black py-2 rounded-xl uppercase">Live</button>
+                                <button id="btn-unlock-${sid}" onclick="remoteUnlock('${sid}')" class="bg-slate-50 text-[9px] font-black py-2 rounded-xl uppercase">Unlock</button>
                             </div>
                         </div>
                     `;
                     subGrid.appendChild(card);
                 }
 
-                // Update Nama & Gaya Kartu
-                const nameEl = document.getElementById(`name-${studentId}`);
-                nameEl.textContent = l.nama;
-                nameEl.className = `text-[11px] font-black truncate uppercase leading-tight ${isLocked ? 'text-red-600' : 'text-slate-800'}`;
+                // 4. Update Status Teks (Data dari Firebase)
+                document.getElementById(`name-${sid}`).textContent = siswa.nama;
+                const vBadge = document.getElementById(`v-badge-${sid}`);
+                vBadge.textContent = `⚠️ ${siswa.v || 0}`;
+                vBadge.className = isLocked ? "bg-red-600 text-white px-2 py-1 rounded-lg shadow-sm font-black text-[10px]" : "bg-white/90 px-2 py-1 rounded-lg shadow-sm border font-black text-[10px]";
                 
-                card.className = `monitor-card bg-white rounded-[2rem] border-2 transition-all overflow-hidden relative flex flex-col w-full ${
-                    isLocked ? 'border-red-500 ring-4 ring-red-500/10 shadow-xl' : l.v > 0 ? 'border-amber-400' : 'border-slate-100'
-                }`;
+                const ping = document.getElementById(`status-ping-${sid}`);
+                ping.className = isOnline ? "status-ping bg-emerald-500" : "status-ping bg-slate-300";
 
-                // Update Indikator Status (Lampu Hijau & Badge Locked)
-                document.getElementById(`status-container-${studentId}`).innerHTML = `
-                    <div class="flex items-center gap-2">
-                        <div class="${isOnline ? 'bg-emerald-500' : 'bg-slate-300'} status-ping shadow-sm"></div>
-                        ${isLocked ? `<span class="bg-red-600 text-white text-[8px] font-black px-2 py-0.5 rounded shadow-lg">LOCKED</span>` : ''}
-                    </div>
-                    ${(l.v > 0 && !isLocked) ? `<div class="bg-amber-500 text-white text-[7px] font-black px-2 py-0.5 rounded shadow-md w-fit">Alert: ${l.v}</div>` : ''}
-                `;
+                const unlockBtn = document.getElementById(`btn-unlock-${sid}`);
+                unlockBtn.className = isLocked ? "bg-red-50 text-red-600 text-[9px] font-black py-2 rounded-xl" : "bg-slate-50 text-slate-300 text-[9px] font-black py-2 rounded-xl";
 
-                // Update Tombol Unlock
-                const btnUnlock = document.getElementById(`btn-unlock-${studentId}`);
-                btnUnlock.className = `${isLocked ? 'bg-red-600 text-white' : 'bg-slate-50 text-slate-400'} text-[9px] font-black py-2 rounded-xl uppercase transition-all`;
-                btnUnlock.textContent = isLocked ? 'Unlock' : 'Bypass';
-
-                // Jika online, hubungkan via P2P untuk ambil gambar thumbnail
-                if (isOnline) connectToStudentP2P(studentId);
+                // 5. REQUEST GAMBAR VIA P2P (Hanya jika siswa online)
+                if (isOnline && peer && !peer.destroyed) {
+                    const peerTargetId = 'peer-' + sid.replace(/[^a-zA-Z0-9]/g, '');
+                    const conn = peer.connect(peerTargetId, { reliable: false });
+                    
+                    conn.on('open', () => {
+                        conn.send('SNAPSHOT_REQ'); // Admin minta gambar
+                        conn.on('data', (data) => {
+                            if (data.type === 'THUMB') {
+                                const imgElement = document.getElementById(`p2p-img-${sid}`);
+                                if (imgElement) imgElement.src = data.img;
+                                conn.close(); // Tutup koneksi setelah gambar diterima untuk hemat bandwidth
+                            }
+                        });
+                    });
+                }
             });
         });
 
-        // Cleanup: Hapus kartu atau section yang sudah tidak aktif di database
-        const currentCards = grid.querySelectorAll('.monitor-card');
-        currentCards.forEach(card => {
-            const sid = card.id.replace('card-', '');
-            if (!activeIds.includes(sid)) {
-                card.remove();
-            }
+        // 6. Cleanup: Hapus kartu siswa yang sudah tidak ada di collection 'live'
+        const allCards = grid.querySelectorAll('.monitor-card');
+        allCards.forEach(c => {
+            const id = c.id.replace('card-', '');
+            if (!activeIds.includes(id)) c.remove();
         });
 
-        // Hapus section kelas jika isinya kosong
-        const allSections = grid.querySelectorAll('[id^="group-"]');
-        allSections.forEach(sec => {
-            const sub = sec.querySelector('[id^="subgrid-"]');
-            if (sub && sub.children.length === 0) {
-                sec.remove();
-            }
-        });
-
-        document.getElementById('online-count').textContent = s.size + " Siswa Aktif Terpantau";
+        document.getElementById('online-count').textContent = snapshot.size + " Siswa Terpantau";
     });
 }
+
 
 // --- FUNGSI PENDUKUNG UNTUK AMBIL GAMBAR P2P ---
 function connectToStudentP2P(studentId) {

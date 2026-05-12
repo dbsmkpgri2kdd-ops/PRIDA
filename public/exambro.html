@@ -245,6 +245,7 @@
 
         const appId = 'exambro-system-2026';
         const publicData = db.collection('artifacts').doc(appId).collection('public').doc('data');
+	const activeP2PConnections = {};
 
         // --- 2. GLOBAL STATE ---
         let user = null;
@@ -989,102 +990,130 @@ function startMonitorFeed() {
         const grid = document.getElementById('monitor-grid');
         if (!grid) return;
 
-        // Ambil ID semua siswa yang aktif saat ini dari snapshot
         const activeIds = [];
-
+        const studentData = [];
+        
         s.forEach(d => {
-            const l = d.data();
-            const studentId = d.id;
-            activeIds.push(studentId);
+            const data = d.data();
+            data.id = d.id;
+            studentData.push(data);
+            activeIds.push(d.id);
+        });
 
-            const isOnline = (Date.now() - l.last) < 15000;
-            const isLocked = l.isLocked === true || l.v >= 5;
+        // Pengelompokan Kelas
+        const groups = studentData.reduce((acc, student) => {
+            const kelas = student.kelas || "Tanpa Kelas";
+            if (!acc[kelas]) acc[kelas] = [];
+            acc[kelas].push(student);
+            return acc;
+        }, {});
+
+        const sortedClasses = Object.keys(groups).sort();
+
+        sortedClasses.forEach(kelasName => {
+            const kelasId = `group-${kelasName.replace(/\s+/g, '-')}`;
             
-            // Cari apakah kartu siswa sudah ada di DOM
-            let card = document.getElementById(`card-${studentId}`);
-
-            // JIKA KARTU BELUM ADA, BUAT BARU
-            if (!card) {
-                card = document.createElement('div');
-                card.id = `card-${studentId}`;
-                card.className = `monitor-card bg-white rounded-[2rem] border-2 transition-all overflow-hidden relative`;
-                
-                card.innerHTML = `
-                    <div class="aspect-[4/3] bg-slate-100 relative group" id="container-${studentId}">
-                        <img id="p2p-img-${studentId}" class="w-full h-full object-cover opacity-0 transition-opacity duration-500">
-                        <div id="p2p-loader-${studentId}" class="absolute inset-0 flex flex-col items-center justify-center bg-slate-50 text-slate-300">
-                            <span class="text-xl mb-1 animate-bounce">👤</span>
-                            <span class="text-[7px] font-black uppercase tracking-tighter">Menghubungkan P2P...</span>
-                        </div>
-                        <div class="absolute top-3 left-3 flex flex-col gap-2 z-30" id="status-container-${studentId}"></div>
+            // 1. Cek/Buat Section Kelas
+            let section = document.getElementById(kelasId);
+            if (!section) {
+                section = document.createElement('div');
+                section.id = kelasId;
+                section.className = "mb-12 w-full section-kelas-container";
+                section.innerHTML = `
+                    <div class="flex items-center mb-6">
+                        <div class="bg-blue-600 text-white text-[10px] font-black px-4 py-1.5 rounded-full uppercase tracking-[0.2em] shadow-lg shadow-blue-100">${kelasName}</div>
+                        <div class="h-[1px] flex-grow bg-slate-200 ml-4"></div>
+                        <span class="ml-4 text-[9px] font-bold text-slate-400 uppercase tracking-widest" id="count-${kelasId}">0 SISWA</span>
                     </div>
-                    <div class="p-4 relative z-30">
-                        <div class="flex flex-col mb-3">
-                            <span id="name-${studentId}" class="text-[10px] font-black truncate uppercase"></span>
-                            <span class="text-[8px] font-bold text-slate-400 uppercase">NIS: ${studentId.slice(-6)}</span>
+                    <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-6 gap-6" id="subgrid-${kelasId}"></div>
+                `;
+                grid.appendChild(section);
+
+                // Re-sort DOM sections secara alfabetis
+                const allSections = Array.from(grid.querySelectorAll('.section-kelas-container'));
+                allSections.sort((a, b) => a.id.localeCompare(b.id));
+                allSections.forEach(sec => grid.appendChild(sec));
+            }
+
+            const subGrid = document.getElementById(`subgrid-${kelasId}`);
+            const studentsInClass = groups[kelasName];
+            document.getElementById(`count-${kelasId}`).textContent = `${studentsInClass.length} SISWA`;
+
+            // 2. Update/Buat Kartu Siswa
+            studentsInClass.forEach(l => {
+                const studentId = l.id;
+                const isOnline = (Date.now() - l.last) < 15000;
+                const isLocked = l.isLocked === true || l.v >= 5;
+
+                let card = document.getElementById(`card-${studentId}`);
+                if (!card) {
+                    card = document.createElement('div');
+                    card.id = `card-${studentId}`;
+                    card.className = `monitor-card bg-white rounded-[2rem] border-2 transition-all overflow-hidden relative`;
+                    card.innerHTML = `
+                        <div class="aspect-[4/3] bg-slate-100 relative group" id="container-${studentId}">
+                            <img id="p2p-img-${studentId}" class="w-full h-full object-cover opacity-0 transition-opacity duration-500">
+                            <div id="p2p-loader-${studentId}" class="absolute inset-0 flex flex-col items-center justify-center bg-slate-50 text-slate-300">
+                                <span class="text-xl mb-1 animate-bounce">👤</span>
+                                <span class="text-[7px] font-black uppercase tracking-tighter">Connecting...</span>
+                            </div>
+                            <div class="absolute top-3 left-3 flex flex-col gap-2 z-30" id="status-container-${studentId}"></div>
                         </div>
-                        <div class="grid grid-cols-2 gap-2">
-                            <button onclick="openLiveStream('${studentId}')" class="bg-blue-50 text-blue-600 text-[8px] font-black py-2 rounded-xl hover:bg-blue-600 hover:text-white transition-all uppercase">Live</button>
-                            <button id="btn-unlock-${studentId}" onclick="remoteUnlockStudent('${studentId}')" class="text-[8px] font-black py-2 rounded-xl uppercase"></button>
+                        <div class="p-4 relative z-30">
+                            <div class="flex flex-col mb-3">
+                                <span id="name-${studentId}" class="text-[10px] font-black truncate uppercase"></span>
+                                <span class="text-[8px] font-bold text-slate-400 uppercase">NIS: ${studentId.slice(-6)}</span>
+                            </div>
+                            <div class="grid grid-cols-2 gap-2">
+                                <button onclick="openLiveStream('${studentId}')" class="bg-blue-50 text-blue-600 text-[8px] font-black py-2 rounded-xl hover:bg-blue-600 hover:text-white transition-all uppercase">Live</button>
+                                <button id="btn-unlock-${studentId}" onclick="remoteUnlockStudent('${studentId}')" class="text-[8px] font-black py-2 rounded-xl uppercase"></button>
+                            </div>
                         </div>
+                    `;
+                    subGrid.appendChild(card);
+                } else if (card.parentElement.id !== `subgrid-${kelasId}`) {
+                    // Pindah kelas jika data berubah
+                    subGrid.appendChild(card);
+                }
+
+                // Update Status Visual (Dinamis)
+                document.getElementById(`name-${studentId}`).textContent = l.nama;
+                document.getElementById(`name-${studentId}`).className = `text-[10px] font-black truncate uppercase ${isLocked ? 'text-red-600' : 'text-slate-800'}`;
+                
+                card.className = `monitor-card bg-white rounded-[2rem] border-2 transition-all overflow-hidden relative ${
+                    isLocked ? 'border-red-600 ring-4 ring-red-500/50 shadow-2xl' : l.v > 0 ? 'border-amber-400' : 'border-slate-100'
+                }`;
+
+                document.getElementById(`status-container-${studentId}`).innerHTML = `
+                    <div class="flex items-center gap-2">
+                        <div class="${isOnline ? 'bg-emerald-500' : 'bg-slate-400'} status-ping"></div>
+                        ${isLocked ? `<span class="bg-red-600 text-white text-[10px] font-black px-2 py-1 rounded shadow-lg">⚠️ TERKUNCI</span>` : ''}
                     </div>
                 `;
-                grid.appendChild(card);
-            }
 
-            // UPDATE DATA YANG SERING BERUBAH TANPA MERUSAK STRUKTUR
-            
-            // 1. Update Nama & Warna Border
-            const nameEl = document.getElementById(`name-${studentId}`);
-            nameEl.textContent = l.nama;
-            nameEl.className = `text-[10px] font-black truncate uppercase ${isLocked ? 'text-red-600' : 'text-slate-800'}`;
-            card.className = `monitor-card bg-white rounded-[2rem] border-2 transition-all overflow-hidden relative ${
-                isLocked ? 'border-red-600 ring-4 ring-red-500/50 shadow-2xl' : l.v > 0 ? 'border-amber-400' : 'border-slate-100'
-            }`;
+                const btnUnlock = document.getElementById(`btn-unlock-${studentId}`);
+                btnUnlock.className = `${isLocked ? 'bg-red-600 text-white' : 'bg-slate-50 text-slate-500'} text-[8px] font-black py-2 rounded-xl uppercase`;
+                btnUnlock.textContent = isLocked ? 'BUKA' : 'BYPASS';
 
-            // 2. Update Status Badge (Online/Locked/Violation)
-            const statusBox = document.getElementById(`status-container-${studentId}`);
-            statusBox.innerHTML = `
-                <div class="flex items-center gap-2">
-                    <div class="${isOnline ? 'bg-emerald-500' : 'bg-slate-400'} status-ping"></div>
-                    ${isLocked ? `<span class="bg-red-600 text-white text-[10px] font-black px-2 py-1 rounded shadow-lg">⚠️ TERKUNCI</span>` : ''}
-                </div>
-                ${l.v > 0 && !isLocked ? `<div class="bg-amber-500 text-white text-[8px] font-black px-2 py-0.5 rounded shadow-lg">Pelanggaran: ${l.v}</div>` : ''}
-            `;
-
-            // 3. Update Tombol Unlock
-            const btnUnlock = document.getElementById(`btn-unlock-${studentId}`);
-            btnUnlock.className = `${isLocked ? 'bg-red-600 text-white' : 'bg-slate-50 text-slate-500'} text-[8px] font-black py-2 rounded-xl uppercase`;
-            btnUnlock.textContent = isLocked ? 'BUKA' : 'BYPASS';
-
-            // 4. Trigger Koneksi P2P jika Online
-            if (isOnline) {
-                connectToStudentP2P(studentId);
-            } else {
-                const loader = document.getElementById(`p2p-loader-${studentId}`);
-                if (loader) loader.innerHTML = `<span class="text-[7px] font-black text-slate-400 uppercase">OFFLINE</span>`;
-            }
+                if (isOnline) connectToStudentP2P(studentId);
+            });
         });
 
-        // (Opsional) Hapus kartu jika siswa sudah tidak ada di database live
-        Array.from(grid.children).forEach(child => {
-            const id = child.id.replace('card-', '');
-            if (!activeIds.includes(id)) {
-                if (activeP2PConnections[id]) {
-                    activeP2PConnections[id].close();
-                    delete activeP2PConnections[id];
-                }
-                child.remove();
-            }
+        // 3. Cleanup: Hapus Siswa Offline & Group Kosong
+        Array.from(grid.querySelectorAll('.monitor-card')).forEach(card => {
+            if (!activeIds.includes(card.id.replace('card-', ''))) card.remove();
+        });
+        Array.from(grid.querySelectorAll('.section-kelas-container')).forEach(sec => {
+            if (sec.querySelector('[id^="subgrid-"]').children.length === 0) sec.remove();
         });
 
-        document.getElementById('online-count').textContent = s.size + " Siswa Terpantau";
+        document.getElementById('online-count').textContent = s.size + " Siswa Aktif Terpantau";
     });
 }
 
 // --- FUNGSI PENDUKUNG UNTUK AMBIL GAMBAR P2P ---
 // Objek global untuk menyimpan koneksi aktif agar tidak duplikat
-const activeP2PConnections = {};
+
 
 function connectToStudentP2P(studentId) {
     // 1. Validasi awal

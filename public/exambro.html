@@ -993,6 +993,7 @@ function startMonitorFeed() {
         const activeIds = [];
         const studentData = [];
         
+        // Ambil semua data dari snapshot
         s.forEach(d => {
             const data = d.data();
             data.id = d.id;
@@ -1000,7 +1001,7 @@ function startMonitorFeed() {
             activeIds.push(d.id);
         });
 
-        // Pengelompokan Kelas
+        // Kelompokkan siswa berdasarkan Kelas
         const groups = studentData.reduce((acc, student) => {
             const kelas = student.kelas || "Tanpa Kelas";
             if (!acc[kelas]) acc[kelas] = [];
@@ -1010,27 +1011,28 @@ function startMonitorFeed() {
 
         const sortedClasses = Object.keys(groups).sort();
 
+        // Render per kelompok kelas
         sortedClasses.forEach(kelasName => {
             const kelasId = `group-${kelasName.replace(/\s+/g, '-')}`;
             
-            // 1. Cek/Buat Section Kelas
             let section = document.getElementById(kelasId);
             if (!section) {
                 section = document.createElement('div');
                 section.id = kelasId;
-                section.className = "mb-12 w-full section-kelas-container";
+                section.className = "mb-10 w-full block"; // Menjamin baris baru per kelas
                 section.innerHTML = `
-                    <div class="flex items-center mb-6">
-                        <div class="bg-blue-600 text-white text-[10px] font-black px-4 py-1.5 rounded-full uppercase tracking-[0.2em] shadow-lg shadow-blue-100">${kelasName}</div>
+                    <div class="flex items-center mb-6 w-full px-2">
+                        <div class="bg-blue-600 text-white text-[10px] font-black px-4 py-1.5 rounded-lg uppercase tracking-widest shadow-md shadow-blue-100">${kelasName}</div>
                         <div class="h-[1px] flex-grow bg-slate-200 ml-4"></div>
-                        <span class="ml-4 text-[9px] font-bold text-slate-400 uppercase tracking-widest" id="count-${kelasId}">0 SISWA</span>
+                        <span class="ml-4 text-[10px] font-bold text-slate-400 uppercase tracking-widest" id="count-${kelasId}">0 SISWA</span>
                     </div>
-                    <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-6 gap-6" id="subgrid-${kelasId}"></div>
+                    <!-- GRID SISTEM: 1 kolom di HP, 2 di Tablet, 3-5 di Desktop -->
+                    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-6 w-full" id="subgrid-${kelasId}"></div>
                 `;
                 grid.appendChild(section);
 
-                // Re-sort DOM sections secara alfabetis
-                const allSections = Array.from(grid.querySelectorAll('.section-kelas-container'));
+                // Urutkan section kelas secara alfabetis di UI
+                const allSections = Array.from(grid.querySelectorAll('[id^="group-"]'));
                 allSections.sort((a, b) => a.id.localeCompare(b.id));
                 allSections.forEach(sec => grid.appendChild(sec));
             }
@@ -1039,7 +1041,6 @@ function startMonitorFeed() {
             const studentsInClass = groups[kelasName];
             document.getElementById(`count-${kelasId}`).textContent = `${studentsInClass.length} SISWA`;
 
-            // 2. Update/Buat Kartu Siswa
             studentsInClass.forEach(l => {
                 const studentId = l.id;
                 const isOnline = (Date.now() - l.last) < 15000;
@@ -1049,62 +1050,75 @@ function startMonitorFeed() {
                 if (!card) {
                     card = document.createElement('div');
                     card.id = `card-${studentId}`;
-                    card.className = `monitor-card bg-white rounded-[2rem] border-2 transition-all overflow-hidden relative`;
+                    // Lebar kartu otomatis (w-full) mengikuti kolom grid
+                    card.className = `monitor-card bg-white rounded-[2rem] border-2 transition-all overflow-hidden relative flex flex-col w-full shadow-sm`;
                     card.innerHTML = `
-                        <div class="aspect-[4/3] bg-slate-100 relative group" id="container-${studentId}">
+                        <div class="aspect-video bg-slate-100 relative overflow-hidden" id="container-${studentId}">
                             <img id="p2p-img-${studentId}" class="w-full h-full object-cover opacity-0 transition-opacity duration-500">
                             <div id="p2p-loader-${studentId}" class="absolute inset-0 flex flex-col items-center justify-center bg-slate-50 text-slate-300">
-                                <span class="text-xl mb-1 animate-bounce">👤</span>
-                                <span class="text-[7px] font-black uppercase tracking-tighter">Connecting...</span>
+                                <span class="text-xl mb-1">👤</span>
+                                <span class="text-[7px] font-black uppercase tracking-tighter">P2P Sync...</span>
                             </div>
                             <div class="absolute top-3 left-3 flex flex-col gap-2 z-30" id="status-container-${studentId}"></div>
                         </div>
-                        <div class="p-4 relative z-30">
-                            <div class="flex flex-col mb-3">
-                                <span id="name-${studentId}" class="text-[10px] font-black truncate uppercase"></span>
-                                <span class="text-[8px] font-bold text-slate-400 uppercase">NIS: ${studentId.slice(-6)}</span>
+                        <div class="p-4 flex-grow flex flex-col justify-between">
+                            <div class="mb-3">
+                                <h4 id="name-${studentId}" class="text-[11px] font-black truncate uppercase leading-tight"></h4>
+                                <p class="text-[8px] font-bold text-slate-400 mt-1 uppercase">ID: ${studentId.slice(-6)}</p>
                             </div>
                             <div class="grid grid-cols-2 gap-2">
-                                <button onclick="openLiveStream('${studentId}')" class="bg-blue-50 text-blue-600 text-[8px] font-black py-2 rounded-xl hover:bg-blue-600 hover:text-white transition-all uppercase">Live</button>
-                                <button id="btn-unlock-${studentId}" onclick="remoteUnlockStudent('${studentId}')" class="text-[8px] font-black py-2 rounded-xl uppercase"></button>
+                                <button onclick="openLiveStream('${studentId}')" class="bg-blue-600 text-white text-[9px] font-black py-2 rounded-xl hover:bg-blue-700 transition-all uppercase">Live</button>
+                                <button id="btn-unlock-${studentId}" onclick="remoteUnlockStudent('${studentId}')" class="text-[9px] font-black py-2 rounded-xl uppercase"></button>
                             </div>
                         </div>
                     `;
                     subGrid.appendChild(card);
-                } else if (card.parentElement.id !== `subgrid-${kelasId}`) {
-                    // Pindah kelas jika data berubah
-                    subGrid.appendChild(card);
                 }
 
-                // Update Status Visual (Dinamis)
-                document.getElementById(`name-${studentId}`).textContent = l.nama;
-                document.getElementById(`name-${studentId}`).className = `text-[10px] font-black truncate uppercase ${isLocked ? 'text-red-600' : 'text-slate-800'}`;
+                // Update Nama & Gaya Kartu
+                const nameEl = document.getElementById(`name-${studentId}`);
+                nameEl.textContent = l.nama;
+                nameEl.className = `text-[11px] font-black truncate uppercase leading-tight ${isLocked ? 'text-red-600' : 'text-slate-800'}`;
                 
-                card.className = `monitor-card bg-white rounded-[2rem] border-2 transition-all overflow-hidden relative ${
-                    isLocked ? 'border-red-600 ring-4 ring-red-500/50 shadow-2xl' : l.v > 0 ? 'border-amber-400' : 'border-slate-100'
+                card.className = `monitor-card bg-white rounded-[2rem] border-2 transition-all overflow-hidden relative flex flex-col w-full ${
+                    isLocked ? 'border-red-500 ring-4 ring-red-500/10 shadow-xl' : l.v > 0 ? 'border-amber-400' : 'border-slate-100'
                 }`;
 
+                // Update Indikator Status (Lampu Hijau & Badge Locked)
                 document.getElementById(`status-container-${studentId}`).innerHTML = `
                     <div class="flex items-center gap-2">
-                        <div class="${isOnline ? 'bg-emerald-500' : 'bg-slate-400'} status-ping"></div>
-                        ${isLocked ? `<span class="bg-red-600 text-white text-[10px] font-black px-2 py-1 rounded shadow-lg">⚠️ TERKUNCI</span>` : ''}
+                        <div class="${isOnline ? 'bg-emerald-500' : 'bg-slate-300'} status-ping shadow-sm"></div>
+                        ${isLocked ? `<span class="bg-red-600 text-white text-[8px] font-black px-2 py-0.5 rounded shadow-lg">LOCKED</span>` : ''}
                     </div>
+                    ${(l.v > 0 && !isLocked) ? `<div class="bg-amber-500 text-white text-[7px] font-black px-2 py-0.5 rounded shadow-md w-fit">Alert: ${l.v}</div>` : ''}
                 `;
 
+                // Update Tombol Unlock
                 const btnUnlock = document.getElementById(`btn-unlock-${studentId}`);
-                btnUnlock.className = `${isLocked ? 'bg-red-600 text-white' : 'bg-slate-50 text-slate-500'} text-[8px] font-black py-2 rounded-xl uppercase`;
-                btnUnlock.textContent = isLocked ? 'BUKA' : 'BYPASS';
+                btnUnlock.className = `${isLocked ? 'bg-red-600 text-white' : 'bg-slate-50 text-slate-400'} text-[9px] font-black py-2 rounded-xl uppercase transition-all`;
+                btnUnlock.textContent = isLocked ? 'Unlock' : 'Bypass';
 
+                // Jika online, hubungkan via P2P untuk ambil gambar thumbnail
                 if (isOnline) connectToStudentP2P(studentId);
             });
         });
 
-        // 3. Cleanup: Hapus Siswa Offline & Group Kosong
-        Array.from(grid.querySelectorAll('.monitor-card')).forEach(card => {
-            if (!activeIds.includes(card.id.replace('card-', ''))) card.remove();
+        // Cleanup: Hapus kartu atau section yang sudah tidak aktif di database
+        const currentCards = grid.querySelectorAll('.monitor-card');
+        currentCards.forEach(card => {
+            const sid = card.id.replace('card-', '');
+            if (!activeIds.includes(sid)) {
+                card.remove();
+            }
         });
-        Array.from(grid.querySelectorAll('.section-kelas-container')).forEach(sec => {
-            if (sec.querySelector('[id^="subgrid-"]').children.length === 0) sec.remove();
+
+        // Hapus section kelas jika isinya kosong
+        const allSections = grid.querySelectorAll('[id^="group-"]');
+        allSections.forEach(sec => {
+            const sub = sec.querySelector('[id^="subgrid-"]');
+            if (sub && sub.children.length === 0) {
+                sec.remove();
+            }
         });
 
         document.getElementById('online-count').textContent = s.size + " Siswa Aktif Terpantau";
@@ -1112,9 +1126,6 @@ function startMonitorFeed() {
 }
 
 // --- FUNGSI PENDUKUNG UNTUK AMBIL GAMBAR P2P ---
-// Objek global untuk menyimpan koneksi aktif agar tidak duplikat
-
-
 function connectToStudentP2P(studentId) {
     // 1. Validasi awal
     if (!peer || peer.destroyed) return;

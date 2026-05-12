@@ -223,8 +223,8 @@
 
 	
     <script>
-        // --- 1. CONFIGURATION & FIREBASE ---
-        // --- 1. CONFIGURATION & FIREBASE ---
+
+// --- A. SETUP CONFIGURATION & FIREBASE ---
         const apiKey = "AIzaSyBrpMLLakAoM5HIL0Vax91OI0wX371Bgxc";
         const firebaseConfig = {
             apiKey: "AIzaSyDOkyWxtvVpwir6nbhEB3MNd44Caz_RWJU",
@@ -234,7 +234,6 @@
             messagingSenderId: "578574487721",
             appId: "1:578574487721:web:c153cee7b19304b75d59b8"
         };
-
 
         firebase.initializeApp(firebaseConfig);
         const auth = firebase.auth();
@@ -290,7 +289,9 @@
 	        console.error("Init Error:", e);}
 	};
 
-// GANTI FUNGSI handleLogin LAMA DENGAN INI
+
+
+// --- B. AUTHENTICATION & ROLE MANAGEMENT ---
 async function handleLogin() {
     const pwdInput = document.getElementById('user-pwd');
     const pwd = pwdInput.value;
@@ -351,9 +352,12 @@ async function handleLogin() {
         loginBtn.innerHTML = "MASUK SISTEM";
     }
 }
+	async function logout() {
+	if(confirm("Yakin ingin keluar dari Akun Dashboard?")) {try {if (user && user.id) {await publicData.collection('live').doc(user.id).delete();}} catch (e) { console.log("Clean up skip"); }
+	localStorage.removeItem('exambro_session');
+	user = null; if (window.localStream) {window.localStream.getTracks().forEach(track => track.stop()); }location.reload(); }
+        }
 
-
-	 // --- 4. AUTH & ROLES ---
 	function setRole(r) {
             currentRole = r;
             const isStd = r === 'student';
@@ -399,6 +403,10 @@ async function handleLogin() {
 	    } catch (e) {container.innerHTML = '<p class="text-[10px] text-red-500">Gagal memuat kelas.</p>'; }
 	}
 
+
+
+
+// --- C. NAVIGATION & COMMON UI HELPERS ---
         function showPage(id) {
             ['login-page','admin-page','student-page'].forEach(p => document.getElementById(p).classList.add('hidden-element'));
             document.getElementById(id).classList.remove('hidden-element');
@@ -415,79 +423,23 @@ async function handleLogin() {
             document.getElementById('tab-btn-'+t).classList.remove('text-slate-400');
         }
 
+	function switchStudentView(view) {
+	    const scheduled = document.getElementById('view-scheduled');
+	    const manual = document.getElementById('view-manual');
+	    const qr = document.getElementById('qr-reader-container');
+	    // Sembunyikan semua view siswa
+	    scheduled.classList.add('hidden-element'); manual.classList.add('hidden-element'); qr.classList.add('hidden-element');
+	    // Tampilkan yang dipilih
+	    if (view === 'scheduled') {scheduled.classList.remove('hidden-element');} else if (view === 'manual') {manual.classList.remove('hidden-element');
+	    } else if (view === 'qr') {qr.classList.remove('hidden-element'); }
+	}
+
     	function openModal(id) {const modal = document.getElementById(id);if (modal) {modal.classList.remove('hidden-element');} else {console.error("Modal dengan ID " + id + " tidak ditemukan!");}}
 	function closeModal(id) {const modal = document.getElementById(id);if (modal) {modal.classList.add('hidden-element');}}
-	
-	async function logout() {
-	if(confirm("Yakin ingin keluar dari Akun Dashboard?")) {try {if (user && user.id) {await publicData.collection('live').doc(user.id).delete();}} catch (e) { console.log("Clean up skip"); }
-	localStorage.removeItem('exambro_session');
-	user = null; if (window.localStream) {window.localStream.getTracks().forEach(track => track.stop()); }location.reload(); }
-        }
-	
-	function startCleanupService() {
-	setInterval(async () => {try {
-	const fiveMinutesAgo = Date.now() - (5 * 60 * 1000);
-	const snap = await publicData.collection('live').where('last', '<', fiveMinutesAgo).get();
-	if (!snap.empty) {const batch = db.batch(); snap.forEach(doc => batch.delete(doc.ref)); await batch.commit(); } } catch (e) { console.error("Cleanup error:", e); } }, 60000);
-        }
-	
-        function reportViolation() {
-	if (!isExamActive) return;violationCount++;
- 	   // Update tampilan lokal untuk siswa
-	    document.getElementById('violation-count').textContent = violationCount;
-	    document.getElementById('violation-badge').classList.remove('hidden-element');
-	    document.getElementById('alarm-sound').play();
-	    document.body.classList.add('violation-shake');
-	    setTimeout(() => document.body.classList.remove('violation-shake'), 500);
-
-	    // CATATAN: Bagian simpan ke Firestore 'violations' telah DIHAPUS agar tidak ada riwayat tersimpan.
-	    if (violationCount >= 5) triggerLock();
-	}
-
-	async function triggerLock() { 
-	    if (isExamActive) {document.getElementById('lock-screen').classList.remove('hidden-element');
-	        if (user && user.id) {try {await publicData.collection('live').doc(user.id).update({isLocked: true, v: violationCount, lastStatus: 'TERKUNCI - BUTUH PIN' }); } 
-		catch (e) { console.error("Gagal lapor status kunci"); } }
-	    } 
-	}
-
-        async function unlockApp() {
-            if (document.getElementById('unlock-pwd').value === activePin) {
-                document.getElementById('lock-screen').classList.add('hidden-element');
-                document.getElementById('unlock-pwd').value = "";
-                violationCount = 0;
-                document.getElementById('violation-count').textContent = "0";
-                document.getElementById('violation-badge').classList.add('hidden-element');
-			// BERITAHU ADMIN: Update status bahwa sudah terbuka
-		        if (user && user.id) {await publicData.collection('live').doc(user.id).update({
-	                isLocked: false, v: 0, lastStatus: 'AKTIF'}); }
-
-                setTimeout(() => document.documentElement.requestFullscreen().catch(() => {}), 500);
-            } else { alert("PIN Pengawas Salah!"); }
-        }
 
 
 
-// --- 7. ADMIN SYNC & CRUD (VERSI DIPERBAIKI) ---
-function syncAdminData() {syncAdminStudentData();
-    publicData.collection('exams').onSnapshot(s => {
-        const list = document.getElementById('admin-exam-list'); if(!list) return;
-        list.innerHTML = "";
-        s.forEach(d => {const x = d.data();
-            list.innerHTML += `<div class="bg-white p-6 rounded-[2.5rem] border-2 border-transparent hover:border-blue-200 transition-all flex justify-between items-center group">
-                <div><h4 class="font-black text-slate-800">${x.mapel}</h4><p class="text-[9px] text-slate-400 font-bold uppercase tracking-widest">${x.kelas} | TOKEN: ${x.token} | PIN: ${x.pin}</p></div>
-                <div class="flex space-x-2"><button onclick="copyExam('${d.id}')" class="bg-emerald-50 text-emerald-600 p-3 rounded-xl" title="Copy Paket">📄</button><button onclick="editExam('${d.id}')" class="bg-blue-50 text-blue-500 p-3 rounded-xl">✎</button><button onclick="delDoc('exams','${d.id}')" class="bg-red-50 text-red-500 p-3 rounded-xl">✕</button></div>
-            </div>`; });
-	    });
-
-       // Bank Sync
-	publicData.collection('ai_bank').onSnapshot(s => { const list = document.getElementById('ai-question-list');
-        if(!list) return; list.innerHTML = ""; s.forEach(d => {const q = d.data(); list.innerHTML += `<div class="bg-white p-6 rounded-3xl border border-slate-100"><p class="text-slate-800 font-medium">${q.question}</p><span class="text-[9px] bg-indigo-50 text-indigo-500 px-3 py-1 rounded-full font-black uppercase mt-3 inline-block">${q.topic}</span></div>`;
-        });
-    });
-}
-
-
+// --- D. ADMIN SERVICE (DATA MANAGEMENT) ---
 // 1. Fungsi untuk Memuat Link yang tersimpan di Cloud saat Admin dibuka
 async function loadSheetConfig() {
     const doc = await publicData.collection('settings').doc('sheet_config').get();
@@ -565,41 +517,7 @@ function syncAdminStudentData() {
     });
 }
 
-function syncStudentData() {
-    publicData.collection('exams').onSnapshot(s => {
-        const list = document.getElementById('student-exam-list');
-        list.innerHTML = "";
-        const today = new Date().toISOString().split('T')[0];
-        s.forEach(d => {
-            const x = d.data();
-            const allowedClasses = x.kelas ? x.kelas.split(', ') : [];
-            const isAllowed = allowedClasses.includes(user.kelas);
-            if(isAllowed && x.active !== false && x.date <= today) { 
-                list.innerHTML += `
-                <div class="bg-white p-4 rounded-[2rem] border shadow-sm text-center">
-                    <h4 class="font-black text-xs text-slate-800 truncate mb-1">${x.mapel}</h4>
-                    <p class="text-[8px] text-slate-400 font-bold mb-3 uppercase">${x.duration} Menit</p>
-                    <input type="text" id="tk-${d.id}" class="w-full bg-slate-50 p-2 rounded-xl text-center mb-2 font-black text-xs outline-none" placeholder="TOKEN">
-                    <button onclick="startExam('${d.id}', '${x.token}')" class="w-full bg-blue-600 text-white py-2 rounded-xl font-black text-[10px]">MULAI</button>
-                </div>`;
-            }
-        });
-        if (list.innerHTML === "") list.innerHTML = "<p class='col-span-2 text-center py-10 text-slate-400 text-xs italic font-bold'>Tidak ada ujian untuk kelas Anda hari ini.</p>";
-    });
-}
-        
-function switchStudentView(view) {
-    const scheduled = document.getElementById('view-scheduled');
-    const manual = document.getElementById('view-manual');
-    const qr = document.getElementById('qr-reader-container');
-    // Sembunyikan semua view siswa
-    scheduled.classList.add('hidden-element'); manual.classList.add('hidden-element'); qr.classList.add('hidden-element');
-    // Tampilkan yang dipilih
-    if (view === 'scheduled') {scheduled.classList.remove('hidden-element');} else if (view === 'manual') {manual.classList.remove('hidden-element');
-    } else if (view === 'qr') {qr.classList.remove('hidden-element'); }
-}
-
-// --- 9. CRUD LOGIC ---
+       
 async function saveExam() {
     const id = document.getElementById('edit-exam-id').value;
     const nodes = document.querySelectorAll('input[name="target-kelas"]:checked');
@@ -661,9 +579,26 @@ async function saveExam() {
 		['ex-mapel', 'ex-date', 'ex-duration', 'ex-token', 'ex-pin', 'ex-link'].forEach(i => document.getElementById(i).value = ""); renderClassCheckboxes([]); openModal('modal-exam');
         }
 
+	function syncAdminData() {syncAdminStudentData();
+	    publicData.collection('exams').onSnapshot(s => {
+	        const list = document.getElementById('admin-exam-list'); if(!list) return;
+	        list.innerHTML = "";
+	        s.forEach(d => {const x = d.data();
+	            list.innerHTML += `<div class="bg-white p-6 rounded-[2.5rem] border-2 border-transparent hover:border-blue-200 transition-all flex justify-between items-center group">
+	                <div><h4 class="font-black text-slate-800">${x.mapel}</h4><p class="text-[9px] text-slate-400 font-bold uppercase tracking-widest">${x.kelas} | TOKEN: ${x.token} | PIN: ${x.pin}</p></div>
+	                <div class="flex space-x-2"><button onclick="copyExam('${d.id}')" class="bg-emerald-50 text-emerald-600 p-3 rounded-xl" title="Copy Paket">📄</button><button onclick="editExam('${d.id}')" class="bg-blue-50 text-blue-500 p-3 rounded-xl">✎</button><button onclick="delDoc('exams','${d.id}')" class="bg-red-50 text-red-500 p-3 rounded-xl">✕</button></div>
+	            </div>`; });
+		    });
 
+	       // Bank Sync
+		publicData.collection('ai_bank').onSnapshot(s => { const list = document.getElementById('ai-question-list');
+	        if(!list) return; list.innerHTML = ""; s.forEach(d => {const q = d.data(); list.innerHTML += `<div class="bg-white p-6 rounded-3xl border border-slate-100"><p class="text-slate-800 font-medium">${q.question}</p><span class="text-[9px] bg-indigo-50 text-indigo-500 px-3 py-1 rounded-full font-black uppercase mt-3 inline-block">${q.topic}</span></div>`;
+	        });
+	    });
+	}
 
-        async function syncSpecialSettings() {publicData.collection('settings').doc('special_methods').onSnapshot(d => { if(d.exists) specialSettings = d.data(); }); }
+        async function syncSpecialSettings() {publicData.collection('settings').doc('special_methods').
+		onSnapshot(d => { if(d.exists) specialSettings = d.data(); }); }
 
         async function saveSpecialSettings() {
             const pin = document.getElementById('special-pin').value;
@@ -672,15 +607,84 @@ async function saveExam() {
             alert("Konfigurasi Akses Cepat Diperbarui!");
         }
 
-        function logActivity(a) {publicData.collection('logs').add({ user: user ? user.nama : "System", action: a, time: firebase.firestore.FieldValue.serverTimestamp() });}
 
-// Fungsi untuk menghapus isi clipboard
-     async function clearClipboard() {
-        try {await navigator.clipboard.writeText("Akses dilarang");
-        } catch (err) {const input = document.createElement("input");
-            input.value = " "; document.body.appendChild(input); input.select(); document.execCommand("copy"); document.body.removeChild(input); }
-    }
 
+
+
+
+
+
+// --- E. STUDENT SERVICE (EXAM ACCESS) ---
+	function syncStudentData() {
+	    publicData.collection('exams').onSnapshot(s => {
+	        const list = document.getElementById('student-exam-list');
+	        list.innerHTML = "";
+	        const today = new Date().toISOString().split('T')[0];
+	        s.forEach(d => {
+	            const x = d.data();
+	            const allowedClasses = x.kelas ? x.kelas.split(', ') : [];
+	            const isAllowed = allowedClasses.includes(user.kelas);
+	            if(isAllowed && x.active !== false && x.date <= today) { 
+	                list.innerHTML += `
+	                <div class="bg-white p-4 rounded-[2rem] border shadow-sm text-center">
+	                    <h4 class="font-black text-xs text-slate-800 truncate mb-1">${x.mapel}</h4>
+	                    <p class="text-[8px] text-slate-400 font-bold mb-3 uppercase">${x.duration} Menit</p>
+	                    <input type="text" id="tk-${d.id}" class="w-full bg-slate-50 p-2 rounded-xl text-center mb-2 font-black text-xs outline-none" placeholder="TOKEN">
+	                    <button onclick="startExam('${d.id}', '${x.token}')" class="w-full bg-blue-600 text-white py-2 rounded-xl font-black text-[10px]">MULAI</button>
+	                </div>`;
+	            }
+	        });
+	        if (list.innerHTML === "") list.innerHTML = "<p class='col-span-2 text-center py-10 text-slate-400 text-xs italic font-bold'>Tidak ada ujian untuk kelas Anda hari ini.</p>";
+	    });
+	}
+
+
+function logActivity(a) {publicData.collection('logs').add({ user: user ? user.nama : "System", action: a, time: firebase.firestore.FieldValue.serverTimestamp() });}
+
+		
+let html5QrScanner = null;
+function simulateScan() {
+    // Pindah ke tampilan kamera
+    switchStudentView('qr');
+    html5QrScanner = new Html5Qrcode("qr-reader");
+    html5QrScanner.start(
+        { facingMode: "environment" }, { fps: 10, qrbox: 250 },
+        async (decodedText) => {const scannedUrl = decodedText.trim();
+            if (scannedUrl.startsWith("http")) {await html5QrScanner.stop();
+                // Gunakan pengaturan global/akses cepat
+                activePin = specialSettings.pin || "1234"; startExamEngine(scannedUrl, "Akses Via Scan QR", specialSettings.duration || 60, true);
+            } else {alert("QR Code bukan berisi link valid!");}
+        }
+    ).catch(err => {alert("Kamera Error: " + err); stopQR(); });
+}
+
+async function stopQR() {
+    if (html5QrScanner) {try { await html5QrScanner.stop(); } catch (e) {} }
+    // Kembali ke daftar jadwal
+    switchStudentView('scheduled');
+}		
+		
+		
+function startManualExam() {
+    const url = document.getElementById('manual-url').value.trim();
+    // 1. Validasi Input
+    if (!url) {alert("Mohon tempelkan link ujian anda!"); return; }
+    
+    // Validasi sederhana format link
+    if (!url.startsWith("http")) {alert("Link tidak valid! Pastikan diawali dengan http:// atau https://"); return;}
+
+    // 2. Mengambil Pengaturan dari "Akses Cepat" Admin (specialSettings)
+    // Jika Admin belum menyetel, akan menggunakan default (PIN 1234, Durasi 60)
+    activePin = specialSettings.pin || "1234";
+    const duration = specialSettings.duration || 60;
+
+    // 3. Menjalankan Engine Ujian
+    // Parameter: (URL, Label Nama, Menit, Wajib Kamera: true)
+    startExamEngine(url, "Manual Access", duration, true);
+    
+    // Opsional: Kosongkan input setelah dijalankan
+    document.getElementById('manual-url').value = "";
+}
 
 
 async function startExam(id, correctToken) {
@@ -695,7 +699,15 @@ async function startExam(id, correctToken) {
 }
 
 
-// --- UPDATE PADA FUNGSI START EXAM ---
+
+
+
+
+
+
+
+
+// --- F. THE EXAM ENGGINE (THE HEART OF SYSTEM) ---
 async function startExamEngine(url, mapel, dur, isCameraRequired) {
     // 1. Membersihkan Clipboard & State Awal
     await clearClipboard();
@@ -708,18 +720,13 @@ async function startExamEngine(url, mapel, dur, isCameraRequired) {
     if (isCameraRequired !== false) {
         try {
             const stream = await navigator.mediaDevices.getUserMedia({
-                video: { 
-                    width: { ideal: 320 }, 
-                    height: { ideal: 240 },
-                    frameRate: { max: 15 } 
-                }
+                video: { width: { ideal: 320 }, height: { ideal: 240 },frameRate: { max: 15 } }
             });
             window.localStream = stream;
             const selfVideo = document.getElementById('self-video');
             selfVideo.srcObject = stream;
             selfVideo.parentElement.classList.remove('hidden-element');
-        } catch (e) {
-            console.error("Camera Error:", e);
+        } catch (e) {console.error("Camera Error:", e);
             alert("⚠️ Ujian ini wajib menggunakan kamera. Pastikan izin kamera telah diberikan!");
             return;
         }
@@ -728,7 +735,7 @@ async function startExamEngine(url, mapel, dur, isCameraRequired) {
     // 3. Aktifkan Protokol Keamanan (Lockdown)
     enableHardLockdown();
 
-    // 4. Simpan State Sesi (Untuk fitur Auto-Resume jika mati lampu/browser tertutup)
+    enableHardLockdown();
     const endTime = Date.now() + (dur * 60 * 1000);
     localStorage.setItem('active_exam_state', JSON.stringify({
         url: url,
@@ -821,54 +828,6 @@ async function startExamEngine(url, mapel, dur, isCameraRequired) {
 }
 
 
-		
-let html5QrScanner = null;
-function simulateScan() {
-    // Pindah ke tampilan kamera
-    switchStudentView('qr');
-    html5QrScanner = new Html5Qrcode("qr-reader");
-    html5QrScanner.start(
-        { facingMode: "environment" }, { fps: 10, qrbox: 250 },
-        async (decodedText) => {const scannedUrl = decodedText.trim();
-            if (scannedUrl.startsWith("http")) {await html5QrScanner.stop();
-                // Gunakan pengaturan global/akses cepat
-                activePin = specialSettings.pin || "1234"; startExamEngine(scannedUrl, "Akses Via Scan QR", specialSettings.duration || 60, true);
-            } else {alert("QR Code bukan berisi link valid!");}
-        }
-    ).catch(err => {alert("Kamera Error: " + err); stopQR(); });
-}
-
-async function stopQR() {
-    if (html5QrScanner) {try { await html5QrScanner.stop(); } catch (e) {} }
-    // Kembali ke daftar jadwal
-    switchStudentView('scheduled');
-}		
-		
-		
-function startManualExam() {
-    const url = document.getElementById('manual-url').value.trim();
-    // 1. Validasi Input
-    if (!url) {alert("Mohon tempelkan link ujian anda!"); return; }
-    
-    // Validasi sederhana format link
-    if (!url.startsWith("http")) {alert("Link tidak valid! Pastikan diawali dengan http:// atau https://"); return;}
-
-    // 2. Mengambil Pengaturan dari "Akses Cepat" Admin (specialSettings)
-    // Jika Admin belum menyetel, akan menggunakan default (PIN 1234, Durasi 60)
-    activePin = specialSettings.pin || "1234";
-    const duration = specialSettings.duration || 60;
-
-    // 3. Menjalankan Engine Ujian
-    // Parameter: (URL, Label Nama, Menit, Wajib Kamera: true)
-    startExamEngine(url, "Manual Access", duration, true);
-    
-    // Opsional: Kosongkan input setelah dijalankan
-    document.getElementById('manual-url').value = "";
-}
-
-function confirmFinishExam() { if(confirm("Apakah anda yakin telah menyelesaikan semua soal dan ingin keluar?")) finishExam(); }
-
-// --- UPDATE PADA FUNGSI FINISH EXAM ---
 async function finishExam() {
     isExamActive = false;
     // Stop Monitor & Session
@@ -882,6 +841,13 @@ async function finishExam() {
     alert("Ujian selsesai! Pastikan jawaban sudah dikirim."); location.reload();
 }
 
+function confirmFinishExam() { if(confirm("Apakah anda yakin telah menyelesaikan semua soal dan ingin keluar?")) finishExam(); }
+
+async function clearClipboard() {
+        try {await navigator.clipboard.writeText("Akses dilarang");
+        } catch (err) {const input = document.createElement("input");
+            input.value = " "; document.body.appendChild(input); input.select(); document.execCommand("copy"); document.body.removeChild(input); }
+    }
 
 
 
@@ -892,31 +858,8 @@ async function finishExam() {
 
 
 
-		
+// --- G. SECURITY VIOLATION & LOCKDOWN ---
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-// --- 6. SECURITY & HARD LOCKDOWN ENGINE ---
-
-// Fungsi untuk mengunci semua akses (Hanya saat ujian aktif)
 let isSecuritySetup = false;
 function enableHardLockdown() {
     if (isSecuritySetup) return;
@@ -985,12 +928,67 @@ function handleKeyboardLock(e) {
         alert("Aksi ini dilarang selama ujian!"); return false;
     }
 }
+        function reportViolation() {
+	if (!isExamActive) return;violationCount++;
+ 	   // Update tampilan lokal untuk siswa
+	    document.getElementById('violation-count').textContent = violationCount;
+	    document.getElementById('violation-badge').classList.remove('hidden-element');
+	    document.getElementById('alarm-sound').play();
+	    document.body.classList.add('violation-shake');
+	    setTimeout(() => document.body.classList.remove('violation-shake'), 500);
+
+	    // CATATAN: Bagian simpan ke Firestore 'violations' telah DIHAPUS agar tidak ada riwayat tersimpan.
+	    if (violationCount >= 5) triggerLock();
+	}
+
+	async function triggerLock() { 
+	    if (isExamActive) {document.getElementById('lock-screen').classList.remove('hidden-element');
+	        if (user && user.id) {try {await publicData.collection('live').doc(user.id).update({isLocked: true, v: violationCount, lastStatus: 'TERKUNCI - BUTUH PIN' }); } 
+		catch (e) { console.error("Gagal lapor status kunci"); } }
+	    } 
+	}
+
+        async function unlockApp() {
+            if (document.getElementById('unlock-pwd').value === activePin) {
+                document.getElementById('lock-screen').classList.add('hidden-element');
+                document.getElementById('unlock-pwd').value = "";
+                violationCount = 0;
+                document.getElementById('violation-count').textContent = "0";
+                document.getElementById('violation-badge').classList.add('hidden-element');
+			// BERITAHU ADMIN: Update status bahwa sudah terbuka
+		        if (user && user.id) {await publicData.collection('live').doc(user.id).update({
+	                isLocked: false, v: 0, lastStatus: 'AKTIF'}); }
+
+                setTimeout(() => document.documentElement.requestFullscreen().catch(() => {}), 500);
+            } else { alert("PIN Pengawas Salah!"); }
+        }
 
 
 
+// --- H. LIVE MONITORING & PEER JS ---
+function initPeer() {
+    if (!user) return;
+    // Gunakan fungsi pembersihan yang sama di kedua sisi
+    const cleanId = user.id.replace(/[^a-zA-Z0-9]/g, '');
+    const safePeerId = 'exam2026_' + cleanId;
+    
+    if (peer) peer.destroy();
+    peer = new Peer(safePeerId, {
+        config: {'iceServers': [{ urls: 'stun:stun.l.google.com:19302' }]}
+    });
+
+    peer.on('call', (call) => {
+        if (window.localStream) {
+            call.answer(window.localStream);
+        } else {
+            // Jika kamera tidak aktif, kirim black frame agar monitor admin tidak error
+            const canvas = document.createElement('canvas');
+            call.answer(canvas.captureStream());
+        }
+    });
+}
 
 		
-// --- MONITORING ENGINE (OPTIMIZED) ---
 function startMonitorFeed() {
     publicData.collection('live').onSnapshot(s => {
         const grid = document.getElementById('monitor-grid');
@@ -1104,91 +1102,33 @@ function startMonitorFeed() {
     });
 }
 
-async function remoteUnlockStudent(studentId) {
-    if(confirm("Buka akses siswa ini?")) {
-        try {
-            await publicData.collection('live').doc(studentId).update({ command: 'unlock', v: 0 });
-        } catch (e) { alert("Gagal koneksi ke siswa."); }
-    }
-}
 
-function listenForAdminCommands() {
-    if (!user || !user.id) return;
-    publicData.collection('live').doc(user.id).onSnapshot(doc => {
-        if (doc.exists && doc.data().command === 'unlock') {
-            forceUnlockLocally();
-            doc.ref.update({ command: null });
-        }
-    });
-}
 
-function forceUnlockLocally() {
-    document.getElementById('lock-screen').classList.add('hidden-element');
-    document.getElementById('unlock-pwd').value = "";
-    violationCount = 0;
-    document.getElementById('violation-count').textContent = "0";
-    document.getElementById('violation-badge').classList.add('hidden-element');
-    // Memberi tahu siswa untuk klik agar fullscreen bisa aktif kembali
-    alert("Akses dibuka oleh pengawas. Klik OK untuk lanjut.");
-    document.documentElement.requestFullscreen().catch(() => {});
-}
-
-// GANTI FUNGSI initPeer LAMA
-function initPeer() {
-    if (!user) return;
-    // Peer ID harus alfanumerik tanpa simbol
-    const cleanId = user.id.replace(/[^a-zA-Z0-9]/g, '');
-    const safePeerId = 'exam2026_' + cleanId;
-    if (peer) peer.destroy();
-    peer = new Peer(safePeerId, {
-        config: {'iceServers': [{ urls: 'stun:stun.l.google.com:19302' }]}
-    });
-
-    peer.on('call', (call) => {
-        if (window.localStream) {
-            call.answer(window.localStream);
-        } else {
-            // Jika kamera tidak aktif, kirim black frame agar monitor admin tidak error
-            const canvas = document.createElement('canvas');
-            call.answer(canvas.captureStream());
-        }
-    });
-}
-
-// GANTI FUNGSI openLiveStream LAMA
-f// PERBAIKAN initPeer
-function initPeer() {
-    if (!user) return;
-    // Gunakan fungsi pembersihan yang sama di kedua sisi
-    const cleanId = user.id.replace(/[^a-zA-Z0-9]/g, '');
-    const safePeerId = 'exam2026_' + cleanId;
-    
-    if (peer) peer.destroy();
-    peer = new Peer(safePeerId, {
-        config: {'iceServers': [{ urls: 'stun:stun.l.google.com:19302' }]}
-    });
-    // ... sisa kode peer.on('call') tetap sama
-}
-
-// PERBAIKAN openLiveStream
 function openLiveStream(studentId) {
-    const container = document.getElementById(`container-${studentId}`);
     const cleanId = studentId.replace(/[^a-zA-Z0-9]/g, '');
-    const safePeerId = 'exam2026_' + cleanId; // Pastikan format SAMA dengan initPeer
+    const container = document.getElementById(`container-${studentId}`);
+    if (!container) return;
 
-    container.innerHTML = `
-        <video id="remote-video-${cleanId}" autoplay muted playsinline class="w-full h-full object-cover z-10"></video>
-        <button onclick="stopLiveStream('${studentId}')" class="absolute bottom-2 right-2 z-40 bg-red-600 text-white text-[8px] px-2 py-1 rounded">CLOSE</button>
-    `;
+    // Tambahkan indikator loading
+    container.innerHTML += `<div id="loading-${cleanId}" class="absolute inset-0 flex items-center justify-center bg-black/50 text-white text-[10px]">Connecting...</div>`;
 
+    const safePeerId = 'exam2026_' + cleanId;
     const call = peer.call(safePeerId, new MediaStream());
+
     call.on('stream', (remoteStream) => {
+        const loading = document.getElementById(`loading-${cleanId}`);
+        if(loading) loading.remove();
+        
+        container.innerHTML = `
+            <video id="remote-video-${cleanId}" autoplay muted playsinline class="w-full h-full object-cover z-10"></video>
+            <button onclick="stopLiveStream('${studentId}')" class="absolute bottom-2 right-2 z-40 bg-red-600 text-white text-[8px] px-2 py-1 rounded">CLOSE</button>
+        `;
         const video = document.getElementById(`remote-video-${cleanId}`);
         if (video) video.srcObject = remoteStream;
     });
 
     call.on('error', (err) => {
-        alert("Siswa tidak online atau kamera tidak aktif.");
+        alert("Gagal memanggil kamera siswa. Pastikan siswa masih aktif.");
         stopLiveStream(studentId);
     });
 }
@@ -1208,13 +1148,53 @@ function stopLiveStream(studentId) {
 }
 
 
-async function clearMonitorData() {
-	if(!confirm("Bersihkan?")) return;
-	const snap = await publicData.collection('live').get();
-	const batch = db.batch(); snap.forEach(doc => batch.delete(doc.ref)); await batch.commit();
-}
+	async function remoteUnlockStudent(studentId) {
+	    if(confirm("Buka akses siswa ini?")) {
+	        try {
+	            await publicData.collection('live').doc(studentId).update({ command: 'unlock', v: 0 });
+	        } catch (e) { alert("Gagal koneksi ke siswa."); }
+	    }
+	}
 
-// --- LOGIKA AI GEMINI ---
+	function listenForAdminCommands() {
+	    if (!user || !user.id) return;
+	    publicData.collection('live').doc(user.id).onSnapshot(doc => {
+	        if (doc.exists && doc.data().command === 'unlock') {
+	            forceUnlockLocally();
+	            doc.ref.update({ command: null });
+	        }
+	    });
+	}
+
+	function forceUnlockLocally() {
+	    document.getElementById('lock-screen').classList.add('hidden-element');
+	    document.getElementById('unlock-pwd').value = "";
+	    violationCount = 0;
+	    document.getElementById('violation-count').textContent = "0";
+	    document.getElementById('violation-badge').classList.add('hidden-element');
+ 	   // Memberi tahu siswa untuk klik agar fullscreen bisa aktif kembali
+	    alert("Akses dibuka oleh pengawas. Klik OK untuk lanjut.");
+	    document.documentElement.requestFullscreen().catch(() => {});
+	}
+
+
+	async function clearMonitorData() {
+		if(!confirm("Bersihkan?")) return;
+		const snap = await publicData.collection('live').get();
+		const batch = db.batch(); snap.forEach(doc => batch.delete(doc.ref)); await batch.commit();
+	}
+
+	function startCleanupService() {
+	setInterval(async () => {try {
+	const fiveMinutesAgo = Date.now() - (5 * 60 * 1000);
+	const snap = await publicData.collection('live').where('last', '<', fiveMinutesAgo).get();
+	if (!snap.empty) {const batch = db.batch(); snap.forEach(doc => batch.delete(doc.ref)); await batch.commit(); } } catch (e) { console.error("Cleanup error:", e); } }, 60000);
+        }
+
+
+
+
+// --- I. LOGIKA AI GEMINI ---
 async function generateAISoal() {
     const topic = document.getElementById('ai-topic').value;
     const count = document.getElementById('ai-count').value || 1;
@@ -1250,17 +1230,18 @@ async function generateAISoal() {
 
 
 
-
+// --- J. LOGIKA AI GEMINI ---
 window.onbeforeunload = function() {if (isExamActive) {return "Ujian sedang berlangsung! Anda akan dicatat melakukan pelanggaran jika keluar."; }};
 window.addEventListener('blur', () => { if(isExamActive) {setTimeout(() => {if (document.activeElement.tagName !== 'IFRAME') {reportViolation();}}, 100);}});
 window.addEventListener('focus', () => {document.body.classList.remove('blur-screen'); if (isExamActive) {clearClipboard();} });
 
-// Deteksi jika user mencoba refresh via keyboard
-window.addEventListener('keydown', function(e) {
-    if (isExamActive && (e.which || e.keyCode) == 116) { // F5
-        e.preventDefault(); reportViolation(); alert("Dilarang me-refresh halaman!"); }
+document.addEventListener('visibilitychange', () => {
+    if (isExamActive && document.visibilityState === 'hidden') {
+        // Delay 1 detik untuk menghindari false positive saat alert sistem muncul
+        setTimeout(() => {if (document.visibilityState === 'hidden' && isExamActive) {reportViolation(); }
+        }, 1000);
+    }
 });
-
 
 document.addEventListener('fullscreenchange', () => {if (isExamActive && !document.fullscreenElement) {reportViolation();
 	alert("Peringatan! Anda keluar dari mode layar penuh. Selesaikan ujian di dalam mode ini.");
@@ -1268,6 +1249,10 @@ document.addEventListener('fullscreenchange', () => {if (isExamActive && !docume
 	});
 
 
+window.addEventListener('keydown', function(e) {
+    if (isExamActive && (e.which || e.keyCode) == 116) { // F5
+        e.preventDefault(); reportViolation(); alert("Dilarang me-refresh halaman!"); }
+});
 window.addEventListener('resize', () => {
     if (!isExamActive) return;
     const isMobile = /Android|webOS|iPhone|iPad|iPod/i.test(navigator.userAgent);
@@ -1277,13 +1262,7 @@ window.addEventListener('resize', () => {
     }
 });
 
-document.addEventListener('visibilitychange', () => {
-    if (isExamActive && document.visibilityState === 'hidden') {
-        // Delay 1 detik untuk menghindari false positive saat alert sistem muncul
-        setTimeout(() => {if (document.visibilityState === 'hidden' && isExamActive) {reportViolation(); }
-        }, 1000);
-    }
-});
+
 
 
 

@@ -260,35 +260,67 @@
         window.localStream = null;
 	
 	// --- 3. INITIALIZATION ---
-	window.onload = async () => {
-		if ('serviceWorker' in navigator) {navigator.serviceWorker.getRegistrations().then(function(registrations) {
-		for(let registration of registrations) {registration.unregister(); }}); }
-	try {await auth.signInAnonymously(); document.getElementById('loading-overlay').classList.add('hidden-element');
+window.onload = async () => {
+    // Hapus service worker lama jika ada
+    if ('serviceWorker' in navigator) {
+        const regs = await navigator.serviceWorker.getRegistrations();
+        for (let r of regs) r.unregister();
+    }
 
-        // 1. CEK SESSION LOGIN
+    try {
+        await auth.signInAnonymously();
+        // PERBAIKAN: Hapus merge:true yang salah tempat
+        try { db.settings({ experimentalForceLongPolling: true }); } catch (e) {}
+
+        document.getElementById('loading-overlay').classList.add('hidden-element');
+
         const savedSession = localStorage.getItem('exambro_session');
-	        if (savedSession) {
-	            const sessionData = JSON.parse(savedSession); 
-	            if (sessionData.role === 'admin') {showPage('admin-page'); syncAdminData(); startMonitorFeed();
-	            } else if (sessionData.role === 'student' && sessionData.user) {
-	                user = sessionData.user; document.getElementById('display-std-name').textContent = user.nama;showPage('student-page'); 
-	                syncStudentData(); initPeer(); listenForAdminCommands(); 
- 	           } 
-	        }
+        if (savedSession) {
+            const sessionData = JSON.parse(savedSession);
+            if (sessionData.role === 'admin') {
+                currentRole = 'admin'; // Pastikan role global terupdate
+                showPage('admin-page');
+                syncAdminData();
+                startMonitorFeed();
+                loadSheetConfig();
+            } else if (sessionData.role === 'student' && sessionData.user) {
+                currentRole = 'student';
+                user = sessionData.user;
+                document.getElementById('display-std-name').textContent = user.nama;
+                showPage('student-page');
+                syncStudentData();
+                initPeer();
+                listenForAdminCommands();
+            }
+        } else {
+            // Hanya set default jika tidak ada session
+            setRole('student');
+        }
 
-	        // 2. LOGIKA AUTO-RESUME UJIAN
-	        const activeExam = localStorage.getItem('active_exam_state');
-	        if (activeExam) {const examData = JSON.parse(activeExam); const now = Date.now();
-	            if (now < examData.endTime) {isResuming = true; activePin = examData.pin; 
-	                const remainingMinutes = Math.round((examData.endTime - now) / 60000);
-	                startExamEngine(examData.url, examData.mapel, remainingMinutes, examData.isCamera);
-	            } else {localStorage.removeItem('active_exam_state');}
-	        }
+        // Auto-resume ujian tetap berjalan
+        const activeExam = localStorage.getItem('active_exam_state');
+        if (activeExam) {
+            const examData = JSON.parse(activeExam);
+            const now = Date.now();
+            if (now < examData.endTime) {
+                isResuming = true;
+                activePin = examData.pin;
+                const remainingMinutes = Math.round((examData.endTime - now) / 60000);
+                startExamEngine(examData.url, examData.mapel, remainingMinutes, examData.isCamera);
+            } else {
+                localStorage.removeItem('active_exam_state');
+            }
+        }
 
-	        // 3. JALANKAN SERVICE DASAR
-	        setRole('student'); syncSpecialSettings(); loadKelas(); startCleanupService(); loadSheetConfig();} catch (e) {
-	        console.error("Init Error:", e);}
-	};
+        loadKelas();
+        syncSpecialSettings();
+        startCleanupService();
+
+    } catch (e) {
+        console.error("Init Error:", e);
+        alert("Gagal terhubung ke server. Periksa koneksi internet.");
+    }
+};
 
 
 
@@ -680,24 +712,15 @@ async function stopQR() {
 }		
 		
 		
-function startManualExam() {
+async function startManualExam() {
     const url = document.getElementById('manual-url').value.trim();
-    // 1. Validasi Input
-    if (!url) {alert("Mohon tempelkan link ujian anda!"); return; }
-    
-    // Validasi sederhana format link
-    if (!url.startsWith("http")) {alert("Link tidak valid! Pastikan diawali dengan http:// atau https://"); return;}
-
-    // 2. Mengambil Pengaturan dari "Akses Cepat" Admin (specialSettings)
-    // Jika Admin belum menyetel, akan menggunakan default (PIN 1234, Durasi 60)
+    if (!url || !url.startsWith("http")) { alert("Masukkan link yang valid!"); return; }
+    // PERBAIKAN: Pastikan mengambil settings terbaru dari cloud sebelum mulai
+    const settingsDoc = await publicData.collection('settings').doc('special_methods').get();
+    if (settingsDoc.exists) {specialSettings = settingsDoc.data(); }
     activePin = specialSettings.pin || "1234";
     const duration = specialSettings.duration || 60;
-
-    // 3. Menjalankan Engine Ujian
-    // Parameter: (URL, Label Nama, Menit, Wajib Kamera: true)
     startExamEngine(url, "Manual Access", duration, true);
-    
-    // Opsional: Kosongkan input setelah dijalankan
     document.getElementById('manual-url').value = "";
 }
 
@@ -911,18 +934,28 @@ function handleKeyboardLock(e) {
         alert("Aksi ini dilarang selama ujian!"); return false;
     }
 }
-        function reportViolation() {
-	if (!isExamActive) return;violationCount++;
- 	   // Update tampilan lokal untuk siswa
-	    document.getElementById('violation-count').textContent = violationCount;
-	    document.getElementById('violation-badge').classList.remove('hidden-element');
-	    document.getElementById('alarm-sound').play();
-	    document.body.classList.add('violation-shake');
-	    setTimeout(() => document.body.classList.remove('violation-shake'), 500);
 
-	    // CATATAN: Bagian simpan ke Firestore 'violations' telah DIHAPUS agar tidak ada riwayat tersimpan.
-	    if (violationCount >= 5) triggerLock();
-	}
+
+let violationTimeout = null;
+function reportViolation() {
+    if (!isExamActive) return;
+    if (violationTimeout) clearTimeout(violationTimeout);
+
+    violationTimeout = setTimeout(() => {
+        if (document.visibilityState !== 'visible' || !document.hasFocus()) {
+            violationCount++;
+            document.getElementById('violation-count').textContent = violationCount;
+            document.getElementById('violation-badge').classList.remove('hidden-element');
+            // Notifikasi suara
+            const alarm = document.getElementById('alarm-sound'); alarm.play().catch(e => {});
+            document.body.classList.add('violation-shake');
+            setTimeout(() => document.body.classList.remove('violation-shake'), 500);
+
+            // Log ke admin via live update
+            if (user && user.id) {publicData.collection('live').doc(user.id).update({v: violationCount, lastStatus: 'Mencoba Keluar Aplikasi' }); }
+            if (violationCount >= 5) triggerLock(); }
+    }, 2000); // Toleransi 2 detik
+}
 
 	async function triggerLock() { 
 	    if (isExamActive) {document.getElementById('lock-screen').classList.remove('hidden-element');
@@ -954,20 +987,33 @@ function initPeer() {
     const cleanId = user.id.replace(/[^a-zA-Z0-9]/g, '');
     const safePeerId = 'exam2026_' + cleanId;
     
-    if (peer) peer.destroy();
+    // PERBAIKAN: Cleanup yang lebih bersih
+    if (peer) {
+        peer.off('call');
+        peer.off('connection');
+        peer.destroy();
+    }
+
     peer = new Peer(safePeerId, {
-        config: {'iceServers': [{ urls: 'stun:stun.l.google.com:19302' }]}
+        config: {'iceServers': [
+            { urls: 'stun:stun.l.google.com:19302' },
+            { urls: 'stun:stun1.l.google.com:19302' }
+        ]},
+        debug: 1
     });
 
-    // Menangani Video Stream (Panggilan Admin)
     peer.on('call', (call) => {
-        call.answer(window.localStream || (document.createElement('canvas').captureStream()));
+        call.answer(window.localStream || new MediaStream());
     });
 
-    // Menangani Data Connection (Untuk Snapshot 5 detik)
     peer.on('connection', (conn) => {
         window.adminConnection = conn;
-        console.log("Koneksi P2P Admin Terbuka");
+        conn.on('close', () => { window.adminConnection = null; });
+    });
+
+    peer.on('error', (err) => {
+        if (err.type === 'unavailable-id') return; // Abaikan jika ID sudah terpakai
+        console.error("Peer Error:", err);
     });
 }
 

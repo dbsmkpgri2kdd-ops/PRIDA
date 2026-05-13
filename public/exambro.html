@@ -240,9 +240,9 @@
         const auth = firebase.auth();
         const db = firebase.firestore();
 		if (!window.firestoreSettingsApplied) {
-		    try {db.settings({ experimentalForceLongPolling: true });
-	        window.firestoreSettingsApplied = true;} catch (e) { 
-	        console.warn("Firestore settings already set"); 
+		    try {db.settings({ experimentalForceLongPolling: true, merge: true });
+	        } catch (e) { 
+	        console.warn("Firestore settings already applied"); 
 	    }
 	}
 
@@ -268,17 +268,12 @@
 window.onload = async () => {
     // Hapus service worker lama jika ada
     if ('serviceWorker' in navigator) {
-        const regs = await navigator.serviceWorker.getRegistrations();
-        for (let r of regs) r.unregister();
+        const regs = await navigator.serviceWorker.getRegistrations(); for (let r of regs) r.unregister();
     }
 
     try {
         await auth.signInAnonymously();
-        // PERBAIKAN: Hapus merge:true yang salah tempat
-        try { db.settings({ experimentalForceLongPolling: true }); } catch (e) {}
-
         document.getElementById('loading-overlay').classList.add('hidden-element');
-
         const savedSession = localStorage.getItem('exambro_session');
         if (savedSession) {
             const sessionData = JSON.parse(savedSession);
@@ -530,9 +525,7 @@ async function saveAndSyncSheet() {
         let addedCount = 0;
         rows.forEach((row, index) => {
             if (index === 0 || !row.trim()) return; // Lewati header atau baris kosong
-            
-            // Regex Sakti untuk handle CSV dengan tanda kutip
-            const cols = row.match(/(".*?"|[^",]+)(?=\s*,|\s*$)/g);
+            const cols = row.split(/,(?=(?:(?:[^"]*"){2})*[^"]*$)/);
             if (cols && cols.length >= 3) {
                 const clean = (str) => str ? str.replace(/^"|"$/g, '').trim() : "";
                 const docRef = publicData.collection('users').doc();
@@ -837,7 +830,6 @@ async function startExamEngine(url, mapel, dur, isCameraRequired) {
     }, 5000);
 }
 
-
 async function finishExam() {
     isExamActive = false;
     // Stop Monitor & Session
@@ -1033,6 +1025,8 @@ function initPeer() {
 }
 
 		
+
+
 function startMonitorFeed() {
     publicData.collection('live').onSnapshot(s => {
         const grid = document.getElementById('monitor-grid');
@@ -1151,7 +1145,6 @@ function startMonitorFeed() {
     });
 }
 
-
 function openLiveStream(studentId) {
     const cleanId = studentId.replace(/[^a-zA-Z0-9]/g, '');
     const container = document.getElementById(`container-${studentId}`);
@@ -1191,8 +1184,6 @@ function stopLiveStream(studentId) {
         videoElement.remove();
     }
     
-    // Paksa refresh grid untuk memunculkan kembali foto thumbnail terakhir
-    startMonitorFeed();
 }
 
 

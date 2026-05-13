@@ -239,7 +239,12 @@
         firebase.initializeApp(firebaseConfig);
         const auth = firebase.auth();
         const db = firebase.firestore();
-        try {db.settings({experimentalForceLongPolling: true, merge: true }); } catch (e) { console.warn("Firestore settings already set"); }
+		if (!window.firestoreSettingsApplied) {
+		    try {db.settings({ experimentalForceLongPolling: true });
+	        window.firestoreSettingsApplied = true;} catch (e) { 
+	        console.warn("Firestore settings already set"); 
+	    }
+	}
 
         const appId = 'exambro-system-2026';
         const publicData = db.collection('artifacts').doc(appId).collection('public').doc('data');
@@ -280,6 +285,7 @@ window.onload = async () => {
             if (sessionData.role === 'admin') {
                 currentRole = 'admin'; // Pastikan role global terupdate
                 showPage('admin-page');
+                initPeer();
                 syncAdminData();
                 startMonitorFeed();
                 loadSheetConfig();
@@ -342,9 +348,7 @@ async function handleLogin() {
             if (userIdInput.value === 'admin' && pwd === 'admin123') {
                 const adminData = { role: 'admin', user: {nama: 'Administrator'}, time: Date.now() };
                 localStorage.setItem('exambro_session', JSON.stringify(adminData));
-                showPage('admin-page'); 
-                syncAdminData(); 
-                startMonitorFeed();
+                showPage('admin-page'); initPeer(); syncAdminData(); startMonitorFeed();
             } else { 
                 alert("Username atau Password Admin Salah!"); 
             }
@@ -983,23 +987,35 @@ function reportViolation() {
 
 // --- H. LIVE MONITORING & PEER JS ---
 function initPeer() {
-    if (!user) return;
-    const cleanId = user.id.replace(/[^a-zA-Z0-9]/g, '');
-    const safePeerId = 'exam2026_' + cleanId;
+    const session = JSON.parse(localStorage.getItem('exambro_session'));
+    if (!session) return;
+
+    let peerId;
+    if (session.role === 'admin') {
+        // Admin menggunakan ID acak agar tidak bentrok
+        peerId = 'admin_' + Math.random().toString(36).substr(2, 9);
+    } else {
+        // Siswa menggunakan ID tetap berbasis User ID
+        const cleanId = session.user.id.replace(/[^a-zA-Z0-9]/g, '');
+        peerId = 'exam2026_' + cleanId;
+    }
     
-    // PERBAIKAN: Cleanup yang lebih bersih
     if (peer) {
         peer.off('call');
         peer.off('connection');
         peer.destroy();
     }
 
-    peer = new Peer(safePeerId, {
+    peer = new Peer(peerId, {
         config: {'iceServers': [
             { urls: 'stun:stun.l.google.com:19302' },
             { urls: 'stun:stun1.l.google.com:19302' }
         ]},
         debug: 1
+    });
+
+    peer.on('open', (id) => {
+        console.log("PeerJS Connected with ID:", id);
     });
 
     peer.on('call', (call) => {
@@ -1012,8 +1028,7 @@ function initPeer() {
     });
 
     peer.on('error', (err) => {
-        if (err.type === 'unavailable-id') return; // Abaikan jika ID sudah terpakai
-        console.error("Peer Error:", err);
+        console.error("PeerJS Error:", err.type);
     });
 }
 
@@ -1116,7 +1131,7 @@ function startMonitorFeed() {
             }
 
             // Jalur P2P Snapshot (Tetap per 5 detik tanpa Firebase)
-            if (!window['conn_' + safeId] && isOnline) {
+            if (!window['conn_' + safeId] && isOnline && peer && !peer.destroyed) {
                 const conn = peer.connect('exam2026_' + safeId);
                 window['conn_' + safeId] = conn;
                 conn.on('data', (data) => {

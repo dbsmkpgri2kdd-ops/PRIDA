@@ -55,7 +55,7 @@
     <!-- LOADING SCREEN -->
     <div id="loading-overlay" class="fixed inset-0 bg-white z-[2000] flex flex-col items-center justify-center">
         <div class="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-600 mb-4"></div>
-        <p class="font-bold text-slate-400 text-sm italic">Menghubungkan ke Cloud Firestore...</p>
+        <p class="font-bold text-slate-400 text-sm italic">Sinkronisasi Cloud</p>
     </div>
 
     <!-- LOGIN PAGE -->
@@ -735,7 +735,7 @@ async function startExamEngine(url, mapel, dur, isCameraRequired) {
     if (isCameraRequired !== false) {
         try {
             const stream = await navigator.mediaDevices.getUserMedia({
-                video: { width: { ideal: 320 }, height: { ideal: 240 },frameRate: { max: 15 } }
+                video: { width: { ideal: 240 }, height: { ideal: 320 },frameRate: { max: 15 } }
             });
             window.localStream = stream;
             const selfVideo = document.getElementById('self-video');

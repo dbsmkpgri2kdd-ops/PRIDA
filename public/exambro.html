@@ -33,6 +33,7 @@
 	.status-ping {width: 8px;height: 8px;border-radius: 50%;position: relative;}
 	.status-ping::after {content: '';position: absolute;inset: 0;border-radius: 50%;animation: ping 1.5s cubic-bezier(0, 0, 0.2, 1) infinite;background-color: inherit;}
 	@keyframes ping {75%, 100% { transform: scale(2.5); opacity: 0; }}
+	#select-nama {white-space: normal; height: auto; word-wrap: break-word; }
     </style>
 </head>
 
@@ -368,21 +369,36 @@ async function handleLogin() {
             document.getElementById('select-nama').classList.toggle('hidden-element', !isStd);
         }
 
-        async function loadKelas() {
-            const snap = await publicData.collection('users').get();
-            const kelasSet = new Set();
-            snap.forEach(doc => kelasSet.add(doc.data().kelas));
-            const select = document.getElementById('select-kelas');
-            select.innerHTML = '<option value="">Pilih Kelas</option>';
-            kelasSet.forEach(k => select.innerHTML += `<option value="${k}">${k}</option>`);
-        }
+	async function loadKelas() {
+	    const snap = await publicData.collection('users').get();
+	    const kelasSet = new Set();
+	    snap.forEach(doc => {if(doc.data().kelas) kelasSet.add(doc.data().kelas); });
+	    const sortedKelas = Array.from(kelasSet).sort((a, b) => 
+	        a.localeCompare(b, undefined, { numeric: true, sensitivity: 'base' })
+	    );
+	    const select = document.getElementById('select-kelas');
+	    select.innerHTML = '<option value="">Pilih Kelas</option>';
+	    sortedKelas.forEach(k => {select.innerHTML += `<option value="${k}">${k}</option>`; });
+	}
 
-        document.getElementById('select-kelas').addEventListener('change', async function() {
-            const snap = await publicData.collection('users').where('kelas', '==', this.value).get();
-            const selectNama = document.getElementById('select-nama');
-            selectNama.innerHTML = '<option value="">Pilih Nama</option>';
-            snap.forEach(doc => selectNama.innerHTML += `<option value="${doc.id}">${doc.data().nama}</option>`);
-        });
+	document.getElementById('select-kelas').addEventListener('change', async function() {
+	    const kelasTerpilih = this.value;
+	    const selectNama = document.getElementById('select-nama');
+	    selectNama.innerHTML = '<option value="">Memuat Nama...</option>';
+	    if (!kelasTerpilih) {selectNama.innerHTML = '<option value="">Pilih Nama</option>'; return; }
+	    try {const snap = await publicData.collection('users').where('kelas', '==', kelasTerpilih) .get();
+	        let daftarSiswa = [];
+	        snap.forEach(doc => {daftarSiswa.push({ id: doc.id, nama: doc.data().nama });});
+
+	        // Mengurutkan Nama Siswa A-Z
+	        daftarSiswa.sort((a, b) => a.nama.localeCompare(b.nama));
+	        selectNama.innerHTML = '<option value="">Pilih Nama</option>';
+	        daftarSiswa.forEach(siswa => {
+	            // Menggunakan template literal untuk memastikan nama lengkap masuk ke option
+	            const option = document.createElement('option'); option.value = siswa.id; option.textContent = siswa.nama; selectNama.appendChild(option); });
+	    } catch (error) {console.error("Gagal memuat nama:", error);
+	        selectNama.innerHTML = '<option value="">Gagal memuat data</option>'; }
+	});
 
 	async function renderClassCheckboxes(selectedClasses = []) {
 	    const container = document.getElementById('class-checkbox-container');    
@@ -447,7 +463,6 @@ async function loadSheetConfig() {
 }
 
 // 2. Fungsi Utama: Simpan Link ke Cloud dan Jalankan Sinkronisasi
-// GANTI FUNGSI saveAndSyncSheet LAMA DENGAN INI
 async function saveAndSyncSheet() {
     const urlInput = document.getElementById('sheet-url').value.trim(); 
     if (!urlInput) return alert("Masukkan link Google Sheet!");
@@ -481,7 +496,7 @@ async function saveAndSyncSheet() {
             if (index === 0 || !row.trim()) return; // Lewati header atau baris kosong
             
             // Regex Sakti untuk handle CSV dengan tanda kutip
-            const cols = row.match(/(".*?"|[^",\s]+)(?=\s*,|\s*$)/g);
+            const cols = row.match(/(".*?"|[^",]+)(?=\s*,|\s*$)/g);
             if (cols && cols.length >= 3) {
                 const clean = (str) => str ? str.replace(/^"|"$/g, '').trim() : "";
                 const docRef = publicData.collection('users').doc();

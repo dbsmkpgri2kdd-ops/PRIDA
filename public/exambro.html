@@ -240,7 +240,7 @@
         const auth = firebase.auth();
         const db = firebase.firestore();
 		if (!window.firestoreSettingsApplied) {
-		    try {db.settings({ experimentalForceLongPolling: true, merge: true });
+		    try {db.settings({ experimentalForceLongPolling: true });
 	        } catch (e) { 
 	        console.warn("Firestore settings already applied"); 
 	    }
@@ -830,6 +830,7 @@ async function startExamEngine(url, mapel, dur, isCameraRequired) {
     }, 5000);
 }
 
+
 async function finishExam() {
     isExamActive = false;
     // Stop Monitor & Session
@@ -1025,8 +1026,6 @@ function initPeer() {
 }
 
 		
-
-
 function startMonitorFeed() {
     publicData.collection('live').onSnapshot(s => {
         const grid = document.getElementById('monitor-grid');
@@ -1144,6 +1143,7 @@ function startMonitorFeed() {
         });
     });
 }
+
 
 function openLiveStream(studentId) {
     const cleanId = studentId.replace(/[^a-zA-Z0-9]/g, '');

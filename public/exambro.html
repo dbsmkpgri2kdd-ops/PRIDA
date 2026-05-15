@@ -731,7 +731,7 @@ async function startExamEngine(url, mapel, dur, isCameraRequired) {
     await clearClipboard();
     isExamActive = true;
     violationCount = 0;
-    initialWidth = window.innerWidth;
+    initialWidth = window.innerWidth; initialHeight = window.innerHeight; 
     isResuming = false; // Reset flag resume
 
     // 2. Setup Kamera (Jika Diwajibkan)
@@ -866,65 +866,51 @@ async function clearClipboard() {
     }
 
 
-
-
-
-
-
-
-
-
-// --- G. SECURITY VIOLATION & LOCKDOWN ---
-
+// --- G. SECURITY VIOLATION & LOCKDOWN (REVISED FOR MOBILE) ---
 let isSecuritySetup = false;
 function enableHardLockdown() {
     if (isSecuritySetup) return;
+    // 1. Mencegah Klik Kanan & Seleksi Teks (HP Friendly)
+    // Di HP, oncontextmenu terpicu saat menekan lama. Kita hanya blokir menu, TANPA hukuman.
+    document.oncontextmenu = (e) => {e.preventDefault(); return false; };
 
-    // 1. Mencegah Klik Kanan & Seleksi Teks
-    document.oncontextmenu = () => false;
+    // Mematikan seleksi teks secara sistem (agar tidak muncul gelembung seleksi teks di HP)
+    document.body.style.webkitUserSelect = "none";
+    document.body.style.userSelect = "none";
+    document.body.style.webkitTouchCallout = "none"; // Mematikan menu "Open in new tab" pada link
     document.onselectstart = () => false;
-    document.ondragstart = () => false; // Mencegah drag teks soal
+    document.ondragstart = () => false;
 
     // 2. Jebakan Tombol Back (Android)
     history.pushState(null, null, location.href);
-    window.onpopstate = function() {
-        history.go(1);
-        if(isExamActive) reportViolation();
+    window.onpopstate = function() {history.go(1);
+        if(isExamActive) {reportViolation(); alert("Gunakan tombol navigasi di dalam ujian, dilarang menekan tombol BACK!"); }
     };
 
-    // 3. Deteksi Visibility (Pindah Tab)
+    // 3. Deteksi Visibility (Pindah Tab / Keluar Aplikasi)
     document.addEventListener('visibilitychange', () => {
-        if (isExamActive && document.visibilityState !== 'visible') {
-            reportViolation();
-        }
+        if (isExamActive && document.visibilityState !== 'visible') {reportViolation(); }
     });
 
-    // 4. Keyboard Protector (Lebih Ketat)
+    // 4. Keyboard Protector (Untuk Pengguna Tablet + Keyboard External)
     window.onkeydown = (e) => {
         if (!isExamActive) return;
 
-        // F12, Ctrl+Shift+I, Ctrl+U, Ctrl+S, Ctrl+P, Alt+Tab, Meta (Windows Key)
+        // Tombol yang dilarang (F12, Meta/Windows, Alt, dll)
         const forbiddenKeys = [122, 123, 44, 18, 91, 92]; 
         const isControlAction = e.ctrlKey && 'uIpscvj'.includes(e.key.toLowerCase());
         const isShiftAction = e.ctrlKey && e.shiftKey && 'IJ'.includes(e.key.toUpperCase());
 
         if (forbiddenKeys.includes(e.keyCode) || isControlAction || isShiftAction) {
-            e.preventDefault();
-            reportViolation();
-            return false;
-        }
+            e.preventDefault(); reportViolation(); return false; }
     };
-
-    // 5. Proteksi Print (Ctrl+P)
-    window.addEventListener('beforeprint', (e) => {
-        if(isExamActive) {
-            e.preventDefault();
-            reportViolation();
-        }
+    // 5. Proteksi Print
+    window.addEventListener('beforeprint', (e) => {if(isExamActive) {e.preventDefault(); reportViolation(); }
     });
-
     isSecuritySetup = true;
 }
+
+
 
 function handleKeyboardLock(e) {
     if (!isExamActive) return;
@@ -1340,13 +1326,15 @@ async function generateAISoal() {
 
 
 
+// --- J. LOGIKA PROTEKSI & KEAMANAN TERPADU (HP OPTIMIZED - FINAL) ---
 
+window.onbeforeunload = function() {
+    if (isExamActive) {
+        return "Ujian sedang berlangsung! Anda akan dicatat melakukan pelanggaran jika keluar.";
+    }
+};
 
-// --- J. LOGIKA AI GEMINI ---
-window.onbeforeunload = function() {if (isExamActive) {return "Ujian sedang berlangsung! Anda akan dicatat melakukan pelanggaran jika keluar."; }};
-// --- PROTEKSI KEAMANAN TERPADU ---
-
-// 1. Gabungan Deteksi Pindah Tab / Kehilangan Fokus
+// 1. Deteksi Pindah Tab / Keluar Aplikasi
 window.addEventListener('blur', () => { 
     if(isExamActive) reportViolation(); 
 });
@@ -1357,40 +1345,65 @@ document.addEventListener('visibilitychange', () => {
     }
 });
 
-// 2. Deteksi Fullscreen (Hanya satu listener)
+// 2. Deteksi Fullscreen
 document.addEventListener('fullscreenchange', () => {
     if (isExamActive && !document.fullscreenElement) {
         reportViolation();
-        alert("Peringatan! Dilarang keluar dari mode layar penuh.");
-        // Paksa masuk kembali
+        alert("Peringatan! Ujian wajib dalam mode Fullscreen.");
         setTimeout(() => {
             document.documentElement.requestFullscreen().catch(() => {});
         }, 1000);
     }
 });
 
-// 3. Deteksi Resize (Ganti logicnya agar lebih toleran)
+// 3. Deteksi Split Screen (Logika yang lebih akurat untuk HP)
 window.addEventListener('resize', () => {
     if (!isExamActive) return;
-    // Hanya anggap pelanggaran jika bukan karena munculnya keyboard HP
-    if (Math.abs(window.innerWidth - initialWidth) > 150) {
+
+    const widthDiff = Math.abs(window.innerWidth - initialWidth);
+    const heightDiff = Math.abs(window.innerHeight - initialHeight);
+
+    // Deteksi Split Screen Horizontal atau Rotasi
+    if (widthDiff > 100) {
         reportViolation();
+        alert("Deteksi perubahan orientasi atau pembagian layar!");
+        // Update initial untuk menghindari loop alert
+        initialWidth = window.innerWidth;
+    }
+
+    // Deteksi Split Screen Vertikal (Atas-Bawah)
+    // Jika tinggi layar hilang lebih dari 35%, kemungkinan besar Split Screen
+    if (heightDiff > (initialHeight * 0.35)) {
+        // Karena kita tidak bisa cek input di dalam IFRAME, 
+        // Kita beri toleransi: Jika resize terjadi tapi user masih di dalam frame,
+        // kita asumsikan itu keyboard. Namun jika perubahannya sangat ekstrem (>50%), itu Split Screen.
+        if (heightDiff > (initialHeight * 0.5)) {
+            reportViolation();
+            alert("Peringatan: Dilarang menggunakan mode Split Screen!");
+        }
     }
 });
 
-// 4. Cegah Refresh (F5) & Tombol Terlarang
+// 4. Proteksi Tombol & Klik Kanan
 window.addEventListener('keydown', function(e) {
     if (!isExamActive) return;
-    
-    // F5, Ctrl+R, F12, Ctrl+Shift+I
     if ((e.which || e.keyCode) == 116 || (e.ctrlKey && e.keyCode == 82) || e.keyCode == 123) {
         e.preventDefault();
         reportViolation();
     }
 });
 
+// Proteksi Tekan Lama (Long Press) - AGAR TIDAK MELANGGAR
+document.oncontextmenu = function(e) {
+    e.preventDefault();
+    e.stopPropagation();
+    return false;
+};
 
-
+// Matikan fitur seleksi teks agar tidak mengganggu saat siswa menyentuh layar lama
+document.body.style.webkitTouchCallout = "none";
+document.body.style.webkitUserSelect = "none";
+document.body.style.userSelect = "none";
 
 
 

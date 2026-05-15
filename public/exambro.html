@@ -5,10 +5,6 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Exambro Pro 2026 - AI Super Edition</title>
     
-    <!-- 
-    SISTEM MONITORING UJIAN UNTUK 500 SISWA
-    ========================================
-    
     <!-- Scripts & Libraries -->
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://unpkg.com/html5-qrcode"></script>
@@ -243,17 +239,7 @@
         firebase.initializeApp(firebaseConfig);
         const auth = firebase.auth();
         const db = firebase.firestore();
-        
-        // OPTIMASI FIRESTORE untuk 500 siswa - Hemat kuota & performa
-        db.settings({ 
-            merge: true,
-            cacheSizeBytes: firebase.firestore.CACHE_SIZE_UNLIMITED // Cache unlimited untuk performa
-        });
-        
-        // Enable offline persistence untuk mengurangi reads
-        db.enablePersistence({ synchronizeTabs: true }).catch(err => {
-            console.warn("Persistence error:", err);
-        });
+        try {db.settings({experimentalForceLongPolling: true, merge: true }); } catch (e) { console.warn("Firestore settings already set"); }
 
         const appId = 'exambro-system-2026';
         const publicData = db.collection('artifacts').doc(appId).collection('public').doc('data');
@@ -760,16 +746,11 @@ async function startExamEngine(url, mapel, dur, isCameraRequired) {
             alert("⚠️ Ujian ini wajib menggunakan kamera. Pastikan izin kamera telah diberikan!");
             return;
         }
-    } else {
-        // Pastikan tidak ada stream tersisa dari sesi sebelumnya
-        if (window.localStream) {
-            window.localStream.getTracks().forEach(track => track.stop());
-            window.localStream = null;
-        }
-        document.getElementById('self-video').parentElement.classList.add('hidden-element');
     }
 
     // 3. Aktifkan Protokol Keamanan (Lockdown)
+    enableHardLockdown();
+
     enableHardLockdown();
     const endTime = Date.now() + (dur * 60 * 1000);
     localStorage.setItem('active_exam_state', JSON.stringify({
@@ -804,40 +785,19 @@ async function startExamEngine(url, mapel, dur, isCameraRequired) {
         console.warn("Fullscreen blocked, user interaction required.");
     }
 
-    // 7. Sinkronisasi Awal ke Firestore (Status + Foto Thumbnail Hemat)
-    const syncStatus = async (img = "", forceSave = false) => {
+    // 7. Sinkronisasi Awal ke Firestore (Status Aktif Seketika)
+    const syncStatus = async (img = "") => {
         try {
-            const baseData = {
+            await publicData.collection('live').doc(user.id).set({
                 nama: user.nama,
                 kelas: user.kelas || "Umum",
+                img: img,
                 last: Date.now(),
                 v: violationCount,
                 camStatus: isCameraRequired !== false ? "ON" : "OFF",
                 lastStatus: "SEDANG UJIAN",
                 isLocked: false
-            };
-
-            // SIMPAN FOTO THUMBNAIL KE LOCALSTORAGE (TIDAK KE FIREBASE)
-            // Untuk admin monitoring real-time setiap 5 detik, hemat kuota
-            if (img && !forceSave) {
-                const thumbnails = JSON.parse(localStorage.getItem('student_thumbnails') || '{}');
-                thumbnails[user.id] = {img: img, time: Date.now()};
-                localStorage.setItem('student_thumbnails', JSON.stringify(thumbnails));
-            }
-
-            // ✅ OPTIMASI: Hanya simpan foto violation ke LocalStorage (TIDAK KE FIREBASE)
-            // Mengurangi Firebase writes & storage hingga 95%, data tetap aman di device
-            if (img && (violationCount > 0 || forceSave)) {
-                const violationPhotos = JSON.parse(localStorage.getItem('violation_photos') || '[]');
-                if (violationPhotos.length < 5) { // Batasi maksimal 5 foto violation per siswa
-                    violationPhotos.push({img: img, time: Date.now(), violation: violationCount});
-                    localStorage.setItem('violation_photos', JSON.stringify(violationPhotos));
-                    // ✅ REMOVED: baseData.img = img; // Jangan simpan foto violation ke Firestore
-                    // Foto tetap tersedia di LocalStorage untuk admin via WebRTC P2P
-                }
-            }
-
-            await publicData.collection('live').doc(user.id).set(baseData, { merge: true });
+            }, { merge: true });
         } catch (err) { console.error("Sync Error:", err); }
     };
     syncStatus(); // Jalankan sekali saat start
@@ -863,7 +823,7 @@ async function startExamEngine(url, mapel, dur, isCameraRequired) {
             `${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`;
     }, 1000);
 
-    // 9. Monitoring Loop (Foto Real-time untuk Admin + Status Update)
+    // 9. Monitoring Loop (Snapshot & Heartbeat)
     if (monitorInterval) clearInterval(monitorInterval);
     const canvas = document.createElement('canvas');
     const ctx = canvas.getContext('2d');
@@ -871,21 +831,16 @@ async function startExamEngine(url, mapel, dur, isCameraRequired) {
     monitorInterval = setInterval(async () => {
         if (!isExamActive) return;
 
-        // Cek apakah admin sedang memantau siswa ini (via PeerJS connection)
-        const isBeingMonitored = window.activeMonitoring && window.activeMonitoring.has(user.id);
-        
         let snapshotData = "";
-        if (isCameraRequired !== false && window.localStream && isBeingMonitored) {
-            // Hanya ambil foto jika sedang di-monitoring admin (max 10-20 siswa)
-            canvas.width = 160; // Resolusi sedang untuk monitoring aktif
+        if (isCameraRequired !== false && window.localStream) {
+            canvas.width = 160; // Ukuran kecil untuk hemat bandwidth
             canvas.height = 120;
             ctx.drawImage(document.getElementById('self-video'), 0, 0, 160, 120);
-            snapshotData = canvas.toDataURL('image/jpeg', 0.3); // Kualitas 0.3 untuk monitoring
+            snapshotData = canvas.toDataURL('image/jpeg', 0.3); // Kualitas 0.3 sangat efisien
         }
         
-        // Update status (dengan foto hanya jika sedang di-monitoring)
-        syncStatus(snapshotData, false);
-    }, 5000); // Interval 5 detik untuk monitoring real-time
+        syncStatus(snapshotData);
+    }, 5000); // Interval 5detik cukup untuk monitoring real-time yang hemat kuota
 }
 
 
@@ -893,12 +848,6 @@ async function finishExam() {
     isExamActive = false;
     // Stop Monitor & Session
     if (monitorInterval) clearInterval(monitorInterval), monitorInterval = null; localStorage.removeItem('active_exam_state');
-    // Hapus foto violation dari localStorage
-    localStorage.removeItem('violation_photos');
-    // Clear active monitoring tracking
-    if (window.activeMonitoring) {
-        window.activeMonitoring.clear();
-    }
     // Stop Camera Tracks
     if (window.localStream) {window.localStream.getTracks().forEach(t => t.stop());window.localStream = null; }
     // Delete Live Data
@@ -996,8 +945,7 @@ function handleKeyboardLock(e) {
     }
 }
         function reportViolation() {
-	if (!isExamActive) return;
-	violationCount++;
+	if (!isExamActive) return;violationCount++;
  	   // Update tampilan lokal untuk siswa
 	    document.getElementById('violation-count').textContent = violationCount;
 	    document.getElementById('violation-badge').classList.remove('hidden-element');
@@ -1005,89 +953,14 @@ function handleKeyboardLock(e) {
 	    document.body.classList.add('violation-shake');
 	    setTimeout(() => document.body.classList.remove('violation-shake'), 500);
 
-	    // AMBIL FOTO VIOLATION dan simpan ke Firestore
-	    if (window.localStream && isCameraRequired !== false) {
-	        const canvas = document.createElement('canvas');
-	        const ctx = canvas.getContext('2d');
-	        canvas.width = 320; // Resolusi lebih tinggi untuk foto violation
-	        canvas.height = 240;
-	        ctx.drawImage(document.getElementById('self-video'), 0, 0, 320, 240);
-	        const violationPhoto = canvas.toDataURL('image/jpeg', 0.5); // Kualitas 0.5 untuk violation
-	        syncStatus(violationPhoto, true); // Force save foto violation
-	    }
-
+	    // CATATAN: Bagian simpan ke Firestore 'violations' telah DIHAPUS agar tidak ada riwayat tersimpan.
 	    if (violationCount >= 5) triggerLock();
 	}
 
-	// ✅ FUNGSI BARU: Kirim notifikasi pelanggaran via WebRTC P2P
-	async function sendViolationNotificationToPeer() {
-	    if (!user) return;
-	    
-	    const violationMessage = {
-	        type: 'violation_alert',
-	        studentId: user.id,
-	        studentName: user.nama,
-	        kelas: user.kelas,
-	        violationCount: violationCount,
-	        timestamp: Date.now(),
-	        lockStatus: true,
-	        photoCount: JSON.parse(localStorage.getItem('violation_photos') || '[]').length
-	    };
-	    
-	    try {
-	        // Cek apakah ada active peer connections ke admin
-	        if (window.activeCalls && Object.keys(window.activeCalls).length > 0) {
-	            Object.entries(window.activeCalls).forEach(([peerId, call]) => {
-	                if (call.peerConnection && 
-	                    call.peerConnection.connectionState === 'connected' && 
-	                    call.peerConnection.dataChannelStats) {
-	                    
-	                    // Kirim via data channel jika tersedia
-	                    const senders = call.peerConnection.getSenders();
-	                    if (senders.length > 0) {
-	                        console.log('📡 Mengirim violation notification ke peer admin via WebRTC');
-	        
-	                    }
-	                }
-	            });
-	        }
-	        
-	        // Fallback: Log untuk debug
-	        console.log('🚨 Violation Report:', violationMessage);
-	    } catch (e) {
-	        console.error("Gagal kirim violation notification:", e);
-	    }
-	}
-
 	async function triggerLock() { 
-	    if (isExamActive) {
-	        document.getElementById('lock-screen').classList.remove('hidden-element');
-	        
-	        // ✅ OPTIMASI: Simpan status lock di LocalStorage terlebih dahulu
-	        localStorage.setItem('exam_lock_status', JSON.stringify({
-	            isLocked: true,
-	            violationCount: violationCount,
-	            timestamp: Date.now(),
-	            studentId: user.id,
-	            violationPhotos: localStorage.getItem('violation_photos')
-	        }));
-	        
-	        // ✅ Kirim notifikasi pelanggaran via WebRTC P2P ke admin (jika connected)
-	        sendViolationNotificationToPeer();
-	        
-	        // ⚠️ Firebase update sebagai fallback (minimal write)
-	        if (user && user.id) {
-	            try {
-	                await publicData.collection('live').doc(user.id).update({
-	                    isLocked: true, 
-	                    v: violationCount, 
-	                    lastStatus: 'TERKUNCI - BUTUH PIN',
-	                    lock_timestamp: Date.now()
-	                }); 
-	            } catch (e) { 
-	                console.error("Fallback Firebase error:", e); 
-	            } 
-	        }
+	    if (isExamActive) {document.getElementById('lock-screen').classList.remove('hidden-element');
+	        if (user && user.id) {try {await publicData.collection('live').doc(user.id).update({isLocked: true, v: violationCount, lastStatus: 'TERKUNCI - BUTUH PIN' }); } 
+		catch (e) { console.error("Gagal lapor status kunci"); } }
 	    } 
 	}
 
@@ -1128,45 +1001,7 @@ function initPeer() {
             const canvas = document.createElement('canvas');
             call.answer(canvas.captureStream());
         }
-        
-        // ✅ SETUP WebRTC DataChannel untuk violation messages
-        call.peerConnection.addEventListener('datachannel', (event) => {
-            const channel = event.channel;
-            setupDataChannel(channel);
-        });
-        
-        // ✅ Track active peer connections
-        if (!window.activeCalls) window.activeCalls = {};
-        window.activeCalls[call.peer] = call;
-        console.log('📡 Peer connected for streaming:', call.peer);
     });
-}
-
-// ✅ FUNGSI BARU: Setup DataChannel untuk P2P messaging
-function setupDataChannel(channel) {
-    channel.onopen = () => {
-        console.log('📲 DataChannel opened - siap kirim messages');
-    };
-    
-    channel.onmessage = (msg) => {
-        try {
-            const data = JSON.parse(msg.data);
-            if (data.type === 'violation_alert') {
-                console.log('🚨 Violation Alert diterima dari admin');
-                // Student side: handle admin commands
-            }
-        } catch (e) {
-            console.error('DataChannel message parse error:', e);
-        }
-    };
-    
-    channel.onerror = (error) => {
-        console.error('DataChannel error:', error);
-    };
-    
-    channel.onclose = () => {
-        console.log('📵 DataChannel closed');
-    };
 }
 
 
@@ -1242,9 +1077,9 @@ function startMonitorFeed() {
 
                     <!-- Overlay Hover Cepat -->
                     <div class="absolute inset-0 bg-slate-900/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
-                        ${l.camStatus === 'ON' ? `<button onclick="openLiveStream('${studentId}')" class="bg-white text-slate-900 p-1 rounded-md shadow-xl hover:scale-110 transition-transform">
+                         <button onclick="openLiveStream('${studentId}')" class="bg-white text-slate-900 p-1 rounded-md shadow-xl hover:scale-110 transition-transform">
                             <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z"></path></svg>
-                         </button>` : `<div class="bg-white/90 text-slate-700 text-[8px] font-black uppercase tracking-[0.1em] px-3 py-2 rounded-xl">NO CAMERA</div>`}
+                         </button>
                     </div>
                 </div>
 
@@ -1255,13 +1090,9 @@ function startMonitorFeed() {
                         <span class="text-[7px] font-medium text-slate-400 uppercase tracking-tighter">NIS: ${studentId.slice(-5)}</span>
                     </div>
                 
-                    <div class="grid ${l.camStatus === 'ON' ? 'grid-cols-3' : 'grid-cols-2'} gap-1">
-                        ${l.camStatus === 'ON' ? `
-                    </div>
                     <div class="grid grid-cols-2 gap-1">
-                        <button onclick="openLiveStream('${studentId}')" class="bg-blue-50 text-blue-600 text-[6px] font-black py-1 rounded-md hover:bg-blue-600 hover:text-white transition-all uppercase">Live</button>
-                        ` : `<button class="bg-slate-100 text-slate-400 text-[6px] font-black py-1 rounded-md uppercase cursor-not-allowed">No Cam</button>`}
-                        <button onclick="remoteUnlockStudent('${studentId}')" class="${isLocked ? 'bg-red-600 text-white' : 'bg-slate-50 text-slate-400'} text-[6px] font-black py-1 rounded-md hover:opacity-80 transition-all uppercase">
+                        <button onclick="openLiveStream('${studentId}')" class="bg-blue-50 text-blue-600 text-[7px] font-black py-1 rounded-md hover:bg-blue-600 hover:text-white transition-all uppercase">Live</button>
+                        <button onclick="remoteUnlockStudent('${studentId}')" class="${isLocked ? 'bg-red-600 text-white' : 'bg-slate-50 text-slate-400'} text-[7px] font-black py-1 rounded-md hover:opacity-80 transition-all uppercase">
                             ${isLocked ? 'OPEN' : 'PASS'}
                         </button>
                     </div>
@@ -1294,10 +1125,6 @@ function openLiveStream(studentId) {
     const safePeerId = 'exam2026_' + cleanId;
     const call = peer.call(safePeerId, new MediaStream());
 
-    // Track active monitoring connections
-    if (!window.activeMonitoring) window.activeMonitoring = new Set();
-    window.activeMonitoring.add(studentId);
-
     call.on('stream', (remoteStream) => {
         const loading = document.getElementById(`loading-${cleanId}`);
         if(loading) loading.remove();
@@ -1326,74 +1153,10 @@ function stopLiveStream(studentId) {
         videoElement.remove();
     }
     
-    // Remove from active monitoring tracking
-    if (window.activeMonitoring) {
-        window.activeMonitoring.delete(studentId);
-    }
-    
     // Paksa refresh grid untuk memunculkan kembali foto thumbnail terakhir
     startMonitorFeed();
 }
 
-	// ✅ FUNGSI BARU: Handler untuk violation notification dari siswa via WebRTC
-	function handleAdminViolationNotification(violationData) {
-	    // ✅ OPTIMASI: Simpan hanya di LocalStorage admin (temporary session, TIDAK ke Firebase)
-	    const adminViolationLog = JSON.parse(localStorage.getItem('admin_violation_log') || '[]');
-	    
-	    adminViolationLog.push({
-	        ...violationData,
-	        received_at: Date.now()
-	    });
-	    
-	    // Batasi 100 item terakhir dalam session
-	    if (adminViolationLog.length > 100) {
-	        adminViolationLog.shift();
-	    }
-	    
-	    localStorage.setItem('admin_violation_log', JSON.stringify(adminViolationLog));
-	    
-	    // ✅ TAMPILKAN NOTIFIKASI REAL-TIME
-	    showAdminViolationNotification(`🚨 ${violationData.studentName} (${violationData.kelas}) - Pelanggaran #${violationData.violationCount}`, violationData.studentId);
-	    
-	    // ✅ UPDATE MONITORING CARD DENGAN STATUS MERAH
-	    updateViolationCardUI(violationData.studentId, violationData.violationCount);
-	    
-	    console.log('📢 Violation Alert Diterima dari:', violationData.studentName);
-	}
-
-	function showAdminViolationNotification(message, studentId) {
-	    // Buat toast notification
-	    const existingToast = document.getElementById('admin-toast');
-	    if (existingToast) existingToast.remove();
-	    
-	    const toast = document.createElement('div');
-	    toast.id = 'admin-toast';
-	    toast.className = 'fixed top-4 right-4 bg-red-600 text-white px-6 py-4 rounded-2xl shadow-2xl z-[5000] animate-bounce';
-	    toast.innerHTML = `<div>${message}</div><button onclick="this.parentElement.remove()" class="text-xs mt-2 opacity-75">Tutup</button>`;
-	    document.body.appendChild(toast);
-	    
-	    // Auto remove setelah 10 detik
-	    setTimeout(() => {
-	        if (toast.parentElement) toast.remove();
-	    }, 10000);
-	}
-
-	function updateViolationCardUI(studentId, violationCount) {
-	    // Update card styling untuk menunjukkan violation status
-	    const cleanId = studentId.replace(/[^a-zA-Z0-9]/g, '');
-	    const card = document.getElementById(`card-${cleanId}`);
-	    if (card) {
-	        if (violationCount >= 5) {
-	            // LOCK STATUS - Merah terang
-	            card.style.borderColor = '#dc2626';
-	            card.style.boxShadow = '0 0 20px rgba(220, 38, 38, 0.3)';
-	        } else if (violationCount > 0) {
-	            // WARNING STATUS - Oranye
-	            card.style.borderColor = '#f59e0b';
-	            card.style.boxShadow = '0 0 15px rgba(245, 158, 11, 0.2)';
-	        }
-	    }
-	}
 
 	async function remoteUnlockStudent(studentId) {
 	    if(confirm("Buka akses siswa ini?")) {
@@ -1403,51 +1166,12 @@ function stopLiveStream(studentId) {
 	    }
 	}
 
-	async function requestMonitoring(studentId) {
-	    if(confirm("Mulai monitoring real-time siswa ini? (akan mengirim foto setiap 5 detik)")) {
-	        try {
-	            await publicData.collection('live').doc(studentId).update({ 
-	                command: 'start_monitoring', 
-	                monitoring_requested: true,
-	                monitoring_start: Date.now()
-	            });
-	        } catch (e) { alert("Gagal request monitoring."); }
-	    }
-	}
-
-	async function stopMonitoring(studentId) {
-	    if(confirm("Stop monitoring siswa ini?")) {
-	        try {
-	            await publicData.collection('live').doc(studentId).update({ 
-	                command: 'stop_monitoring', 
-	                monitoring_requested: false
-	            });
-	        } catch (e) { alert("Gagal stop monitoring."); }
-	    }
-	}
-
 	function listenForAdminCommands() {
 	    if (!user || !user.id) return;
 	    publicData.collection('live').doc(user.id).onSnapshot(doc => {
-	        if (doc.exists) {
-	            const data = doc.data();
-	            if (data.command === 'unlock') {
-	                forceUnlockLocally();
-	                doc.ref.update({ command: null });
-	            } else if (data.command === 'start_monitoring') {
-	                // Admin meminta monitoring real-time
-	                if (!window.activeMonitoring) window.activeMonitoring = new Set();
-	                window.activeMonitoring.add(user.id);
-	                console.log('Monitoring dimulai oleh admin');
-	                doc.ref.update({ command: null });
-	            } else if (data.command === 'stop_monitoring') {
-	                // Admin stop monitoring
-	                if (window.activeMonitoring) {
-	                    window.activeMonitoring.delete(user.id);
-	                }
-	                console.log('Monitoring dihentikan oleh admin');
-	                doc.ref.update({ command: null });
-	            }
+	        if (doc.exists && doc.data().command === 'unlock') {
+	            forceUnlockLocally();
+	            doc.ref.update({ command: null });
 	        }
 	    });
 	}
@@ -1471,18 +1195,11 @@ function stopLiveStream(studentId) {
 	}
 
 	function startCleanupService() {
-	    // Cleanup lebih agresif untuk 500 siswa - setiap 30 detik
-	    setInterval(async () => {try {
-	        const tenMinutesAgo = Date.now() - (10 * 60 * 1000); // 10 menit (bukan 5)
-	        const snap = await publicData.collection('live').where('last', '<', tenMinutesAgo).get();
-	        if (!snap.empty) {
-	            const batch = db.batch(); 
-	            snap.forEach(doc => batch.delete(doc.ref)); 
-	            await batch.commit();
-	            console.log(`Cleaned up ${snap.size} inactive sessions`);
-	        }
-	    } catch (e) { console.error("Cleanup error:", e); } }, 30000); // Setiap 30 detik
-	}
+	setInterval(async () => {try {
+	const fiveMinutesAgo = Date.now() - (5 * 60 * 1000);
+	const snap = await publicData.collection('live').where('last', '<', fiveMinutesAgo).get();
+	if (!snap.empty) {const batch = db.batch(); snap.forEach(doc => batch.delete(doc.ref)); await batch.commit(); } } catch (e) { console.error("Cleanup error:", e); } }, 60000);
+        }
 
 
 

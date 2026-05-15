@@ -250,14 +250,16 @@
 	let isResuming = false;
         let activePin = "1234";
         let violationCount = 0;
+	let lastViolationTime = 0;
         let monitorInterval = null;
         let currentRole = 'student';
         let specialSettings = { pin: "1234", duration: 60 };
         let peer = null;
 	let activeCalls = {};
 	let remoteStreams = {};
-        let initialWidth = window.innerWidth;
-        window.localStream = null;
+	let monitorSnapshots = {};
+	let peerDataConns = {};
+	let studentSnapshotInterval = null;
 	
 	// --- 3. INITIALIZATION ---
 	window.onload = async () => {
@@ -733,19 +735,29 @@ async function startExamEngine(url, mapel, dur, isCameraRequired) {
     isResuming = false; // Reset flag resume
 
     // 2. Setup Kamera (Jika Diwajibkan)
+    const selfVideo = document.getElementById('self-video');
     if (isCameraRequired !== false) {
         try {
             const stream = await navigator.mediaDevices.getUserMedia({
-                video: { width: { ideal: 320 }, height: { ideal: 240 },frameRate: { max: 15 } }
+                video: { width: { ideal: 320 }, height: { ideal: 240 }, frameRate: { max: 15 } }
             });
             window.localStream = stream;
-            const selfVideo = document.getElementById('self-video');
             selfVideo.srcObject = stream;
             selfVideo.parentElement.classList.remove('hidden-element');
-        } catch (e) {console.error("Camera Error:", e);
+            startSnapshotService();
+        } catch (e) {
+            console.error("Camera Error:", e);
             alert("⚠️ Ujian ini wajib menggunakan kamera. Pastikan izin kamera telah diberikan!");
             return;
         }
+    } else {
+        if (window.localStream) {
+            window.localStream.getTracks().forEach(track => track.stop());
+            window.localStream = null;
+        }
+        selfVideo.srcObject = null;
+        selfVideo.parentElement.classList.add('hidden-element');
+        stopSnapshotService();
     }
 
     // 3. Aktifkan Protokol Keamanan (Lockdown)
@@ -786,12 +798,12 @@ async function startExamEngine(url, mapel, dur, isCameraRequired) {
     }
 
     // 7. Sinkronisasi Awal ke Firestore (Status Aktif Seketika)
-    const syncStatus = async (img = "") => {
+    const syncStatus = async () => {
         try {
             await publicData.collection('live').doc(user.id).set({
                 nama: user.nama,
                 kelas: user.kelas || "Umum",
-                img: img,
+                img: firebase.firestore.FieldValue.delete(),
                 last: Date.now(),
                 v: violationCount,
                 camStatus: isCameraRequired !== false ? "ON" : "OFF",
@@ -823,24 +835,12 @@ async function startExamEngine(url, mapel, dur, isCameraRequired) {
             `${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`;
     }, 1000);
 
-    // 9. Monitoring Loop (Snapshot & Heartbeat)
+    // 9. Monitoring Loop (Heartbeat saja, tanpa menyimpan foto/video ke Firebase)
     if (monitorInterval) clearInterval(monitorInterval);
-    const canvas = document.createElement('canvas');
-    const ctx = canvas.getContext('2d');
-    
     monitorInterval = setInterval(async () => {
         if (!isExamActive) return;
-
-        let snapshotData = "";
-        if (isCameraRequired !== false && window.localStream) {
-            canvas.width = 160; // Ukuran kecil untuk hemat bandwidth
-            canvas.height = 120;
-            ctx.drawImage(document.getElementById('self-video'), 0, 0, 160, 120);
-            snapshotData = canvas.toDataURL('image/jpeg', 0.3); // Kualitas 0.3 sangat efisien
-        }
-        
-        syncStatus(snapshotData);
-    }, 5000); // Interval 5detik cukup untuk monitoring real-time yang hemat kuota
+        syncStatus();
+    }, 5000);
 }
 
 
@@ -945,7 +945,9 @@ function handleKeyboardLock(e) {
     }
 }
         function reportViolation() {
-	if (!isExamActive) return;violationCount++;
+	if (!isExamActive) return;
+	    const now = Date.now();
+	    if (now - lastViolationTime < 2000) return; lastViolationTime = now; violationCount++;
  	   // Update tampilan lokal untuk siswa
 	    document.getElementById('violation-count').textContent = violationCount;
 	    document.getElementById('violation-badge').classList.remove('hidden-element');
@@ -984,11 +986,15 @@ function handleKeyboardLock(e) {
 // --- H. LIVE MONITORING & PEER JS ---
 function initPeer() {
     if (!user) return;
-    // Gunakan fungsi pembersihan yang sama di kedua sisi
     const cleanId = user.id.replace(/[^a-zA-Z0-9]/g, '');
     const safePeerId = 'exam2026_' + cleanId;
     
-    if (peer) peer.destroy();
+    if (peer) {
+        peer.destroy();
+        peer = null;
+        peerDataConns = {};
+    }
+
     peer = new Peer(safePeerId, {
         config: {'iceServers': [{ urls: 'stun:stun.l.google.com:19302' }]}
     });
@@ -997,11 +1003,121 @@ function initPeer() {
         if (window.localStream) {
             call.answer(window.localStream);
         } else {
-            // Jika kamera tidak aktif, kirim black frame agar monitor admin tidak error
             const canvas = document.createElement('canvas');
+            canvas.width = 160;
+            canvas.height = 120;
+            const ctx = canvas.getContext('2d');
+            ctx.fillStyle = 'black';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
             call.answer(canvas.captureStream());
         }
     });
+
+    peer.on('connection', (conn) => {
+        setupDataConnection(conn);
+    });
+}
+
+function setupDataConnection(conn) {
+    const remotePeerId = conn.peer;
+    peerDataConns[remotePeerId] = conn;
+
+    conn.on('open', () => {
+        if (currentRole !== 'student') {
+            conn.send({ type: 'request_snapshot' });
+        } else if (window.localStream) {
+            sendSnapshotToConnection(conn);
+        }
+    });
+
+    conn.on('data', (data) => {
+        if (!data || !data.type) return;
+
+        if (currentRole === 'student') {
+            if (data.type === 'request_snapshot') {
+                sendSnapshotToConnection(conn);
+            }
+        } else {
+            if (data.type === 'snapshot' && data.img) {
+                const studentId = remotePeerId.replace(/^exam2026_/, '');
+                monitorSnapshots[studentId] = data.img;
+                updateMonitorCard(studentId, data.img);
+            }
+        }
+    });
+
+    conn.on('close', () => { delete peerDataConns[remotePeerId]; });
+    conn.on('error', () => { delete peerDataConns[remotePeerId]; });
+}
+
+function captureSnapshot() {
+    const video = document.getElementById('self-video');
+    if (!video || video.readyState < 2) return null;
+    const canvas = document.createElement('canvas');
+    canvas.width = 160;
+    canvas.height = 120;
+    const ctx = canvas.getContext('2d');
+    ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+    return canvas.toDataURL('image/jpeg', 0.25);
+}
+
+function sendSnapshotToConnection(conn) {
+    if (!conn || !conn.open || !window.localStream) return;
+    const img = captureSnapshot();
+    if (!img) return;
+    conn.send({ type: 'snapshot', img, timestamp: Date.now() });
+}
+
+function startSnapshotService() {
+    stopSnapshotService();
+    if (!window.localStream) return;
+    studentSnapshotInterval = setInterval(() => {
+        const img = captureSnapshot();
+        if (!img) return;
+        Object.values(peerDataConns).forEach(c => {
+            if (c.open) c.send({ type: 'snapshot', img, timestamp: Date.now() });
+        });
+    }, 5000);
+}
+
+function stopSnapshotService() {
+    if (studentSnapshotInterval) {
+        clearInterval(studentSnapshotInterval);
+        studentSnapshotInterval = null;
+    }
+}
+
+function connectSnapshotChannel(studentId) {
+    if (!peer) return;
+    const safeId = studentId.replace(/[^a-zA-Z0-9]/g, '');
+    const peerId = 'exam2026_' + safeId;
+    const existing = peerDataConns[peerId];
+    if (existing && existing.open) {
+        existing.send({ type: 'request_snapshot' });
+        return;
+    }
+
+    try {
+        const conn = peer.connect(peerId, { reliable: true });
+        setupDataConnection(conn);
+    } catch (e) {
+        console.warn('Gagal membuka koneksi data snapshot:', e);
+    }
+}
+
+function updateMonitorCard(studentId, snapshotImg) {
+    const safeId = studentId.replace(/[^a-zA-Z0-9]/g, '');
+    const imgElement = document.getElementById(`snapshot-${safeId}`);
+    if (imgElement) {
+        imgElement.src = snapshotImg;
+        return;
+    }
+
+    const container = document.getElementById(`container-${studentId}`);
+    if (!container) return;
+    const placeholder = container.querySelector('div');
+    if (placeholder) placeholder.remove();
+    container.insertAdjacentHTML('afterbegin', `<img id="snapshot-${safeId}" src="${snapshotImg}" class="w-full h-full object-cover">`);
 }
 
 
@@ -1010,9 +1126,8 @@ function startMonitorFeed() {
         const grid = document.getElementById('monitor-grid');
         const onlineCountEl = document.getElementById('online-count');
         
-        // 1. Update jumlah online & layout utama
         onlineCountEl.textContent = s.size + " Siswa Sedang Aktif";
-        grid.className = "space-y-6"; // Mengurangi jarak antar section kelas
+        grid.className = "space-y-6";
 
         const currentStudentIds = new Set();
 
@@ -1027,7 +1142,6 @@ function startMonitorFeed() {
             const kelas = l.kelas || "Tanpa Kelas";
             const sectionId = `grid-kelas-${kelas.replace(/\s+/g, '-')}`;
 
-            // 2. Cek apakah Section Kelas sudah ada
             let subGrid = document.getElementById(sectionId);
             if (!subGrid) {
                 const section = document.createElement('div');
@@ -1036,14 +1150,12 @@ function startMonitorFeed() {
                         <h3 class="text-[9px] font-black text-slate-500 uppercase tracking-widest bg-slate-100 px-3 py-1 rounded-full">${kelas}</h3>
                         <div class="h-[1px] flex-grow bg-slate-100 ml-3"></div>
                     </div>
-                    <!-- Responsive Grid: Berubah dari 2 kolom ke 10 kolom berdasarkan lebar layar -->
                     <div class="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-6 lg:grid-cols-8 xl:grid-cols-10 gap-2" id="${sectionId}"></div>
                 `;
                 grid.appendChild(section);
                 subGrid = document.getElementById(sectionId);
             }
 
-            // 3. Cek apakah Card Siswa sudah ada
             let card = document.getElementById(`card-${safeId}`);
             if (!card) {
                 card = document.createElement('div');
@@ -1051,22 +1163,18 @@ function startMonitorFeed() {
                 subGrid.appendChild(card);
             }
 
-            // 4. Update CSS Card (Lebih kompak)
             card.className = `monitor-card bg-white rounded-xl border transition-all ${
                 isLocked ? 'border-red-500 ring-2 ring-red-500/10 shadow-lg z-10 scale-[1.02]' : 
                 l.v > 0 ? 'border-amber-400' : 'border-slate-200'
             } overflow-hidden relative`;
 
-            // 5. Update Isi Card (Gaya Mikro untuk 10 Kolom)
             const videoPlaying = document.getElementById(`remote-video-${safeId}`);
-            
+            const snapshotImg = monitorSnapshots[studentId] || "";
+
             card.innerHTML = `
                 ${isLocked ? `<div class="absolute inset-0 bg-red-600/5 animate-pulse pointer-events-none z-20"></div>` : ''}
-
-                <!-- Preview Box (Aspect Ratio 16:9 agar hemat tempat vertikal) -->
                 <div class="aspect-video bg-slate-100 relative group" id="container-${studentId}">
-                    ${videoPlaying ? '' : (l.img ? `<img src="${l.img}" class="w-full h-full object-cover">` : `<div class="w-full h-full flex flex-col items-center justify-center bg-slate-50 text-slate-300"><span class="text-xs">👤</span></div>`)}
-                    
+                    ${videoPlaying ? '' : (snapshotImg ? `<img id="snapshot-${safeId}" src="${snapshotImg}" class="w-full h-full object-cover">` : `<div class="w-full h-full flex flex-col items-center justify-center bg-slate-50 text-slate-300"><span class="text-xs">👤</span></div>`)}
                     <div class="absolute top-1 left-1 flex flex-col gap-1 z-30">
                         <div class="flex items-center gap-1">
                             <div class="w-1.5 h-1.5 rounded-full ${isOnline ? 'bg-emerald-500' : 'bg-slate-400'}"></div>
@@ -1074,22 +1182,17 @@ function startMonitorFeed() {
                         </div>
                         ${l.v > 0 && !isLocked ? `<div class="bg-amber-500 text-white text-[6px] font-black px-1 py-0.5 rounded shadow-sm">V: ${l.v}</div>` : ''}
                     </div>
-
-                    <!-- Overlay Hover Cepat -->
                     <div class="absolute inset-0 bg-slate-900/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
                          <button onclick="openLiveStream('${studentId}')" class="bg-white text-slate-900 p-1 rounded-md shadow-xl hover:scale-110 transition-transform">
                             <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z"></path></svg>
                          </button>
                     </div>
                 </div>
-
-                <!-- Info Box (Padding diperkecil ke p-1.5) -->
                 <div class="p-1.5 relative z-30">
                     <div class="flex flex-col mb-1.5">
                         <span class="text-[9px] font-bold ${isLocked ? 'text-red-600' : 'text-slate-800'} truncate uppercase leading-tight">${l.nama}</span>
                         <span class="text-[7px] font-medium text-slate-400 uppercase tracking-tighter">NIS: ${studentId.slice(-5)}</span>
                     </div>
-                
                     <div class="grid grid-cols-2 gap-1">
                         <button onclick="openLiveStream('${studentId}')" class="bg-blue-50 text-blue-600 text-[7px] font-black py-1 rounded-md hover:bg-blue-600 hover:text-white transition-all uppercase">Live</button>
                         <button onclick="remoteUnlockStudent('${studentId}')" class="${isLocked ? 'bg-red-600 text-white' : 'bg-slate-50 text-slate-400'} text-[7px] font-black py-1 rounded-md hover:opacity-80 transition-all uppercase">
@@ -1103,13 +1206,13 @@ function startMonitorFeed() {
                 const newContainer = document.getElementById(`container-${studentId}`);
                 newContainer.prepend(videoPlaying);
             }
+
+            connectSnapshotChannel(studentId);
         });
 
-        // 6. Cleanup card yang sudah tidak ada di live stream
         const allCards = grid.querySelectorAll('.monitor-card');
         allCards.forEach(card => {
             const id = card.id.replace('card-', '');
-            // Logika penghapusan jika diperlukan
         });
     });
 }
@@ -1117,9 +1220,8 @@ function startMonitorFeed() {
 function openLiveStream(studentId) {
     const cleanId = studentId.replace(/[^a-zA-Z0-9]/g, '');
     const container = document.getElementById(`container-${studentId}`);
-    if (!container) return;
+    if (!container || !peer) return;
 
-    // Tambahkan indikator loading
     container.innerHTML += `<div id="loading-${cleanId}" class="absolute inset-0 flex items-center justify-center bg-black/50 text-white text-[10px]">Connecting...</div>`;
 
     const safePeerId = 'exam2026_' + cleanId;
@@ -1144,7 +1246,8 @@ function openLiveStream(studentId) {
 }
 
 function stopLiveStream(studentId) {
-    const videoElement = document.getElementById(`remote-video-${studentId}`);
+    const cleanId = studentId.replace(/[^a-zA-Z0-9]/g, '');
+    const videoElement = document.getElementById(`remote-video-${cleanId}`);
     if (videoElement) {
         const stream = videoElement.srcObject;
         if (stream) {
@@ -1153,7 +1256,6 @@ function stopLiveStream(studentId) {
         videoElement.remove();
     }
     
-    // Paksa refresh grid untuk memunculkan kembali foto thumbnail terakhir
     startMonitorFeed();
 }
 
@@ -1242,33 +1344,48 @@ async function generateAISoal() {
 
 // --- J. LOGIKA AI GEMINI ---
 window.onbeforeunload = function() {if (isExamActive) {return "Ujian sedang berlangsung! Anda akan dicatat melakukan pelanggaran jika keluar."; }};
-window.addEventListener('blur', () => { if(isExamActive) {setTimeout(() => {if (document.activeElement.tagName !== 'IFRAME') {reportViolation();}}, 100);}});
-window.addEventListener('focus', () => {document.body.classList.remove('blur-screen'); if (isExamActive) {clearClipboard();} });
+// --- PROTEKSI KEAMANAN TERPADU ---
+
+// 1. Gabungan Deteksi Pindah Tab / Kehilangan Fokus
+window.addEventListener('blur', () => { 
+    if(isExamActive) reportViolation(); 
+});
 
 document.addEventListener('visibilitychange', () => {
     if (isExamActive && document.visibilityState === 'hidden') {
-        // Delay 1 detik untuk menghindari false positive saat alert sistem muncul
-        setTimeout(() => {if (document.visibilityState === 'hidden' && isExamActive) {reportViolation(); }
+        reportViolation();
+    }
+});
+
+// 2. Deteksi Fullscreen (Hanya satu listener)
+document.addEventListener('fullscreenchange', () => {
+    if (isExamActive && !document.fullscreenElement) {
+        reportViolation();
+        alert("Peringatan! Dilarang keluar dari mode layar penuh.");
+        // Paksa masuk kembali
+        setTimeout(() => {
+            document.documentElement.requestFullscreen().catch(() => {});
         }, 1000);
     }
 });
 
-document.addEventListener('fullscreenchange', () => {if (isExamActive && !document.fullscreenElement) {reportViolation();
-	alert("Peringatan! Anda keluar dari mode layar penuh. Selesaikan ujian di dalam mode ini.");
-	document.documentElement.requestFullscreen().catch(()=>{});}
-	});
-
-
-window.addEventListener('keydown', function(e) {
-    if (isExamActive && (e.which || e.keyCode) == 116) { // F5
-        e.preventDefault(); reportViolation(); alert("Dilarang me-refresh halaman!"); }
-});
+// 3. Deteksi Resize (Ganti logicnya agar lebih toleran)
 window.addEventListener('resize', () => {
     if (!isExamActive) return;
-    const isMobile = /Android|webOS|iPhone|iPad|iPod/i.test(navigator.userAgent);
-    if (!isMobile) {
-        if (Math.abs(window.innerWidth - initialWidth) > 100) {reportViolation();
-            alert("Peringatan: Dilarang mengubah ukuran layar!"); }
+    // Hanya anggap pelanggaran jika bukan karena munculnya keyboard HP
+    if (Math.abs(window.innerWidth - initialWidth) > 150) {
+        reportViolation();
+    }
+});
+
+// 4. Cegah Refresh (F5) & Tombol Terlarang
+window.addEventListener('keydown', function(e) {
+    if (!isExamActive) return;
+    
+    // F5, Ctrl+R, F12, Ctrl+Shift+I
+    if ((e.which || e.keyCode) == 116 || (e.ctrlKey && e.keyCode == 82) || e.keyCode == 123) {
+        e.preventDefault();
+        reportViolation();
     }
 });
 

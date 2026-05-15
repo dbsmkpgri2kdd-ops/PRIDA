@@ -1,737 +1,1641 @@
 <!DOCTYPE html>
 <html lang="id">
-
 <head>
     <meta charset="UTF-8">
-    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
-    <meta http-equiv="Pragma" content="no-cache">
-    <meta http-equiv="Expires" content="0">
-
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>PRIDA MOBILE PREMIUM</title>
-    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" rel="stylesheet">
+    <title>Exambro Pro 2026 - AI Super Edition</title>
     
-    <link rel="manifest" href="/manifest.json">
-    <meta name="theme-color" content="#001d3d">
-    <meta name="background-color" content="#001d3d">
+    <!-- 
+    SISTEM MONITORING UJIAN UNTUK 500 SISWA
+    ========================================
+    
+    <!-- Scripts & Libraries -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/html5-qrcode"></script>
+    <script src="https://cdn.jsdelivr.net/npm/qrcode/build/qrcode.min.js"></script>
+    <script src="https://unpkg.com/peerjs@1.5.2/dist/peerjs.min.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    
+    <!-- Firebase SDK Compat -->
+    <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore-compat.js"></script>
 
-<script>
-    const APP_VERSION = '1.0.6';
-    async function initPWA() {
-        const savedVersion = localStorage.getItem('app_version');
-        if (savedVersion !== APP_VERSION) {
-            localStorage.setItem('app_version', APP_VERSION);
-            if ('serviceWorker' in navigator) {
-                const regs = await navigator.serviceWorker.getRegistrations();
-                for (const reg of regs) await reg.unregister();
-            }
-            if ('caches' in window) {
-                const keys = await caches.keys();
-                await Promise.all(keys.map(k => caches.delete(k)));
-            }
-            location.replace(location.href);
-        }
+    <style>
+        body { font-family: 'Plus Jakarta Sans', sans-serif; user-select: none; background-color: #f8fafc; overflow-x: hidden; }
+        .hidden-element { display: none !important; }
+        .sidebar-active { background-color: #eff6ff; color: #2563eb; border-right: 4px solid #2563eb; }
+        iframe { width: 100%; height: 100%; border: none; border-radius: .75rem; }
+        .violation-shake { animation: shake 0.5s cubic-bezier(.36,.07,.19,.97) both; }
+        @keyframes shake { 10%, 90% { transform: translate3d(-1px, 0, 0); } 20%, 80% { transform: translate3d(2px, 0, 0); } 30%, 50%, 70% { transform: translate3d(-4px, 0, 0); } 40%, 60% { transform: translate3d(4px, 0, 0); } }
+        .sync-indicator { width: 8px; height: 8px; border-radius: 50%; display: inline-block; margin-right: 6px; background-color: #10b981; box-shadow: 0 0 8px #10b981; }
+	.blur-screen {filter: blur(20px); pointer-events: none;}
 
-        if ('serviceWorker' in navigator) {
-            navigator.serviceWorker.register('/service-worker.js').then(reg => reg.update());
-        }
-    }
-    initPWA();
-</script>
-
-
-<style>
-:root{--primary:#001d3d;--secondary:#007aff;--accent:rgba(255,255,255,0.1);--bg:#f8fbff;--white:#ffffff;--text-dark:#001d3d;--text-gray:#6c757d;--radius-lg:28px;--radius-md:12px;--shadow:0 8px 16px rgba(0,86,179,0.05);--blue-gradient:linear-gradient(135deg,#001d3d 0%,#003566 100%)}
-*{margin:0;padding:0;box-sizing:border-box;font-family:'Inter',-apple-system,sans-serif;-webkit-tap-highlight-color:transparent}
-body{background:var(--bg);color:var(--text-dark);overflow-x:hidden;overscroll-behavior-x:none;touch-action:pan-y;-webkit-user-select:none;user-select:none}
-#login-screen{position:fixed;top:0;left:0;width:100%;height:100%;background:var(--blue-gradient);z-index:5000;display:flex;align-items:center;justify-content:center;padding:24px}
-.login-card{width:100%;max-width:380px;background:rgba(255,255,255,0.95);backdrop-filter:blur(10px);border-radius:var(--radius-lg);padding:45px 35px;box-shadow:0 25px 50px rgba(0,0,0,0.2);text-align:center}
-.login-logo{width:85px;height:85px;background:var(--blue-gradient);color:white;border-radius:22px;display:flex;align-items:center;justify-content:center;margin:0 auto 24px;font-size:40px;box-shadow:0 10px 20px rgba(0,29,61,0.3)}
-.login-card h2{font-size:28px;font-weight:800;margin-bottom:8px;color:var(--primary);letter-spacing:-0.8px}
-.login-card p{color:var(--text-gray);margin-bottom:35px;font-size:14px}
-.input-group{position:relative;margin-bottom:18px}.input-group i{position:absolute;left:18px;top:50%;transform:translateY(-50%);color:var(--primary);opacity:0.6}
-.input-group input{width:100%;padding:18px 18px 18px 52px;border-radius:var(--radius-md);border:1.5px solid #e9ecef;background:#f8f9fa;font-size:15px;outline:none;transition:0.3s}
-.input-group input:focus{border-color:var(--primary);background:#fff;box-shadow:0 0 0 4px rgba(0,86,179,0.1)}
-.login-btn{width:100%;padding:18px;border-radius:var(--radius-md);border:none;background:var(--blue-gradient);color:white;font-size:16px;font-weight:700;cursor:pointer;transition:0.3s;margin-top:10px;box-shadow:0 8px 15px rgba(0,29,61,0.2)}
-#main-app{display:none}.appbar{padding:10px 20px;position:sticky;top:0;z-index:1100;display:flex;align-items:center;justify-content:space-between;height:70px;background:var(--primary);box-shadow:0 2px 10px rgba(0,0,0,0.1)}
-.appbar-left{display:flex;align-items:center;gap:15px}.appbar-left h3{color:var(--white);font-weight:800;font-size:13px;letter-spacing:-0.5px}.menu-toggle{font-size:22px;color:var(--white);cursor:pointer}
-.user-info-container{display:flex;align-items:center;gap:10px}.text-info{text-align:right}.text-info strong{display:block;color:white;font-size:12px;line-height:1}
-.profile-network{display:inline-flex;align-items:center;gap:4px;font-size:9px;margin-top:3px;font-weight:700;padding:2px 8px;border-radius:10px}.profile-network.online{background:rgba(74,222,128,0.2);color:#4ade80}.profile-network.offline{background:rgba(248,113,113,0.2);color:#f87171}
-.avatar{width:38px;height:38px;border-radius:50%;background:white;border:2px solid rgba(255,255,255,0.2);overflow:hidden;display:flex;align-items:center;justify-content:center;cursor:pointer}.avatar img{width:100%;height:100%;object-fit:cover}
-.nav-wrapper{position:fixed;bottom:0;left:0;right:0;z-index:1000;background:var(--primary);padding-bottom:env(safe-area-inset-bottom,15px);box-shadow:0 -5px 20px rgba(0,0,0,0.1)}
-.bottom-nav{display:flex;height:65px;align-items:center;justify-content:space-around}.nav-item{flex:1;display:flex;flex-direction:column;align-items:center;gap:4px;color:rgba(255,255,255,0.4);text-decoration:none;font-size:10px;font-weight:600}
-.nav-item.active{color:var(--white)}.nav-item i{font-size:18px}
-.section{position:fixed;top:70px;left:0;width:100%;height:calc(100vh - 135px);overflow-y:auto;-webkit-overflow-scrolling:touch;transform:translateX(100%);opacity:0;transition:transform 0.45s cubic-bezier(0.22,1,0.36,1),opacity 0.25s ease;visibility:hidden}
-.section.active{transform:translateX(0);opacity:1;z-index:2;visibility:visible;touch-action:pan-y}.section.exit-left{transform:translateX(-30%);opacity:0}.section.exit-right{transform:translateX(30%);opacity:0}
-.sidebar-overlay{position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,29,61,0.5);z-index:2000;display:none;backdrop-filter:blur(4px)}
-.sidebar{position:fixed;top:0;left:-300px;width:280px;height:100%;background:var(--primary);z-index:2100;transition:0.4s cubic-bezier(0.16,1,0.3,1);padding:40px 20px;color:var(--white)}.sidebar.active{left:0;box-shadow:15px 0 35px rgba(0,0,0,0.3)}
-.sidebar-item{display:flex;align-items:center;gap:14px;padding:14px 16px;border-radius:14px;font-size:14px;font-weight:600;color:rgba(255,255,255,0.75);cursor:pointer;transition:0.25s ease}.sidebar-item i{font-size:16px;width:20px;text-align:center}
-.sidebar-item:hover{background:rgba(255,255,255,0.08);color:#fff}.sidebar-item.active{background:var(--secondary);color:#fff;box-shadow:0 6px 15px rgba(0,122,255,0.35)}
-.section-title{font-size:15px;font-weight:800;margin:25px 15px 15px;color:var(--text-dark);display:flex;align-items:center;gap:8px}.section-title::after{content:'';flex:1;height:1px;background:#e0e0e0}
-.menu-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:15px 5px;padding:0 10px}.menu-card{display:flex;flex-direction:column;align-items:center;text-align:center;cursor:pointer;transition:0.2s}.menu-card:active{transform:scale(0.9)}
-.icon-box{width:52px;height:52px;border-radius:18px;display:flex;align-items:center;justify-content:center;font-size:22px;margin-bottom:8px;background:var(--white);color:#0056b3;box-shadow:var(--shadow);border:1px solid rgba(0,86,179,0.05)}
-.menu-card span{font-size:10px;font-weight:700;color:var(--text-dark);line-height:1.2}.video-item{background:var(--white);border-radius:var(--radius-md);overflow:hidden;margin:15px 10px;box-shadow:var(--shadow)}
-.video-thumb{width:100%;aspect-ratio:16/9;background:#000;position:relative;overflow:hidden;display:flex;align-items:center;justify-content:center}
-.video-thumb iframe{position:absolute;top:0;left:0;width:100%!important;height:100%!important}.video-thumb img{width:100%;height:100%;object-fit:cover}
-.video-play-btn{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);width:45px;height:45px;background:rgba(0,86,179,0.8);border-radius:50%;display:flex;align-items:center;justify-content:center;color:white}.video-info{padding:12px;font-size:13px;font-weight:700}
-@keyframes slideUp{from{transform:translateY(100%)}to{transform:translateY(0)}}
-.swipe-indicator{position:fixed;bottom:85px;left:50%;transform:translateX(-50%);display:flex;gap:6px;z-index:1200}.swipe-dot{width:6px;height:6px;border-radius:50%;background:rgba(0,0,0,0.1);transition:0.3s}.swipe-dot.active{width:16px;border-radius:6px;background:var(--primary)}
-.toast{position:fixed;top:85px;left:50%;transform:translateX(-50%);background:rgba(0,0,0,0.8);color:white;padding:10px 20px;border-radius:20px;font-size:12px;display:none;z-index:9000}
-#btnInstall{display:none;position:fixed;left:50%;bottom:40px;transform:translateX(-50%);z-index:99999;padding:18px 36px;border:none;border-radius:18px;background:linear-gradient(135deg,#25D366,#128C7E);color:#ffffff;font-size:16px;font-weight:700;letter-spacing:0.5px;box-shadow:0 10px 25px rgba(45,43,124,0.45);cursor:pointer}
-.lulus-box{animation:glow 1.5s infinite}@keyframes glow{0%{box-shadow:0 0 0 rgba(22,163,74,0.4)}50%{box-shadow:0 0 25px rgba(22,163,74,0.8)}100%{box-shadow:0 0 0 rgba(22,163,74,0.4)}}
-.confetti{position:fixed;width:8px;height:8px;top:-10px;z-index:99999;animation:fall linear forwards}@keyframes fall{to{transform:translateY(110vh) rotate(720deg);opacity:0}}
-
-/* MODIFIKASI FULL SCREEN TOTAL */
-#contentModal {
-    position: fixed;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    background: #fff;
-    z-index: 10000;
-    display: none;
-}
-
-.modal-content {
-    width: 100%;
-    height: 100%;
-    display: flex;
-    flex-direction: column;
-}
-
-.modal-body.no-padding {
-    padding: 0 !important;
-    margin: 0 !important;
-    height: 100vh;
-    overflow: hidden;
-}
-
-/* Hilangkan header modal agar tidak ada tombol X atau judul yang mengganggu */
-.modal-header {
-    display: none !important;
-}
-
-.modal-body {
-    flex: 1;
-    overflow-y: auto;
-    padding: 25px; /* Beri ruang bersih untuk teks */
-    padding-bottom: env(safe-area-inset-bottom);
-    line-height: 1.8; /* Agar teks lebih enak dibaca */
-    font-size: 16px;
-    color: #333;
-}
-
-@keyframes fadeIn {
-    from { opacity: 0; transform: translateY(20px); }
-    to { opacity: 1; transform: translateY(0); }
-}
-
-
-#externalFrame {
-    width: 100%;
-    height: 100%;
-    border: none;
-    display: block;
-}
-
-	
-/* Styling Khusus Input di dalam Modal */
-.modal-body .input-group {
-    margin-bottom: 15px;
-}
-.modal-body .input-group input {
-    width: 100%;
-    padding: 15px 15px 15px 50px;
-    border-radius: 12px;
-    border: 1.5px solid #e0e0e0;
-    font-size: 15px;
-    outline: none;
-    background: #fdfdfd;
-}
-.modal-body .input-group i {
-    position: absolute;
-    left: 18px;
-    top: 50%;
-    transform: translateY(-50%);
-    color: var(--primary);
-}
-.info-box {
-    background: #e0f2fe;
-    color: #0369a1;
-    padding: 12px;
-    border-radius: 10px;
-    font-size: 12px;
-    margin-bottom: 20px;
-    display: flex;
-    gap: 10px;
-    align-items: center;
-}
-
-
-
-
-		   
-</style>
+	/* Styling tambahan untuk kartu monitor */
+	.monitor-card {transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);}
+	.monitor-card:hover {transform: translateY(-4px);box-shadow: 0 20px 25px -5px rgb(0 0 0 / 0.1), 0 8px 10px -6px rgb(0 0 0 / 0.1); }
+	.status-ping {width: 8px;height: 8px;border-radius: 50%;position: relative;}
+	.status-ping::after {content: '';position: absolute;inset: 0;border-radius: 50%;animation: ping 1.5s cubic-bezier(0, 0, 0.2, 1) infinite;background-color: inherit;}
+	@keyframes ping {75%, 100% { transform: scale(2.5); opacity: 0; }}
+	#select-nama {white-space: normal; height: auto; word-wrap: break-word; }
+    </style>
 </head>
 
-<body>
+<body class="text-slate-800" oncontextmenu="return false">
 
-    <button id="btnInstall">?? Install Aplikasi</button>
-    <div class="toast" id="toast"></div>
-    <div id="login-screen">
-        <div class="login-card">
-            <div class="login-logo"><i class="fa-solid fa-graduation-cap"></i></div><h2>PRIDA Mobile</h2><p>Solusi Akademik Digital Terpadu</p>
-            <div class="input-group"><i class="fa-solid fa-circle-user"></i><input type="text" id="usernameInput" placeholder="Nama Pengguna" autocomplete="off"></div>
-            <div class="input-group"><i class="fa-solid fa-shield-halved"></i><input type="password" id="passwordInput" placeholder="Password (12345)"></div>
-            <button class="login-btn" onclick="handleLogin()">MASUK SEKARANG</button>
+    <!-- AUDIO NOTIFICATION -->
+    <audio id="alarm-sound" src="https://assets.mixkit.co/active_storage/sfx/951/951-preview.mp3" preload="auto"></audio>
+
+    <!-- LOCK SCREEN (HIGH Z-INDEX) -->
+    <div id="lock-screen" class="fixed inset-0 bg-slate-900/98 z-[9999] flex flex-col items-center justify-center p-6 hidden-element">
+        <div class="bg-white rounded-[2.5rem] p-10 max-w-md w-full text-center shadow-2xl">
+            <div class="w-20 h-20 bg-red-100 text-red-600 rounded-full flex items-center justify-center mx-auto mb-6 font-black text-4xl">!</div>
+            <h2 class="text-2xl font-black mb-2 text-slate-900">Akses Terkunci</h2><p class="text-slate-500 mb-8 text-sm">Terdeteksi aktivitas mencurigakan atau pelanggaran batas. Silahkan masukkan PIN Pengawas.</p>
+            <input type="password" id="unlock-pwd" class="w-full bg-slate-100 p-4 rounded-xl mb-4 text-center tracking-widest outline-none border-2 border-transparent focus:border-red-500 text-lg font-bold" placeholder="PIN PENGAWAS">
+            <button onclick="unlockApp()" class="w-full bg-red-600 text-white py-4 rounded-xl font-bold hover:bg-red-700 transition-all shadow-lg shadow-red-200">BUKA AKSES</button>
         </div>
     </div>
 
+    <!-- LOADING SCREEN -->
+    <div id="loading-overlay" class="fixed inset-0 bg-white z-[2000] flex flex-col items-center justify-center">
+        <div class="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-600 mb-4"></div>
+        <p class="font-bold text-slate-400 text-sm italic">Sinkronisasi Cloud</p>
+    </div>
 
-<div id="main-app" style="display: none;">
-	    <!-- APPBAR -->
-	<div class="appbar">
-		<div class="appbar-left"><i class="fa-solid fa-bars-staggered menu-toggle" onclick="toggleSidebar()"></i><h3>SMK PGRI 2 KEDONDONG</h3></div>
-	<!-- Tambahkan ID ini di dalam appbar-left --><div id="mainLogo" style="display:none;"></div>
+    <!-- LOGIN PAGE -->
+    <div id="login-page" class="min-h-screen flex items-center justify-center bg-slate-950 p-4">
+        <div class="bg-white/95 backdrop-blur-md rounded-[3rem] shadow-2xl w-full max-w-md p-10">
+            <div class="text-center mb-10"><h1 class="text-3xl font-black text-slate-900 uppercase">PRIDA <span class="text-blue-600">EXAMBRO</span></h1><p class="text-slate-400 text-[10px] font-bold mt-2 tracking-[0.2em]">Secured Examination System 2026</p></div>
+            <div class="space-y-4">
+                <div class="flex bg-slate-100 p-1 rounded-2xl">
+                    <button onclick="setRole('student')" id="role-std" class="flex-1 py-3 text-xs font-bold rounded-xl bg-white shadow-sm text-blue-600">SISWA</button>
+                    <button onclick="setRole('admin')" id="role-adm" class="flex-1 py-3 text-xs font-bold rounded-xl text-slate-400">ADMIN</button>
+                </div>
+                <input type="text" id="user-id" class="w-full bg-slate-50 p-4 rounded-2xl border-2 outline-none focus:border-blue-500 transition-all" placeholder="Username Admin">
+                <select id="select-kelas" class="w-full bg-slate-50 p-4 rounded-2xl border-2 outline-none hidden-element"><option value="">Pilih Kelas</option></select>
+                <select id="select-nama" class="w-full bg-slate-50 p-4 rounded-2xl border-2 outline-none hidden-element"><option value="">Pilih Nama</option></select>
+                <input type="password" id="user-pwd" class="w-full bg-slate-50 p-4 rounded-2xl border-2 outline-none focus:border-blue-500 transition-all" placeholder="Password">
+                <button onclick="handleLogin()" class="w-full bg-blue-600 text-white py-4 rounded-2xl font-black shadow-xl shadow-blue-500/20 hover:scale-[1.02] transition-all">MASUK SISTEM</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ADMIN DASHBOARD -->
+	<div id="admin-page" class="min-h-screen flex hidden-element">
+        <!-- Sidebar -->
+		<aside class="w-72 bg-white border-r flex flex-col p-8 sticky top-0 h-screen">
+		<div class="font-black text-2xl mb-12 flex items-center space-x-3 text-slate-900"><div class="w-10 h-10 bg-blue-600 rounded-xl shadow-lg flex items-center justify-center text-white text-base">A</div>
+                <span class="tracking-tighter">DASHBOARD</span>
+            </div>
+            	<nav class="space-y-3 flex-grow">
+                <button onclick="switchTab('exam')" id="tab-btn-exam" class="w-full flex items-center space-x-4 p-4 rounded-2xl sidebar-active font-bold text-sm text-left"><span>Manajemen Ujian</span></button>
+                <button onclick="switchTab('bank')" id="tab-btn-bank" class="w-full flex items-center space-x-4 p-4 rounded-2xl text-slate-400 font-bold text-sm hover:bg-slate-50 text-left"><span>Bank Soal AI</span></button>
+                <button onclick="switchTab('student')" id="tab-btn-student" class="w-full flex items-center space-x-4 p-4 rounded-2xl text-slate-400 font-bold text-sm hover:bg-slate-50 text-left"><span>Database Siswa</span></button>
+                <button onclick="switchTab('monitor')" id="tab-btn-monitor" class="w-full flex items-center space-x-4 p-4 rounded-2xl text-slate-400 font-bold text-sm hover:bg-slate-50 text-left"><span>Monitor Live</span></button>
+            	</nav>
+		<div class="p-4 bg-slate-50 rounded-2xl mb-4"><div class="flex items-center text-[9px] font-bold text-slate-400 uppercase"><span class="sync-indicator"></span> Cloud Online</div>
+            </div>
+		<button onclick="logout()" class="p-4 text-red-500 font-bold text-sm flex items-center space-x-3 hover:bg-red-50 rounded-2xl transition-all"><span>Logout</span></button>
+	</aside>
+
+
+        <!-- Main Content -->
+        <main class="flex-grow p-12 bg-slate-50 h-screen overflow-y-auto">
+        <!-- SECTION EXAM -->
+            <div id="section-exam">
+                <div class="flex justify-between items-end mb-10">
+                    <div><h2 class="text-3xl font-black text-slate-900">Manajemen Ujian</h2><p class="text-slate-400 text-xs mt-1">Kelola paket ujian dan pengaturan akses cepat.</p></div>
+                    <button onclick="openExamModal()" class="bg-blue-600 text-white px-8 py-4 rounded-2xl font-black text-sm shadow-xl shadow-blue-500/20">+ Buat Paket</button>
+                </div>
+                <div class="bg-amber-50 border-2 border-amber-200 p-8 rounded-[2.5rem] mb-10 shadow-sm">
+                    <h3 class="font-black text-amber-900 text-lg mb-6 flex items-center">⚙️ Konfigurasi Akses Cepat</h3><div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                        <div class="space-y-2"><label class="text-[10px] font-black text-amber-600 uppercase">PIN Pengawas Utama</label><input type="text" id="special-pin" class="w-full bg-white p-4 rounded-2xl border-2 border-amber-100 font-black text-amber-700 outline-none" value="1234"></div>
+                        <div class="space-y-2"><label class="text-[10px] font-black text-amber-600 uppercase">Default Durasi (Menit)</label><input type="number" id="special-duration" class="w-full bg-white p-4 rounded-2xl border-2 border-amber-100 font-bold text-amber-700 outline-none" value="60"></div>
+                        <div class="flex items-end"><button onclick="saveSpecialSettings()" class="w-full bg-amber-600 text-white py-4 rounded-2xl font-black hover:bg-amber-700 shadow-lg shadow-amber-200 transition-all">SIMPAN PERUBAHAN</button></div>
+			</div>
+                </div>
+                <div id="admin-exam-list" class="grid grid-cols-1 xl:grid-cols-2 gap-6"></div>
+            </div>
+
+	<!-- SECTION STUDENT -->
+	<div id="section-student" class="hidden-element">
+	    <div class="flex justify-between items-end mb-10">
+		<div><h2 class="text-3xl font-black text-slate-900">Database Siswa</h2><p class="text-slate-400 text-xs mt-1">Data sinkron otomatis dari Google Spreadsheet.</p></div>
+	    </div>
+
+		<!-- Panel Sinkronisasi Google Sheet (Sekarang Langsung Muncul) -->
+                <div class="bg-white p-8 rounded-[2.5rem] border mb-8 shadow-sm">
+                    <div class="flex flex-col md:flex-row items-center space-y-4 md:space-y-0 md:space-x-4">
+                        <div class="flex-grow w-full"><label class="text-[10px] font-black text-slate-400 ml-2 uppercase tracking-widest mb-2 block">Link Google Spreadsheet (CSV/Publish to Web)</label><input type="text" id="sheet-url" class="w-full bg-slate-50 p-4 rounded-2xl outline-none border-2 border-transparent focus:border-emerald-500 transition-all text-sm" placeholder="https://docs.google.com/spreadsheets/d/..."></div>
+                        <div class="flex items-end h-full pt-6"><button id="btn-sync-sheet" onclick="saveAndSyncSheet()" class="bg-emerald-600 text-white px-8 py-4 rounded-2xl font-black text-xs shadow-lg shadow-emerald-100 flex items-center hover:bg-emerald-700 transition-all min-w-[200px] justify-center"><span id="sync-text">SIMPAN & SINKRON</span></button></div>
+                    </div>
+                    <p class="text-[9px] text-slate-400 mt-4 italic">*Perubahan data dilakukan langsung di Google Sheet. Klik tombol di atas untuk menyegarkan database di aplikasi.</p>
+                </div>
+	    
+	    <div class="bg-white rounded-[2.5rem] border overflow-hidden shadow-sm">
+	        <table class="w-full text-left">
+	            <thead class="bg-slate-50 border-b"><tr><th class="px-8 py-5 text-[10px] font-black uppercase text-slate-400">NIS</th><th class="px-8 py-5 text-[10px] font-black uppercase text-slate-400">Nama Lengkap</th>
+                    <th class="px-8 py-5 text-[10px] font-black uppercase text-slate-400">Kelas</th><th class="px-8 py-5 text-[10px] font-black uppercase text-slate-400">Password</th></tr></thead>
+	            <tbody id="admin-student-list" class="divide-y"><!-- Data akan diisi otomatis oleh JavaScript --></tbody>
+	        </table>
+	    </div>
 	</div>
 
-    <div class="sidebar-overlay" id="sidebarOverlay" onclick="toggleSidebar()"></div>
+            <!-- SECTION MONITOR -->
+            <div id="section-monitor" class="hidden-element"><div class="flex justify-between items-end mb-10"><div><h2 class="text-3xl font-black text-slate-900">Live Monitoring</h2><p class="text-slate-400 text-xs mt-1" id="online-count">0 Siswa Sedang Aktif</p></div><button onclick="clearMonitorData()" class="text-red-500 font-bold text-[10px] uppercase border-b border-red-200">Bersihkan Feed Pasif</button></div><div id="monitor-grid" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6"></div></div>
 
-    <div class="sidebar" id="sidebar">
-        <div style="padding: 20px 15px; margin-bottom: 20px; border-bottom: 1px solid rgba(255,255,255,0.1); display: flex; align-items: center; gap: 15px;">
-            <label for="fileInput" class="avatar" id="userAvatar" style="width: 50px; height: 50px; background: white; border-radius: 50%; display: flex; align-items: center; justify-content: center; cursor: pointer; flex-shrink: 0;"><i class="fa-solid fa-user-tie" id="placeholderIcon" style="color: var(--primary); font-size: 24px;"></i></label>
-            <input type="file" id="fileInput" accept="image/*" style="display:none" onchange="previewImage(event)">
-            <div style="overflow: hidden;">
-                <strong id="displayUserName" style="color: white; display: block; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">User</strong>
-                <div id="networkStatus" class="profile-network online" style="color: #4ade80; font-size: 11px; display: flex; align-items: center; gap: 5px;"><i class="fa-solid fa-circle" style="font-size: 7px;"></i> Online</div>
+            <!-- SECTION BANK AI -->
+            <div id="section-bank" class="hidden-element">
+                <div class="flex justify-between items-end mb-10"><h2 class="text-3xl font-black text-slate-900">Bank Soal AI</h2><button onclick="openModal('modal-ai')" class="bg-indigo-600 text-white px-8 py-4 rounded-2xl font-black text-xs">✨ Generate Soal Baru</button></div>
+                <div id="ai-question-list" class="grid grid-cols-1 gap-4"></div>
             </div>
-        </div>
-        <div style="margin-bottom: 25px; padding: 0 15px;"><h4 style="font-size: 16px; font-weight: 800; color: white; margin:0;">PRIDA SCHOOL</h4><p style="font-size: 10px; color: rgba(255,255,255,0.5);">Excellence in Technology</p></div>
+        </main>
+    </div>
 
-        <div style="display: flex; flex-direction: column; gap: 4px; padding: 0 9px;">
-            <div class="sidebar-item active" onclick="showSection('profil', this); toggleSidebar()"><i class="fa-solid fa-house-user"></i> Beranda Utama</div>
-            <div class="sidebar-item" onclick="toggleSidebar()"><i class="fa-solid fa-user-gear"></i> Pengaturan</div>
-            <div class="sidebar-item" onclick="toggleSidebar()"><i class="fa-solid fa-bell"></i> Notifikasi</div>
-            <div class="sidebar-item" onclick="handleLogout()" style="color: #ff6b6b;"><i class="fa-solid fa-power-off"></i> Logout</div>
+	<!-- STUDENT DASHBOARD -->
+	<div id="student-page" class="min-h-screen bg-slate-50 hidden-element">
+	    <header class="bg-white border-b px-4 py-3 flex justify-between items-center sticky top-0 z-50 shadow-sm">
+	        <div class="flex items-center space-x-3"><div class="w-10 h-10 bg-blue-600 rounded-xl flex items-center justify-center text-white font-black text-lg shadow-md">S</div><div><h3 id="display-std-name" class="font-bold text-slate-900 text-sm leading-none">Peserta</h3><p class="text-[8px] text-emerald-500 font-bold tracking-wider uppercase mt-1">● Secure Connection</p></div></div>
+	        <button onclick="logout()" class="text-red-500 font-black text-[10px] border border-red-100 px-3 py-2 rounded-lg uppercase">Keluar</button>
+	    </header>
+
+	    <main class="p-4">
+	        <div class="grid grid-cols-2 gap-3 mb-6">
+	            <div onclick="switchStudentView('scheduled')" class="bg-white p-5 rounded-3xl border border-slate-100 shadow-sm active:scale-95 transition-all cursor-pointer text-center"><div class="w-12 h-12 bg-blue-50 text-blue-600 rounded-2xl flex items-center justify-center mx-auto mb-3 text-xl">📅</div><span class="font-bold text-slate-800 text-xs block">Ujian Terjadwal</span></div>
+	            <div onclick="simulateScan()" class="bg-white p-5 rounded-3xl border border-slate-100 shadow-sm active:scale-95 transition-all cursor-pointer text-center"><div class="w-12 h-12 bg-emerald-50 text-emerald-600 rounded-2xl flex items-center justify-center mx-auto mb-3 text-xl">📷</div><span class="font-bold text-slate-800 text-xs block">Scan QR Code</span></div>
+	            <div onclick="switchStudentView('manual')" class="bg-white p-5 rounded-3xl border border-slate-100 shadow-sm active:scale-95 transition-all cursor-pointer text-center col-span-2"><div class="flex items-center justify-center space-x-4"><div class="w-10 h-10 bg-amber-50 text-amber-600 rounded-xl flex items-center justify-center text-lg">🔗</div><span class="font-bold text-slate-800 text-xs">Input Link Manual</span></div></div>
+	        </div>
+	        <div id="view-scheduled"><h2 class="text-lg font-black mb-4 text-slate-900 flex items-center"><span class="w-1 h-5 bg-blue-600 rounded-full mr-2"></span>Pilih Mata Pelajaran</h2><div id="student-exam-list" class="grid grid-cols-2 gap-3"></div></div>
+	        <div id="qr-reader-container" class="hidden-element bg-white p-6 rounded-3xl border shadow-xl mx-auto mb-6 text-center"><div id="qr-reader" class="rounded-xl overflow-hidden mb-4 bg-slate-100"></div><button onclick="stopQR()" class="text-red-500 font-bold text-xs uppercase p-2">Batalkan</button></div>
+			<div id="view-manual" class="hidden-element bg-white p-6 rounded-3xl border shadow-xl text-center"><h2 class="text-xl font-black mb-2">Tempel Link</h2><p class="text-slate-400 text-[10px] mb-6 uppercase font-bold tracking-widest">Masukkan URL Google Form atau LMS</p>
+			<input type="text" id="manual-url" class="w-full bg-slate-50 p-4 rounded-2xl mb-4 border focus:border-blue-500 outline-none text-sm font-medium" placeholder="https://forms.gle/...">
+			<button onclick="startManualExam()" class="w-full bg-blue-600 text-white py-4 rounded-2xl font-bold shadow-lg shadow-blue-100 active:bg-blue-700 transition-all uppercase text-xs tracking-widest">BUKA UJIAN</button>
+	        <button onclick="switchStudentView('scheduled')" class="mt-6 text-slate-400 text-[10px] font-bold uppercase tracking-widest block w-full text-center">← Kembali ke Jadwal</button>
+			</div>
+
+	    </main>
+
+	</div>
+	<div id="exam-viewer" class="fixed inset-0 bg-white z-[500] flex flex-col hidden-element">
+	    <header class="bg-slate-900 text-white px-4 py-2 flex justify-between items-center shadow-lg">
+	        <div class="flex flex-col"><h4 id="view-mapel" class="font-bold text-xs uppercase truncate w-32">MAPEL</h4><div id="exam-timer" class="text-blue-400 font-mono font-bold text-sm tracking-tighter">00:00:00</div></div>
+	        <div class="flex items-center space-x-3">
+	            <div class="w-16 h-20 bg-black rounded-lg border border-white/20 overflow-hidden relative shadow-inner"><video id="self-video" class="w-full h-full object-cover" autoplay muted playsinline></video><div id="violation-badge" class="absolute top-0 right-0 bg-red-600 text-[8px] px-1 font-bold hidden-element animate-pulse">! <span id="violation-count">0</span></div></div>
+	            <button onclick="confirmFinishExam()" class="bg-red-600 px-4 py-2 rounded-xl text-[10px] font-black uppercase active:bg-red-700">Selesai</button>
+	        </div>
+	    </header>
+	    <div id="exam-frame-container" class="flex-grow bg-slate-100 relative"><!-- Iframe akan mengisi seluruh sisa layar --></div>
+	</div>
+
+    <!-- MODALS -->
+    <!-- Modal Paket Ujian -->
+    <div id="modal-exam" class="hidden-element fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-[3000] flex items-center justify-center p-4">
+        <div class="bg-white w-full max-w-3xl rounded-[4rem] p-12 max-h-[90vh] overflow-y-auto shadow-2xl">
+            <h3 class="text-3xl font-black mb-8" id="exam-modal-title">Konfigurasi Ujian</h3>
+            <input type="hidden" id="edit-exam-id">
+            <div class="grid grid-cols-2 gap-6">
+                <div class="col-span-2 space-y-2"><label class="text-[10px] font-black uppercase ml-4">Mata Pelajaran</label><input type="text" id="ex-mapel" class="w-full bg-slate-50 p-5 rounded-3xl outline-none font-bold focus:ring-2 ring-blue-500 transition-all"></div>
+                <div class="col-span-2 space-y-2"><label class="text-[10px] font-black uppercase ml-4">Target Kelas (Centang Kelas)</label><div id="class-checkbox-container" class="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-6 gap-2 bg-slate-50 p-4 rounded-3xl border-2 border-transparent focus-within:border-blue-500 max-h-40 overflow-y-auto"><p class="text-[10px] text-slate-400 italic">Memuat daftar kelas...</p></div></div>
+		<div class="space-y-2"><label class="text-[10px] font-black uppercase ml-4">Tanggal Ujian</label><input type="date" id="ex-date" class="w-full bg-slate-50 p-5 rounded-3xl outline-none transition-all"></div>
+                <div class="space-y-2"><label class="text-[10px] font-black uppercase ml-4">Durasi (Menit)</label><input type="number" id="ex-duration" class="w-full bg-slate-50 p-5 rounded-3xl outline-none transition-all"></div>
+                <div class="space-y-2"><label class="text-[10px] font-black uppercase ml-4">Token Masuk</label><input type="text" id="ex-token" class="w-full bg-slate-50 p-5 rounded-3xl outline-none font-black uppercase text-blue-600 transition-all"></div>
+                <div class="space-y-2"><label class="text-[10px] font-black uppercase ml-4">PIN Pengawas</label><input type="text" id="ex-pin" class="w-full bg-slate-50 p-5 rounded-3xl outline-none font-black text-amber-600 transition-all"></div>
+                <div class="col-span-2 space-y-2"><label class="text-[10px] font-black uppercase ml-4">Link Google Form / LMS</label><input type="text" id="ex-link" class="w-full bg-slate-50 p-5 rounded-3xl outline-none transition-all" placeholder="https://..."></div>
+				<div class="col-span-2 flex space-x-4">
+					<div class="flex-1 flex items-center space-x-3 p-4 bg-slate-50 rounded-2xl"><input type="checkbox" id="ex-active" checked class="w-5 h-5 accent-blue-600"><span class="text-[10px] font-black uppercase">Ujian Aktif</span></div>
+					<div class="flex-1 flex items-center space-x-3 p-4 bg-slate-50 rounded-2xl"><input type="checkbox" id="ex-camera" checked class="w-5 h-5 accent-blue-600"><span class="text-[10px] font-black uppercase">Wajib Kamera</span></div>
+				</div>
+            </div>
+            <div class="flex space-x-4 mt-10">
+                <button onclick="closeModal('modal-exam')" class="flex-1 py-5 font-bold text-slate-400">Batalkan</button>
+                <button onclick="saveExam()" class="flex-1 bg-blue-600 text-white py-5 rounded-[2rem] font-black shadow-xl shadow-blue-100">SIMPAN PAKET</button>
+            </div>
         </div>
     </div>
 
-        <!-- Content Sections -->
-        <div class="section active" id="profil">
-            <div class="section-title">Kelembagaan</div>
-            <div class="menu-grid" id="grid-lembaga">
-                <div class="menu-card static-item" onclick="openDynamicContent('Sejarah Lembaga')"><div class="icon-box" style="background: #eef2ff; color: #4338ca;"><i class="fa-solid fa-clock-rotate-left"></i></div><span>Sejarah Lembaga</span></div>
-                <div class="menu-card static-item" onclick="openDynamicContent('Identitas Sekolah')"><div class="icon-box" style="background: #e0f2fe; color: #0369a1;"><i class="fa-solid fa-school"></i></div><span>Identitas Sekolah</span></div>
-                <div class="menu-card static-item" onclick="fetchAndShowPTK()"><div class="icon-box" style="background: #ecfdf5; color: #047857;"><i class="fa-solid fa-chalkboard-user"></i></div><span>Daftar PTK</span></div>
-                <div class="menu-card static-item" onclick="openDynamicContent('Jurusan SMK')"><div class="icon-box" style="background: #fff7ed; color: #b45309;"><i class="fa-solid fa-microchip"></i></div><span>Jurusan SMK</span></div>
-            </div>
-            <div class="section-title">Akademik & Siswa</div>
-            <div class="menu-grid" id="grid-profil">
-                <div class="menu-card static-item" onclick="window.location.href='exambro.html'"><div class="icon-box"><i class="fa-solid fa-laptop-code"></i></div><span>Ujian (Exambro)</span></div>
-                <div class="menu-card static-item" onclick="openDynamicContent('Tracer Alumni')"><div class="icon-box"><i class="fa-solid fa-location-dot"></i></div><span>Tracer Alumni</span></div>
-                <div class="menu-card static-item" onclick="openPengumuman()"><div class="icon-box"><i class="fa-solid fa-bullhorn"></i></div><span>Pengumuman</span></div>
-            </div>
-            <div class="section-title">Game Edukasi</div><div class="menu-grid" id="grid-game"></div>
-        </div>
+	<!-- MODAL AI GENERATOR -->
+	<div id="modal-ai" class="hidden-element fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-[3000] flex items-center justify-center p-4">
+	<div class="bg-white w-full max-w-md rounded-[3rem] p-10 shadow-2xl">
+	<h3 class="text-2xl font-black mb-2 text-indigo-600">✨ AI Question Generator</h3><p class="text-slate-400 text-xs mb-8">Gunakan kecerdasan buatan untuk membuat bank soal otomatis.</p>
+		<div class="space-y-4">
+		<div class="space-y-1"><label class="text-[10px] font-black uppercase ml-2">Topik/Materi</label><input type="text" id="ai-topic" class="w-full bg-slate-50 p-4 rounded-2xl outline-none border focus:border-indigo-500" placeholder="Contoh: Fotosintesis Biologi Kelas 7"></div>
+		<div class="space-y-1"><label class="text-[10px] font-black uppercase ml-2">Jumlah Soal</label><input type="number" id="ai-count" class="w-full bg-slate-50 p-4 rounded-2xl outline-none border" value="5" max="10"></div>
+		<div id="ai-loading" class="hidden-element flex items-center justify-center p-4"><div class="animate-spin rounded-full h-6 w-6 border-b-2 border-indigo-600 mr-3"></div><span class="text-xs font-bold text-indigo-600 uppercase">AI sedang berpikir...</span></div>
+		<div class="flex space-x-3 pt-4"><button onclick="closeModal('modal-ai')" class="flex-1 py-4 font-bold text-slate-400 text-xs uppercase">Batal</button><button id="ai-btn" onclick="generateAISoal()" class="flex-1 bg-indigo-600 text-white py-4 rounded-2xl font-black text-xs shadow-lg shadow-indigo-100">GENERATE</button></div>
+		</div>
+		</div>
+	</div>
 
-        <div class="section" id="layanan"><div class="section-title">Layanan Publik</div><div class="menu-grid" id="grid-layanan"></div></div>
-        <div class="section" id="literasi"><div class="section-title">Literasi Digital</div><div class="menu-grid" id="grid-literasi"></div></div>
-        <div class="section" id="media"><div class="section-title">Media Sosial</div><div class="menu-grid" id="grid-media"></div><div class="section-title">Galeri Video</div><div class="video-list" id="video-profil"></div></div>
-        <div class="swipe-indicator" id="swipeIndicator"><div class="swipe-dot active"></div><div class="swipe-dot"></div><div class="swipe-dot"></div><div class="swipe-dot"></div></div>
-        <div class="nav-wrapper">
-            <div class="bottom-nav">
-                <a href="#" class="nav-item active" onclick="showSection('profil', this)"><i class="fa-solid fa-house"></i><span>Beranda</span></a>
-                <a href="#" class="nav-item" onclick="showSection('layanan', this)"><i class="fa-solid fa-briefcase"></i><span>Layanan</span></a>
-                <a href="#" class="nav-item" onclick="showSection('literasi', this)"><i class="fa-solid fa-book-open"></i><span>Literasi</span></a>
-                <a href="#" class="nav-item" onclick="showSection('media', this)"><i class="fa-solid fa-clapperboard"></i><span>Media</span></a>
-            </div>
-        </div>
-    </div>
-
-    <div id="contentModal">
-        <div class="modal-content">
-            <div class="modal-header"><h2 id="modalTitle">Judul</h2><div class="close-modal" onclick="closeModal()"><i class="fa-solid fa-arrow-left"></i></div></div>
-            <div class="modal-body" id="modalBody"></div>
-        </div>
-    </div>
-
-
+	
     <script>
-        // --- CONSTANTS & DATA ---
-        const KELULUSAN_API = 'https://script.google.com/macros/s/AKfycbwE4oaM8yqhsHdyL6aEA4b0y-Z_V-UBpVw7RsJg0oBQeouffCS1W8yEORXBPnE4u7oHyg/exec';
-        const API_URL = 'https://script.google.com/macros/s/AKfycbzdUXE8vqAH7g2wa-XnvQWZm1-4cXxMlOjlxsUAufOhjx8OcMfcYe2U8OTa_nKxmsxu/exec';
-        const PTK_API_URL = 'https://script.google.com/macros/s/AKfycbxVPghKfdnp99pACz0akNkwD7cTN5xobHZg8lBGF8x7OcopVTTdubahMfkBYvNjfr_5Wg/exec';
 
-        const DYNAMIC_DATA = {
-            'Sejarah Lembaga': `
-                <p><b>Pendirian SMK PGRI 2 Kedondong</b> dilatarbelakangi oleh kondisi di Kecamatan Kedondong dan sekitarnya (Way Lima, Way Khilau, Padang Cermin Kabupaten Lampung Selatan—sekarang menjadi Kabupaten Pesawaran—dan Kecamatan Pardasuka Kabupaten Tanggamus) yang pada saat itu belum memiliki Sekolah Menengah Kejuruan (SMK) bidang Teknologi.</p><br>
-                <p>SMK PGRI 2 Kedondong didirikan oleh panitia yang dimotori oleh DR. Andi Munandar, M.M., M.Si. pada tahun 2003. Sekolah ini langsung menerima siswa baru angkatan pertama pada tahun pelajaran 2003/2004 berdasarkan Surat Keputusan Pengurus Yayasan Pembina Lembaga Pendidikan Persatuan Guru Republik Indonesia (YPLP-PGRI) Nomor: 24/C/YPLP-PGRI/V/2004 tertanggal 22 Mei 2004.</p><br>
-                <p>Izin operasional sekolah diterbitkan dengan Nomor: 42.5/966/11.2/2006 pada tanggal 24 Februari 2006 oleh Kepala Dinas Pendidikan Kabupaten Lampung Selatan. Sekolah ini berdiri di atas tanah seluas 8.000 m² milik Drs. Hi. Aminullah Ihsan.</p><br>
-                <p>Berdasarkan Undang-Undang Nomor 33 Tahun 2007, wilayah ini resmi menjadi bagian dari Kabupaten Pesawaran. Peresmian pembentukan Kabupaten Pesawaran dilakukan pada 2 November 2007 oleh Mendagri atas nama Presiden Republik Indonesia.</p>`,
-
-            'Identitas Sekolah': `
-                <div style="line-height: 1.6;">
-                    <h3 style="margin-bottom: 15px;">A. IDENTITAS SEKOLAH</h3>
-                    <table style="width: 100%; border-collapse: collapse;">
-                        <tr><td style="width: 140px; padding: 5px 0;">Nama Sekolah</td><td style="width: 10px;">:</td><td><b>SMKS PGRI 2 KEDONDONG</b></td></tr>
-                        <tr><td style="padding: 5px 0;">NPSN</td><td>:</td><td>10811003</td></tr>
-                        <tr><td style="padding: 5px 0;">Jenjang</td><td>:</td><td>SMK</td></tr>
-                        <tr><td style="padding: 5px 0;">Status</td><td>:</td><td>Swasta</td></tr>
-                        <tr><td style="padding: 5px 0; vertical-align: top;">Alamat</td><td style="vertical-align: top;">:</td><td>JL. TRITURA KEDONDONG</td></tr>
-                        <tr><td style="padding: 5px 0;">RT / RW</td><td>:</td><td>1 / 1</td></tr>
-                        <tr><td style="padding: 5px 0;">Kode Pos</td><td>:</td><td>35381</td></tr>
-                        <tr><td style="padding: 5px 0;">Kelurahan</td><td>:</td><td>Kedondong</td></tr>
-                        <tr><td style="padding: 5px 0;">Kecamatan</td><td>:</td><td>Kec. Kedondong</td></tr>
-                        <tr><td style="padding: 5px 0;">Kabupaten</td><td>:</td><td>Kab. Pesawaran</td></tr>
-                        <tr><td style="padding: 5px 0;">Provinsi</td><td>:</td><td>Prov. Lampung</td></tr>
-                    </table>
-                </div>`,
-
-            'Jurusan SMK': `
-                <p>Tersedia 6 Jurusan Unggulan:</p>
-                <ul style="padding-left: 20px; margin-top: 10px;">
-                    <li>TKR (Teknik Kendaraan Ringan)</li>
-                    <li>TSM (Teknik Sepeda Motor)</li>
-                    <li>TKJ (Teknik Komputer dan Jaringan)</li>
-                    <li>TAV (Teknik Audio Video)</li>
-                    <li>BD (Bisnis Digital)</li>
-                    <li>LPS (Layanan Perbankan Syariah)</li>
-                </ul>`
+// --- A. SETUP CONFIGURATION & FIREBASE ---
+        const apiKey = "AIzaSyBrpMLLakAoM5HIL0Vax91OI0wX371Bgxc";
+        const firebaseConfig = {
+            apiKey: "AIzaSyDOkyWxtvVpwir6nbhEB3MNd44Caz_RWJU",
+            authDomain: "studio-4448301263-a6cd9.firebaseapp.com",
+            projectId: "studio-4448301263-a6cd9",
+            storageBucket: "studio-4448301263-a6cd9.firebasestorage.app",
+            messagingSenderId: "578574487721",
+            appId: "1:578574487721:web:c153cee7b19304b75d59b8"
         };
 
+        firebase.initializeApp(firebaseConfig);
+        const auth = firebase.auth();
+        const db = firebase.firestore();
+        
+        // OPTIMASI FIRESTORE untuk 500 siswa - Hemat kuota & performa
+        db.settings({ 
+            merge: true,
+            cacheSizeBytes: firebase.firestore.CACHE_SIZE_UNLIMITED // Cache unlimited untuk performa
+        });
+        
+        // Enable offline persistence untuk mengurangi reads
+        db.enablePersistence({ synchronizeTabs: true }).catch(err => {
+            console.warn("Persistence error:", err);
+        });
+
+        const appId = 'exambro-system-2026';
+        const publicData = db.collection('artifacts').doc(appId).collection('public').doc('data');
+
+        // --- 2. GLOBAL STATE ---
+        let user = null;
+        let isExamActive = false;
+        let isResuming = false;
+        let activePin = "1234";
+        let violationCount = 0;
+        let monitorInterval = null;
+        let currentRole = 'student';
+        let specialSettings = { pin: "1234", duration: 60 };
+        let peer = null;
+        let activeCalls = {};
+        let remoteStreams = {};
+        let initialWidth = window.innerWidth;
+        window.localStream = null;
+        window.isCameraRequired = false;
+        window.studentSnapshots = {};
+        window.adminDataConnections = {};
+        window.studentDataConnections = {};
+        window.remoteSnapshots = {};
+        window.activeMonitoring = new Set();
+	
+	// --- 3. INITIALIZATION ---
+	window.onload = async () => {
+		if ('serviceWorker' in navigator) {navigator.serviceWorker.getRegistrations().then(function(registrations) {
+		for(let registration of registrations) {registration.unregister(); }}); }
+	try {await auth.signInAnonymously(); document.getElementById('loading-overlay').classList.add('hidden-element');
+
+        // 1. CEK SESSION LOGIN
+        const savedSession = localStorage.getItem('exambro_session');
+	        if (savedSession) {
+	            const sessionData = JSON.parse(savedSession); 
+                if (sessionData.role === 'admin') {
+                    user = sessionData.user;
+                    showPage('admin-page'); initPeer(); syncAdminData(); startMonitorFeed();
+	                syncStudentData(); initPeer(); listenForAdminCommands(); 
+ 	           } 
+	        }
+
+	        // 2. LOGIKA AUTO-RESUME UJIAN
+	        const activeExam = localStorage.getItem('active_exam_state');
+	        if (activeExam) {const examData = JSON.parse(activeExam); const now = Date.now();
+	            if (now < examData.endTime) {isResuming = true; activePin = examData.pin; 
+	                const remainingMinutes = Math.round((examData.endTime - now) / 60000);
+	                startExamEngine(examData.url, examData.mapel, remainingMinutes, examData.isCamera);
+	            } else {localStorage.removeItem('active_exam_state');}
+	        }
+
+	        // 3. JALANKAN SERVICE DASAR
+	        setRole('student'); syncSpecialSettings(); loadKelas(); startCleanupService(); loadSheetConfig();} catch (e) {
+	        console.error("Init Error:", e);}
+	};
 
 
-        let currentTabIndex = 0;
-        const sectionIds = ['profil', 'layanan', 'literasi', 'media'];
 
-        // --- AUTH SYSTEM ---
-        function handleLogin() {
-            const user = document.getElementById('usernameInput').value;
-            const pass = document.getElementById('passwordInput').value;
-            if (user.trim() !== "" && pass === "12345") {
-                localStorage.setItem('isLoggedIn', 'true');
-                localStorage.setItem('currentUserName', user);
-                initApp();
-            } else {
-                alert("Nama pengguna atau password salah");
+// --- B. AUTHENTICATION & ROLE MANAGEMENT ---
+async function handleLogin() {
+    const pwdInput = document.getElementById('user-pwd');
+    const pwd = pwdInput.value;
+    const userIdInput = document.getElementById('user-id');
+    const selectNamaInput = document.getElementById('select-nama');
+    const loginBtn = document.querySelector('button[onclick="handleLogin()"]');
+
+    if (!pwd) { alert("Password wajib diisi!"); return; }
+    loginBtn.disabled = true;
+    loginBtn.innerHTML = "Memverifikasi...";
+
+    try {
+        if (currentRole === 'admin') {
+            // Pengamanan Admin Sederhana (Sebaiknya gunakan Firebase Auth di produksi)
+            if (userIdInput.value === 'admin' && pwd === 'admin123') {
+                user = { id: 'admin', nama: 'Administrator' };
+                const adminData = { role: 'admin', user: user, time: Date.now() };
+                localStorage.setItem('exambro_session', JSON.stringify(adminData));
+                initPeer();  
+                showPage('admin-page'); 
+                syncAdminData(); 
+                startMonitorFeed();
+            } else { 
+                alert("Username atau Password Admin Salah!"); 
+            }
+        } else {
+            const userId = selectNamaInput.value;
+            if (!userId) { 
+                alert("Silahkan pilih nama Anda!"); 
+                loginBtn.disabled = false; 
+                loginBtn.innerHTML = "MASUK SISTEM"; 
+                return; 
+            }
+
+            const doc = await publicData.collection('users').doc(userId).get();
+            if (doc.exists) {
+                const userData = doc.data();
+                if (userData.pwd.toString() === pwd.toString()) {
+                    user = { id: doc.id, nama: userData.nama, kelas: userData.kelas, nis: userData.nis };
+                    const sessionData = { role: 'student', user: user, time: Date.now() };
+                    localStorage.setItem('exambro_session', JSON.stringify(sessionData));
+                    
+                    document.getElementById('display-std-name').textContent = user.nama;
+                    showPage('student-page'); 
+                    syncStudentData(); 
+                    initPeer(); 
+                    listenForAdminCommands();
+                } else { 
+                    alert("Password Siswa Salah!"); 
+                }
+            } else { 
+                alert("Data tidak ditemukan!"); 
             }
         }
-
-        function handleLogout() {
-            localStorage.removeItem('isLoggedIn');
-            localStorage.removeItem('currentUserName');
-            location.reload();
-        }
-
-        function initApp() {
-            if (localStorage.getItem('isLoggedIn') === 'true') {
-                document.getElementById('login-screen').style.display = 'none';
-                document.getElementById('main-app').style.display = 'block';
-                document.getElementById('displayUserName').innerText = localStorage.getItem('currentUserName');
-                const savedAvatar = localStorage.getItem('userProfileAvatar');
-                if (savedAvatar) updateAvatarUI(savedAvatar);
-                fetchSpreadsheetData();
-                updateNetwork();
-            }
-        }
-
-
-        async function fetchAndShowPTK() {
-            openModal('Daftar PTK', 'Memuat data guru...');
-            try {
-                const response = await fetch(PTK_API_URL);
-                const dataGuru = await response.json();
-                let html = '<div style="display:grid; gap:10px;">';
-                dataGuru.forEach(guru => {
-                    html += `<div style="display:flex; align-items:center; gap:12px; background:#f8fbff; padding:10px; border-radius:12px;">
-                                <img src="${guru.Foto || ''}" style="width:50px; height:50px; border-radius:8px; object-fit:cover;">
-                                <div><h4 style="font-size:14px;">${guru.Nama}</h4><p style="font-size:11px; color:gray;">${guru.Jabatan}</p></div>
-                             </div>`;
-                });
-                document.getElementById('modalBody').innerHTML = html + '</div>';
-            } catch (e) { document.getElementById('modalBody').innerHTML = 'Gagal memuat data.'; }
-        }
-
-        // --- NAVIGATION & UI LOGIC ---
-        function showSection(id, el, direction = 'left') {
-            const newIndex = sectionIds.indexOf(id);
-            if (newIndex === currentTabIndex) return;
-            const currentSection = document.querySelector('.section.active');
-            const nextSection = document.getElementById(id);
-            if (currentSection) {
-                currentSection.classList.remove('active');
-                currentSection.classList.add(direction === 'left' ? 'exit-left' : 'exit-right');
-                setTimeout(() => currentSection.classList.remove('exit-left', 'exit-right'), 450);
-            }
-            nextSection.classList.add('active');
-            document.querySelectorAll('.nav-item').forEach(b => b.classList.remove('active'));
-            el.classList.add('active');
-            document.querySelectorAll('.swipe-dot').forEach((dot, i) => dot.classList.toggle('active', i === newIndex));
-            currentTabIndex = newIndex;
-        }
-
-        function toggleSidebar() {
-            const s = document.getElementById('sidebar');
-            const o = document.getElementById('sidebarOverlay');
-            const active = s.classList.toggle('active');
-            o.style.display = active ? 'block' : 'none';
-        }
-
-
-
-        function openDynamicContent(key) { openModal(key, DYNAMIC_DATA[key] || "Konten tidak ditemukan."); }
-
-        function showToast(msg) {
-            const t = document.getElementById('toast');
-            t.innerText = msg; t.style.display = 'block';
-            setTimeout(() => t.style.display = 'none', 2500);
-        }
-
-        function updateNetwork() {
-            const online = navigator.onLine;
-            const ns = document.getElementById('networkStatus');
-            ns.className = 'profile-network ' + (online ? 'online' : 'offline');
-            ns.innerHTML = `<i class="fa-solid fa-circle" style="font-size:7px;"></i> ${online ? 'Online' : 'Offline'}`;
-        }
-
-        function previewImage(event) {
-            const reader = new FileReader();
-            reader.onload = e => {
-                localStorage.setItem('userProfileAvatar', e.target.result);
-                updateAvatarUI(e.target.result);
-            };
-            reader.readAsDataURL(event.target.files[0]);
-        }
-
-        function updateAvatarUI(src) { document.getElementById('userAvatar').innerHTML = `<img src="${src}">`; }
-
-
-
-        // --- PENGUMUMAN & KELULUSAN ---
-        function openPengumuman() {
-    openModal('Pengumuman UKK', `
-        <div style="padding: 10px;">
-            <div class="info-box">
-                <i class="fa-solid fa-circle-info"></i>
-                <span>Silakan masukkan Nama Lengkap dan Kelas sesuai dengan data Dapodik untuk melihat hasil UKK.</span>
-            </div>
-
-            <div class="input-group">
-                <i class="fa-solid fa-user"></i>
-                <input type="text" id="namaKelulusan" placeholder="Nama Lengkap Siswa" autocomplete="off">
-            </div>
-
-            <div class="input-group">
-                <i class="fa-solid fa-screen-users"></i>
-                <input type="text" id="kelasKelulusan" placeholder="Kelas (Contoh: XII.1)" autocomplete="off">
-            </div>
-
-            <button class="login-btn" onclick="cariKelulusan()" style="margin-top: 10px;">
-                <i class="fa-solid fa-magnifying-glass"></i> CARI DATA
-            </button>
-
-            <div id="hasilKelulusan" style="margin-top: 25px; min-height: 100px;">
-                <!-- Hasil akan muncul di sini -->
-            </div>
-        </div>
-    `);
+    } catch (error) {
+        console.error(error);
+        alert("Gangguan Koneksi: " + error.message);
+    } finally {
+        loginBtn.disabled = false;
+        loginBtn.innerHTML = "MASUK SISTEM";
+    }
 }
-		function cariKelulusan() {
-    const nama = document.getElementById('namaKelulusan').value;
-    const kelas = document.getElementById('kelasKelulusan').value;
-    const box = document.getElementById('hasilKelulusan');
-
-    if (!nama || !kelas) return showToast('Harap isi Nama dan Kelas!');
-
-    // Tampilan Loading
-    box.innerHTML = `
-        <div style="text-align:center; padding: 20px;">
-            <i class="fa-solid fa-spinner fa-spin" style="font-size: 30px; color: var(--primary);"></i>
-            <p style="margin-top:10px; font-size: 14px; color: #666;">Mencari data di server...</p>
-        </div>
-    `;
-
-    const cb = 'cb_' + Date.now();
-    window[cb] = function(data) {
-        delete window[cb];
-        script.remove();
-        
-        if (data.locked) { 
-            box.innerHTML = `
-                <div style="background:#fff4e5; color:#663c00; padding:20px; border-radius:12px; text-align:center; border: 1px solid #ffe2b7;">
-                    <i class="fa-solid fa-lock" style="font-size:24px; margin-bottom:10px;"></i>
-                    <p><b>Akses Dikunci</b></p>
-                    <p style="font-size:13px;">Hasil akan dibuka pada:<br><b>${data.buka}</b></p>
-                </div>`; 
-            return; 
+	async function logout() {
+	if(confirm("Yakin ingin keluar dari Akun Dashboard?")) {try {if (user && user.id) {await publicData.collection('live').doc(user.id).delete();}} catch (e) { console.log("Clean up skip"); }
+	localStorage.removeItem('exambro_session');
+	user = null; if (window.localStream) {window.localStream.getTracks().forEach(track => track.stop()); }location.reload(); }
         }
 
-        if (!data.found) { 
-            box.innerHTML = `
-                <div style="background:#fee2e2; color:#991b1b; padding:20px; border-radius:12px; text-align:center; border: 1px solid #fecaca;">
-                    <i class="fa-solid fa-circle-exclamation" style="font-size:24px; margin-bottom:10px;"></i>
-                    <p><b>Data Tidak Ditemukan</b></p>
-                    <p style="font-size:12px;">Pastikan penulisan Nama dan Kelas sudah benar.</p>
-                </div>`; 
-            return; 
+	function setRole(r) {
+            currentRole = r;
+            const isStd = r === 'student';
+            document.getElementById('role-std').className = isStd ? "flex-1 py-3 text-xs font-bold rounded-xl bg-white shadow-sm text-blue-600" : "flex-1 py-3 text-xs font-bold rounded-xl text-slate-400";
+            document.getElementById('role-adm').className = !isStd ? "flex-1 py-3 text-xs font-bold rounded-xl bg-white shadow-sm text-blue-600" : "flex-1 py-3 text-xs font-bold rounded-xl text-slate-400";
+            document.getElementById('user-id').classList.toggle('hidden-element', isStd);
+            document.getElementById('select-kelas').classList.toggle('hidden-element', !isStd);
+            document.getElementById('select-nama').classList.toggle('hidden-element', !isStd);
         }
 
-        const warna = data.status === 'LULUS' ? '#16a34a' : '#dc2626';
-        const bgWarna = data.status === 'LULUS' ? '#f0fdf4' : '#fef2f2';
+	async function loadKelas() {
+	    const snap = await publicData.collection('users').get();
+	    const kelasSet = new Set();
+	    snap.forEach(doc => {if(doc.data().kelas) kelasSet.add(doc.data().kelas); });
+	    const sortedKelas = Array.from(kelasSet).sort((a, b) => 
+	        a.localeCompare(b, undefined, { numeric: true, sensitivity: 'base' })
+	    );
+	    const select = document.getElementById('select-kelas');
+	    select.innerHTML = '<option value="">Pilih Kelas</option>';
+	    sortedKelas.forEach(k => {select.innerHTML += `<option value="${k}">${k}</option>`; });
+	}
+
+	document.getElementById('select-kelas').addEventListener('change', async function() {
+	    const kelasTerpilih = this.value;
+	    const selectNama = document.getElementById('select-nama');
+	    selectNama.innerHTML = '<option value="">Memuat Nama...</option>';
+	    if (!kelasTerpilih) {selectNama.innerHTML = '<option value="">Pilih Nama</option>'; return; }
+	    try {const snap = await publicData.collection('users').where('kelas', '==', kelasTerpilih) .get();
+	        let daftarSiswa = [];
+	        snap.forEach(doc => {daftarSiswa.push({ id: doc.id, nama: doc.data().nama });});
+
+	        // Mengurutkan Nama Siswa A-Z
+	        daftarSiswa.sort((a, b) => a.nama.localeCompare(b.nama));
+	        selectNama.innerHTML = '<option value="">Pilih Nama</option>';
+	        daftarSiswa.forEach(siswa => {
+	            // Menggunakan template literal untuk memastikan nama lengkap masuk ke option
+	            const option = document.createElement('option'); option.value = siswa.id; option.textContent = siswa.nama; selectNama.appendChild(option); });
+	    } catch (error) {console.error("Gagal memuat nama:", error);
+	        selectNama.innerHTML = '<option value="">Gagal memuat data</option>'; }
+	});
+
+	async function renderClassCheckboxes(selectedClasses = []) {
+	    const container = document.getElementById('class-checkbox-container');    
+	    try {
+		const snap = await publicData.collection('users').get();
+	        const kelasSet = new Set();
+	        snap.forEach(doc => kelasSet.add(doc.data().kelas));
+	        const daftarKelas = Array.from(kelasSet).sort();
         
-        if (data.status === 'LULUS') launchConfetti();
+	        if (daftarKelas.length === 0) {container.innerHTML = '<p class="text-[10px] text-red-500">Belum ada data siswa/kelas.</p>'; return; }
+	        container.innerHTML = '';
+	        daftarKelas.forEach(kelas => {
+	            const isChecked = selectedClasses.includes(kelas) ? 'checked' : '';
+	            container.innerHTML += `
+	                <label class="flex items-center space-x-1.5 p-1.5 hover:bg-white rounded-xl cursor-pointer transition-all">
+			<input type="checkbox" name="target-kelas" value="${kelas}" ${isChecked} class="w-3.5 h-3.5 accent-blue-600"><span class="text-[10px] font-bold text-slate-700">${kelas}</span></label>`;
+	        });
+	    } catch (e) {container.innerHTML = '<p class="text-[10px] text-red-500">Gagal memuat kelas.</p>'; }
+	}
 
-        box.innerHTML = `
-            <div class="${data.status === 'LULUS' ? 'lulus-box' : ''}" 
-                 style="background:${bgWarna}; border:2px solid ${warna}; padding:20px; border-radius:20px; text-align:center;">
-                <p style="font-size:12px; color:#666; text-transform:uppercase; letter-spacing:1px;">Hasil Kelulusan UKK</p>
-                <h2 style="color:${warna}; font-size:32px; margin:10px 0;">${data.status}</h2>
-                <div style="text-align:left; background:rgba(255,255,255,0.6); padding:15px; border-radius:12px; font-size:14px; line-height:1.8;">
-                    <p><b>Nama:</b> ${data.nama}</p>
-                    <p><b>Kelas:</b> ${data.kelas}</p>
-                    <p><b>Ket:</b> ${data.keterangan}</p>
-                </div>
-            </div>`;
 
-        if (data.video && data.status === 'LULUS') {
-            const videoId = data.video.split('v=')[1] || data.video.split('/').pop();
-            box.innerHTML += `
-                <div style="margin-top:20px;">
-                    <p style="font-size:12px; margin-bottom:8px; color:#666; text-align:center;">Pesan untuk kamu:</p>
-                    <iframe src="https://www.youtube.com/embed/${videoId}?autoplay=1&mute=0" 
-                        width="100%" height="200" style="border-radius:15px; border:none; box-shadow:0 10px 20px rgba(0,0,0,0.1);" 
-                        allow="autoplay" allowfullscreen></iframe>
-                </div>`;
+
+
+// --- C. NAVIGATION & COMMON UI HELPERS ---
+        function showPage(id) {
+            ['login-page','admin-page','student-page'].forEach(p => document.getElementById(p).classList.add('hidden-element'));
+            document.getElementById(id).classList.remove('hidden-element');
+        }
+
+        function switchTab(t) {
+            ['exam','bank','student','monitor'].forEach(id => {
+                document.getElementById('section-'+id).classList.add('hidden-element');
+                document.getElementById('tab-btn-'+id).classList.remove('sidebar-active');
+                document.getElementById('tab-btn-'+id).classList.add('text-slate-400');
+            });
+            document.getElementById('section-'+t).classList.remove('hidden-element');
+            document.getElementById('tab-btn-'+t).classList.add('sidebar-active');
+            document.getElementById('tab-btn-'+t).classList.remove('text-slate-400');
+        }
+
+	function switchStudentView(view) {
+	    const scheduled = document.getElementById('view-scheduled');
+	    const manual = document.getElementById('view-manual');
+	    const qr = document.getElementById('qr-reader-container');
+	    // Sembunyikan semua view siswa
+	    scheduled.classList.add('hidden-element'); manual.classList.add('hidden-element'); qr.classList.add('hidden-element');
+	    // Tampilkan yang dipilih
+	    if (view === 'scheduled') {scheduled.classList.remove('hidden-element');} else if (view === 'manual') {manual.classList.remove('hidden-element');
+	    } else if (view === 'qr') {qr.classList.remove('hidden-element'); }
+	}
+
+    	function openModal(id) {const modal = document.getElementById(id);if (modal) {modal.classList.remove('hidden-element');} else {console.error("Modal dengan ID " + id + " tidak ditemukan!");}}
+	function closeModal(id) {const modal = document.getElementById(id);if (modal) {modal.classList.add('hidden-element');}}
+
+
+
+// --- D. ADMIN SERVICE (DATA MANAGEMENT) ---
+// 1. Fungsi untuk Memuat Link yang tersimpan di Cloud saat Admin dibuka
+async function loadSheetConfig() {
+    const doc = await publicData.collection('settings').doc('sheet_config').get();
+    if (doc.exists) {document.getElementById('sheet-url').value = doc.data().url; }
+}
+
+// 2. Fungsi Utama: Simpan Link ke Cloud dan Jalankan Sinkronisasi
+async function saveAndSyncSheet() {
+    const urlInput = document.getElementById('sheet-url').value.trim(); 
+    if (!urlInput) return alert("Masukkan link Google Sheet!");
+    
+    const btn = document.getElementById('btn-sync-sheet');
+    const btnText = document.getElementById('sync-text');
+    
+    btn.disabled = true;
+    btnText.textContent = "SINKRONISASI...";
+
+    try {
+        await publicData.collection('settings').doc('sheet_config').set({url: urlInput, lastSync: Date.now()});
+
+        let exportUrl = urlInput; 
+        if (urlInput.includes('/edit')) {
+            const match = urlInput.match(/\/d\/(.+?)\//); 
+            if (match) exportUrl = `https://docs.google.com/spreadsheets/d/${match[1]}/export?format=csv`; 
+        }
+
+        const res = await fetch(exportUrl);
+        const text = await res.text();
+        const rows = text.split(/\r?\n/);
+        
+        const batch = db.batch();
+        // Hapus database lama sebelum timpa yang baru
+        const oldDocs = await publicData.collection('users').get();
+        oldDocs.forEach(doc => batch.delete(doc.ref));
+
+        let addedCount = 0;
+        rows.forEach((row, index) => {
+            if (index === 0 || !row.trim()) return; // Lewati header atau baris kosong
+            
+            // Regex Sakti untuk handle CSV dengan tanda kutip
+            const cols = row.match(/(".*?"|[^",]+)(?=\s*,|\s*$)/g);
+            if (cols && cols.length >= 3) {
+                const clean = (str) => str ? str.replace(/^"|"$/g, '').trim() : "";
+                const docRef = publicData.collection('users').doc();
+                batch.set(docRef, {
+                    nis: clean(cols[0]),
+                    nama: clean(cols[1]),
+                    kelas: clean(cols[2]),
+                    pwd: cols[3] ? clean(cols[3]) : "123"
+                }); 
+                addedCount++;
+            }
+        });
+
+        await batch.commit(); 
+        alert(`Berhasil! ${addedCount} data siswa disinkronkan.`);
+        loadKelas(); 
+    } catch (e) { 
+        alert("Gagal Sinkron: " + e.message); 
+    } finally { 
+        btn.disabled = false; 
+        btnText.textContent = "SIMPAN & SINKRON"; 
+    }
+}
+
+// 3. Update Fungsi Tampilan Tabel (Hapus tombol Edit/Hapus)
+function syncAdminStudentData() {
+    publicData.collection('users').orderBy('kelas', 'asc').onSnapshot(s => {
+        const list = document.getElementById('admin-student-list');
+        if (!list) return; list.innerHTML = "";
+        s.forEach(d => {const u = d.data();
+            list.innerHTML += `<tr class="hover:bg-slate-50 transition-colors"><td class="px-8 py-5 font-bold text-sm text-slate-800">${u.nis}</td><td class="px-8 py-5 text-sm text-slate-600">${u.nama}</td><td class="px-8 py-5 text-[10px] font-black uppercase text-slate-400">${u.kelas}</td><td class="px-8 py-5 text-xs font-mono text-slate-300">${u.pwd}</td></tr>`;
+        });
+    });
+}
+
+       
+async function saveExam() {
+    const id = document.getElementById('edit-exam-id').value;
+    const nodes = document.querySelectorAll('input[name="target-kelas"]:checked');
+    const selectedClasses = Array.from(nodes).map(node => node.value).join(', ');
+    
+    if (!selectedClasses) return alert("Pilih minimal satu kelas!");
+    if (!document.getElementById('ex-mapel').value) return alert("Isi Nama Mapel!");
+
+    const data = {
+        mapel: document.getElementById('ex-mapel').value,
+        kelas: selectedClasses,
+        date: document.getElementById('ex-date').value,
+        duration: document.getElementById('ex-duration').value,
+        token: document.getElementById('ex-token').value.toUpperCase(),
+        pin: document.getElementById('ex-pin').value,
+        link: document.getElementById('ex-link').value,
+        active: document.getElementById('ex-active').checked,
+        camera: document.getElementById('ex-camera').checked
+    };
+
+    try {
+        if(id) {await publicData.collection('exams').doc(id).update(data);
+        } else {await publicData.collection('exams').add(data);}
+        alert("Paket Berhasil Disimpan!"); closeModal('modal-exam');
+    } catch (e) {alert("Gagal menyimpan ke Cloud: " + e.message); }
+}
+
+        async function copyExam(id) {
+		if(!confirm("Salin paket ujian ini?")) return;
+		const d = await publicData.collection('exams').doc(id).get();
+		const data = d.data();
+		data.mapel += " (Copy)";
+		data.active = false; // Hasil copy otomatis non-aktif agar bisa diedit dulu
+		await publicData.collection('exams').add(data);
+		alert("Paket berhasil dikloning!");
+	}
+
+        async function editExam(id) {
+	try {
+            const d = await publicData.collection('exams').doc(id).get();
+            const x = d.data();
+	    document.getElementById('exam-modal-title').textContent = "Edit Paket Ujian";
+            document.getElementById('edit-exam-id').value = id;
+            document.getElementById('ex-mapel').value = x.mapel;
+            document.getElementById('ex-date').value = x.date;
+            document.getElementById('ex-duration').value = x.duration;
+            document.getElementById('ex-token').value = x.token;
+            document.getElementById('ex-pin').value = x.pin;
+            document.getElementById('ex-link').value = x.link;
+			document.getElementById('ex-active').checked = x.active !== false;
+			document.getElementById('ex-camera').checked = x.camera !== false;
+            const selected = x.kelas ? x.kelas.split(', ') : []; renderClassCheckboxes(selected);
+		openModal('modal-exam');} catch (e) {alert("Gagal mengambil data ujian!"); }
+        }
+	
+	async function delDoc(c, id) { if(confirm("Hapus data ini secara permanen dari Cloud?")) await publicData.collection(c).doc(id).delete(); }
+
+        function openExamModal() {document.getElementById('edit-exam-id').value = ""; 
+		['ex-mapel', 'ex-date', 'ex-duration', 'ex-token', 'ex-pin', 'ex-link'].forEach(i => document.getElementById(i).value = ""); renderClassCheckboxes([]); openModal('modal-exam');
+        }
+
+	function syncAdminData() {syncAdminStudentData();
+	    publicData.collection('exams').onSnapshot(s => {
+	        const list = document.getElementById('admin-exam-list'); if(!list) return;
+	        list.innerHTML = "";
+	        s.forEach(d => {const x = d.data();
+	            list.innerHTML += `<div class="bg-white p-6 rounded-[2.5rem] border-2 border-transparent hover:border-blue-200 transition-all flex justify-between items-center group">
+	                <div><h4 class="font-black text-slate-800">${x.mapel}</h4><p class="text-[9px] text-slate-400 font-bold uppercase tracking-widest">${x.kelas} | TOKEN: ${x.token} | PIN: ${x.pin}</p></div>
+	                <div class="flex space-x-2"><button onclick="copyExam('${d.id}')" class="bg-emerald-50 text-emerald-600 p-3 rounded-xl" title="Copy Paket">📄</button><button onclick="editExam('${d.id}')" class="bg-blue-50 text-blue-500 p-3 rounded-xl">✎</button><button onclick="delDoc('exams','${d.id}')" class="bg-red-50 text-red-500 p-3 rounded-xl">✕</button></div>
+	            </div>`; });
+		    });
+
+	       // Bank Sync
+		publicData.collection('ai_bank').onSnapshot(s => { const list = document.getElementById('ai-question-list');
+	        if(!list) return; list.innerHTML = ""; s.forEach(d => {const q = d.data(); list.innerHTML += `<div class="bg-white p-6 rounded-3xl border border-slate-100"><p class="text-slate-800 font-medium">${q.question}</p><span class="text-[9px] bg-indigo-50 text-indigo-500 px-3 py-1 rounded-full font-black uppercase mt-3 inline-block">${q.topic}</span></div>`;
+	        });
+	    });
+	}
+
+        async function syncSpecialSettings() {publicData.collection('settings').doc('special_methods').
+		onSnapshot(d => { if(d.exists) specialSettings = d.data(); }); }
+
+        async function saveSpecialSettings() {
+            const pin = document.getElementById('special-pin').value;
+            const dur = parseInt(document.getElementById('special-duration').value);
+            await publicData.collection('settings').doc('special_methods').set({pin, duration: dur, updatedAt: Date.now()});
+            alert("Konfigurasi Akses Cepat Diperbarui!");
+        }
+
+
+
+
+
+
+
+
+// --- E. STUDENT SERVICE (EXAM ACCESS) ---
+	function syncStudentData() {
+	    publicData.collection('exams').onSnapshot(s => {
+	        const list = document.getElementById('student-exam-list');
+	        list.innerHTML = "";
+	        const today = new Date().toISOString().split('T')[0];
+	        s.forEach(d => {
+	            const x = d.data();
+	            const allowedClasses = x.kelas ? x.kelas.split(', ') : [];
+	            const isAllowed = allowedClasses.includes(user.kelas);
+	            if(isAllowed && x.active !== false && x.date <= today) { 
+	                list.innerHTML += `
+	                <div class="bg-white p-4 rounded-[2rem] border shadow-sm text-center">
+	                    <h4 class="font-black text-xs text-slate-800 truncate mb-1">${x.mapel}</h4>
+	                    <p class="text-[8px] text-slate-400 font-bold mb-3 uppercase">${x.duration} Menit</p>
+	                    <input type="text" id="tk-${d.id}" class="w-full bg-slate-50 p-2 rounded-xl text-center mb-2 font-black text-xs outline-none" placeholder="TOKEN">
+	                    <button onclick="startExam('${d.id}', '${x.token}')" class="w-full bg-blue-600 text-white py-2 rounded-xl font-black text-[10px]">MULAI</button>
+	                </div>`;
+	            }
+	        });
+	        if (list.innerHTML === "") list.innerHTML = "<p class='col-span-2 text-center py-10 text-slate-400 text-xs italic font-bold'>Tidak ada ujian untuk kelas Anda hari ini.</p>";
+	    });
+	}
+
+
+function logActivity(a) {publicData.collection('logs').add({ user: user ? user.nama : "System", action: a, time: firebase.firestore.FieldValue.serverTimestamp() });}
+
+		
+let html5QrScanner = null;
+function simulateScan() {
+    // Pindah ke tampilan kamera
+    switchStudentView('qr');
+    html5QrScanner = new Html5Qrcode("qr-reader");
+    html5QrScanner.start(
+        { facingMode: "environment" }, { fps: 10, qrbox: 250 },
+        async (decodedText) => {const scannedUrl = decodedText.trim();
+            if (scannedUrl.startsWith("http")) {await html5QrScanner.stop();
+                // Gunakan pengaturan global/akses cepat
+                activePin = specialSettings.pin || "1234"; startExamEngine(scannedUrl, "Akses Via Scan QR", specialSettings.duration || 60, true);
+            } else {alert("QR Code bukan berisi link valid!");}
+        }
+    ).catch(err => {alert("Kamera Error: " + err); stopQR(); });
+}
+
+async function stopQR() {
+    if (html5QrScanner) {try { await html5QrScanner.stop(); } catch (e) {} }
+    // Kembali ke daftar jadwal
+    switchStudentView('scheduled');
+}		
+		
+		
+function startManualExam() {
+    const url = document.getElementById('manual-url').value.trim();
+    // 1. Validasi Input
+    if (!url) {alert("Mohon tempelkan link ujian anda!"); return; }
+    
+    // Validasi sederhana format link
+    if (!url.startsWith("http")) {alert("Link tidak valid! Pastikan diawali dengan http:// atau https://"); return;}
+
+    // 2. Mengambil Pengaturan dari "Akses Cepat" Admin (specialSettings)
+    // Jika Admin belum menyetel, akan menggunakan default (PIN 1234, Durasi 60)
+    activePin = specialSettings.pin || "1234";
+    const duration = specialSettings.duration || 60;
+
+    // 3. Menjalankan Engine Ujian
+    // Parameter: (URL, Label Nama, Menit, Wajib Kamera: true)
+    startExamEngine(url, "Manual Access", duration, true);
+    
+    // Opsional: Kosongkan input setelah dijalankan
+    document.getElementById('manual-url').value = "";
+}
+
+async function syncStudentStatus(img = "", forceSave = false) {
+    if (!user || !user.id) return;
+    try {
+        const baseData = {
+            nama: user.nama,
+            kelas: user.kelas || "Umum",
+            last: Date.now(),
+            v: violationCount,
+            camStatus: window.isCameraRequired ? "ON" : "OFF",
+            lastStatus: isExamActive ? "SEDANG UJIAN" : "TERHENTI",
+            isLocked: !document.getElementById('lock-screen').classList.contains('hidden-element')
+        };
+
+        if (img && !forceSave) {
+            const thumbnails = JSON.parse(localStorage.getItem('student_thumbnails') || '{}');
+            thumbnails[user.id] = { img: img, time: Date.now() };
+            localStorage.setItem('student_thumbnails', JSON.stringify(thumbnails));
+        }
+
+        if (img && forceSave) {
+            const violationPhotos = JSON.parse(localStorage.getItem('violation_photos') || '[]');
+            if (violationPhotos.length < 5) {
+                violationPhotos.push({ img: img, time: Date.now(), violation: violationCount });
+                localStorage.setItem('violation_photos', JSON.stringify(violationPhotos));
+            }
+        }
+
+        await publicData.collection('live').doc(user.id).set(baseData, { merge: true });
+    } catch (err) {
+        console.error("Sync Error:", err);
+    }
+}
+
+function sendSnapshotToAdmins() {
+    if (!window.localStream || !window.isCameraRequired) return;
+    const connections = Object.values(window.adminDataConnections || {}).filter(conn => conn.open);
+    if (connections.length === 0) return;
+    const video = document.getElementById('self-video');
+    if (!video || video.readyState < 2) return;
+
+    const canvas = document.createElement('canvas');
+    canvas.width = 160;
+    canvas.height = 120;
+    const ctx = canvas.getContext('2d');
+    ctx.drawImage(video, 0, 0, 160, 120);
+    const snapshot = canvas.toDataURL('image/jpeg', 0.35);
+
+    const message = {
+        type: 'snapshot',
+        studentId: user.id,
+        studentName: user.nama,
+        kelas: user.kelas,
+        image: snapshot,
+        timestamp: Date.now()
+    };
+
+    connections.forEach(conn => {
+        try { conn.send(message); } catch (e) { console.warn('Snapshot send failed', e); }
+    });
+}
+
+
+async function startExam(id, correctToken) {
+    const tokenInput = document.getElementById(`tk-${id}`).value.toUpperCase();
+    if (tokenInput !== correctToken) {alert("Token ujian salah! Silahkan hubungi pengawas.");return;}
+    const doc = await publicData.collection('exams').doc(id).get();
+    if (doc.exists) {const x = doc.data();
+        activePin = x.pin || specialSettings.pin;
+        // Memulai engine ujian dengan membawa data pengaturan kamera
+        startExamEngine(x.link, x.mapel, x.duration, x.camera);
+    }
+}
+
+
+
+
+
+
+
+
+
+
+// --- F. THE EXAM ENGGINE (THE HEART OF SYSTEM) ---
+async function startExamEngine(url, mapel, dur, isCameraRequired) {
+    // 1. Membersihkan Clipboard & State Awal
+    await clearClipboard();
+    isExamActive = true;
+    violationCount = 0;
+    initialWidth = window.innerWidth;
+    isResuming = false; // Reset flag resume
+
+    // 2. Setup Kamera (Jika Diwajibkan)
+    if (isCameraRequired !== false) {
+        try {
+            const stream = await navigator.mediaDevices.getUserMedia({
+                video: { width: { ideal: 320 }, height: { ideal: 240 },frameRate: { max: 15 } }
+            });
+            window.localStream = stream;
+            const selfVideo = document.getElementById('self-video');
+            selfVideo.srcObject = stream;
+            selfVideo.parentElement.classList.remove('hidden-element');
+        } catch (e) {console.error("Camera Error:", e);
+            alert("⚠️ Ujian ini wajib menggunakan kamera. Pastikan izin kamera telah diberikan!");
+            return;
+        }
+    } else {
+        // Pastikan tidak ada stream tersisa dari sesi sebelumnya
+        if (window.localStream) {
+            window.localStream.getTracks().forEach(track => track.stop());
+            window.localStream = null;
+        }
+        document.getElementById('self-video').parentElement.classList.add('hidden-element');
+    }
+
+    // 3. Aktifkan Protokol Keamanan (Lockdown)
+    enableHardLockdown();
+    const endTime = Date.now() + (dur * 60 * 1000);
+    localStorage.setItem('active_exam_state', JSON.stringify({
+        url: url,
+        mapel: mapel,
+        endTime: endTime,
+        isCamera: isCameraRequired,
+        pin: activePin
+    }));
+
+    // 5. Setup UI & Iframe (Dengan Keamanan Sandbox)
+    document.getElementById('view-mapel').textContent = mapel;
+    
+    // Sandbox: Izinkan form & script, tapi cegah navigasi top-level (kabur dari app)
+    const iframeHtml = `
+        <iframe 
+            src="${url}" 
+            allow="camera; microphone; autoplay; display-capture" 
+            sandbox="allow-forms allow-scripts allow-same-origin allow-popups allow-modals allow-downloads allow-storage-access-by-user-activation"
+            style="width:100%; height:100%; border:none;">
+        </iframe>`;
+    
+    document.getElementById('exam-frame-container').innerHTML = iframeHtml;
+    document.getElementById('exam-viewer').classList.remove('hidden-element');
+
+    // 6. Masuk Mode Layar Penuh (Fullscreen)
+    try {
+        if (!document.fullscreenElement) {
+            await document.documentElement.requestFullscreen();
+        }
+    } catch (err) {
+        console.warn("Fullscreen blocked, user interaction required.");
+    }
+
+    // 7. Sinkronisasi Awal ke Firestore (Status tanpa foto)
+    window.isCameraRequired = isCameraRequired !== false;
+    await syncStudentStatus();
+
+    // 8. Timer Logic (Penghitung Mundur)
+    let timeRemaining = dur * 60;
+    if (window.examTimerInterval) clearInterval(window.examTimerInterval);
+    
+    window.examTimerInterval = setInterval(() => {
+        if (!isExamActive) { clearInterval(window.examTimerInterval); return; }
+        
+        timeRemaining--;
+        if (timeRemaining <= 0) {
+            clearInterval(window.examTimerInterval);
+            finishExam();
+            alert("Waktu ujian telah habis!");
+            return;
+        }
+
+        const m = Math.floor(timeRemaining / 60);
+        const s = timeRemaining % 60;
+        document.getElementById('exam-timer').textContent = 
+            `${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`;
+    }, 1000);
+
+    // 9. Monitoring Loop (Foto Real-time untuk Admin + Status Update)
+    if (monitorInterval) clearInterval(monitorInterval);
+    monitorInterval = setInterval(async () => {
+        if (!isExamActive) return;
+
+        // Kirim snapshot via WebRTC setiap 5 detik saat admin terhubung
+        sendSnapshotToAdmins();
+        await syncStudentStatus();
+    }, 5000); // Interval 5 detik untuk monitoring real-time
+}
+
+
+async function finishExam() {
+    isExamActive = false;
+    // Stop Monitor & Session
+    if (monitorInterval) clearInterval(monitorInterval), monitorInterval = null; localStorage.removeItem('active_exam_state');
+    // Hapus foto violation dari localStorage
+    localStorage.removeItem('violation_photos');
+    // Clear active monitoring tracking
+    if (window.activeMonitoring) {
+        window.activeMonitoring.clear();
+    }
+    // Stop Camera Tracks
+    if (window.localStream) {window.localStream.getTracks().forEach(t => t.stop());window.localStream = null; }
+    // Delete Live Data
+    if (user?.id) {try { await publicData.collection('live').doc(user.id).delete(); } catch (e) { console.log("Gagal hapus live"); }}
+    // Exit Fullscreen & UI Reset
+    if (document.fullscreenElement) document.exitFullscreen().catch(() => {});
+    alert("Ujian selsesai! Pastikan jawaban sudah dikirim."); location.reload();
+}
+
+function confirmFinishExam() { if(confirm("Apakah anda yakin telah menyelesaikan semua soal dan ingin keluar?")) finishExam(); }
+
+async function clearClipboard() {
+        try {await navigator.clipboard.writeText("Akses dilarang");
+        } catch (err) {const input = document.createElement("input");
+            input.value = " "; document.body.appendChild(input); input.select(); document.execCommand("copy"); document.body.removeChild(input); }
+    }
+
+
+
+
+
+
+
+
+
+
+// --- G. SECURITY VIOLATION & LOCKDOWN ---
+
+let isSecuritySetup = false;
+function enableHardLockdown() {
+    if (isSecuritySetup) return;
+
+    // 1. Mencegah Klik Kanan & Seleksi Teks
+    document.oncontextmenu = () => false;
+    document.onselectstart = () => false;
+    document.ondragstart = () => false; // Mencegah drag teks soal
+
+    // 2. Jebakan Tombol Back (Android)
+    history.pushState(null, null, location.href);
+    window.onpopstate = function() {
+        history.go(1);
+        if(isExamActive) reportViolation();
+    };
+
+    // 3. Deteksi Visibility (Pindah Tab)
+    document.addEventListener('visibilitychange', () => {
+        if (isExamActive && document.visibilityState !== 'visible') {
+            reportViolation();
+        }
+    });
+
+    // 4. Keyboard Protector (Lebih Ketat)
+    window.onkeydown = (e) => {
+        if (!isExamActive) return;
+
+        // F12, Ctrl+Shift+I, Ctrl+U, Ctrl+S, Ctrl+P, Alt+Tab, Meta (Windows Key)
+        const forbiddenKeys = [122, 123, 44, 18, 91, 92]; 
+        const isControlAction = e.ctrlKey && 'uIpscvj'.includes(e.key.toLowerCase());
+        const isShiftAction = e.ctrlKey && e.shiftKey && 'IJ'.includes(e.key.toUpperCase());
+
+        if (forbiddenKeys.includes(e.keyCode) || isControlAction || isShiftAction) {
+            e.preventDefault();
+            reportViolation();
+            return false;
         }
     };
 
-    const script = document.createElement('script');
-    script.src = `${KELULUSAN_API}?nama=${encodeURIComponent(nama)}&kelas=${encodeURIComponent(kelas)}&callback=${cb}`;
-    document.body.appendChild(script);
+    // 5. Proteksi Print (Ctrl+P)
+    window.addEventListener('beforeprint', (e) => {
+        if(isExamActive) {
+            e.preventDefault();
+            reportViolation();
+        }
+    });
+
+    isSecuritySetup = true;
 }
-		
 
-        
+function handleKeyboardLock(e) {
+    if (!isExamActive) return;
+    // List tombol yang dilarang
+    const forbiddenKeys = [
+        123, // F12
+        44,  // PrintScreen
+        112, 113, 114, 115, 117, 118, 119, 120, 121, 122 // F1-F12 kecuali F6/F5 tertentu
+    ];
 
-        function launchConfetti() {
-            for (let i = 0; i < 80; i++) {
-                const c = document.createElement('div');
-                c.className = 'confetti';
-                c.style.left = Math.random() * 100 + 'vw';
-                c.style.backgroundColor = `hsl(${Math.random()*360},90%,60%)`;
-                c.style.animationDuration = (Math.random() * 2 + 2) + 's';
-                document.body.appendChild(c);
-                setTimeout(() => c.remove(), 4000);
-            }
+    if (forbiddenKeys.includes(e.keyCode) || 
+        (e.ctrlKey && (e.key === 'u' || e.key === 's' || e.key === 'p' || e.key === 'c' || e.key === 'v' || e.key === 'i' || e.key === 'j')) ||
+        (e.ctrlKey && e.shiftKey && (e.key === 'I' || e.key === 'J' || e.key === 'C')) ||
+        (e.metaKey && e.shiftKey && e.key === '4') // Mac Screenshot
+    ) {
+        e.preventDefault(); e.stopPropagation(); reportViolation();
+        alert("Aksi ini dilarang selama ujian!"); return false;
+    }
+}
+        async function reportViolation() {
+	if (!isExamActive) return;
+	violationCount++;
+ 	   // Update tampilan lokal untuk siswa
+	    document.getElementById('violation-count').textContent = violationCount;
+	    document.getElementById('violation-badge').classList.remove('hidden-element');
+	    document.getElementById('alarm-sound').play();
+	    document.body.classList.add('violation-shake');
+	    setTimeout(() => document.body.classList.remove('violation-shake'), 500);
+
+	    // Ambil foto violation lokal dan kirim notifikasi ke admin via WebRTC
+	    if (window.localStream && window.isCameraRequired) {
+	        const canvas = document.createElement('canvas');
+	        const ctx = canvas.getContext('2d');
+	        canvas.width = 320;
+	        canvas.height = 240;
+	        ctx.drawImage(document.getElementById('self-video'), 0, 0, 320, 240);
+	        const violationPhoto = canvas.toDataURL('image/jpeg', 0.5);
+	        const violationPhotos = JSON.parse(localStorage.getItem('violation_photos') || '[]');
+	        if (violationPhotos.length < 5) {
+	            violationPhotos.push({ img: violationPhoto, time: Date.now(), violation: violationCount });
+	            localStorage.setItem('violation_photos', JSON.stringify(violationPhotos));
+	        }
+	    }
+
+	    await syncStudentStatus();
+
+	    if (violationCount >= 5) triggerLock();
+	}
+
+	// ✅ FUNGSI BARU: Kirim notifikasi pelanggaran via WebRTC P2P
+	async function sendViolationNotificationToPeer() {
+	    if (!user) return;
+	    
+	    const violationMessage = {
+	        type: 'violation_alert',
+	        studentId: user.id,
+	        studentName: user.nama,
+	        kelas: user.kelas,
+	        violationCount: violationCount,
+	        timestamp: Date.now(),
+	        lockStatus: true,
+	        photoCount: JSON.parse(localStorage.getItem('violation_photos') || '[]').length
+	    };
+	    
+	    try {
+        const connections = Object.values(window.studentDataConnections || {}).filter(conn => conn.open);
+        if (connections.length > 0) {
+            connections.forEach(conn => {
+                try { conn.send(violationMessage); } catch (error) { console.warn('Kirim violation langsung gagal:', error); }
+            });
+            console.log('📡 Mengirim violation notification ke admin via WebRTC');
+        }
+	        
+	        // Fallback: Log untuk debug
+	        console.log('🚨 Violation Report:', violationMessage);
+	    } catch (e) {
+	        console.error("Gagal kirim violation notification:", e);
+	    }
+	}
+
+	async function triggerLock() { 
+	    if (isExamActive) {
+	        document.getElementById('lock-screen').classList.remove('hidden-element');
+	        
+	        // ✅ OPTIMASI: Simpan status lock di LocalStorage terlebih dahulu
+	        localStorage.setItem('exam_lock_status', JSON.stringify({
+	            isLocked: true,
+	            violationCount: violationCount,
+	            timestamp: Date.now(),
+	            studentId: user.id,
+	            violationPhotos: localStorage.getItem('violation_photos')
+	        }));
+	        
+	        // ✅ Kirim notifikasi pelanggaran via WebRTC P2P ke admin (jika connected)
+	        sendViolationNotificationToPeer();
+	        
+	        // ⚠️ Firebase update sebagai fallback (minimal write)
+	        if (user && user.id) {
+	            try {
+	                await publicData.collection('live').doc(user.id).update({
+	                    isLocked: true, 
+	                    v: violationCount, 
+	                    lastStatus: 'TERKUNCI - BUTUH PIN',
+	                    lock_timestamp: Date.now()
+	                }); 
+	            } catch (e) { 
+	                console.error("Fallback Firebase error:", e); 
+	            } 
+	        }
+	    } 
+	}
+
+        async function unlockApp() {
+            if (document.getElementById('unlock-pwd').value === activePin) {
+                document.getElementById('lock-screen').classList.add('hidden-element');
+                document.getElementById('unlock-pwd').value = "";
+                violationCount = 0;
+                document.getElementById('violation-count').textContent = "0";
+                document.getElementById('violation-badge').classList.add('hidden-element');
+			// BERITAHU ADMIN: Update status bahwa sudah terbuka
+		        if (user && user.id) {await publicData.collection('live').doc(user.id).update({
+	                isLocked: false, v: 0, lastStatus: 'AKTIF'}); }
+
+                setTimeout(() => document.documentElement.requestFullscreen().catch(() => {}), 500);
+            } else { alert("PIN Pengawas Salah!"); }
         }
 
-        // --- GESTURE & EVENTS ---
-        let startX = 0;
-        document.addEventListener('touchstart', e => { startX = e.touches[0].clientX; }, { passive: true });
-        document.addEventListener('touchend', e => {
-            const dx = e.changedTouches[0].clientX - startX;
-            if (Math.abs(dx) < 70) return;
-            if (dx < 0 && currentTabIndex < sectionIds.length - 1) {
-                const n = currentTabIndex + 1;
-                showSection(sectionIds[n], document.querySelectorAll('.nav-item')[n], 'left');
-            } else if (dx > 0 && currentTabIndex > 0) {
-                const p = currentTabIndex - 1;
-                showSection(sectionIds[p], document.querySelectorAll('.nav-item')[p], 'right');
+
+
+// --- H. LIVE MONITORING & PEER JS ---
+function initPeer() {
+    if (!user) return;
+    // Gunakan fungsi pembersihan yang sama di kedua sisi
+    const cleanId = (user.id || 'anon').replace(/[^a-zA-Z0-9]/g, '');
+    const safePeerId = 'exam2026_' + cleanId;
+    
+    if (peer) peer.destroy();
+    peer = new Peer(safePeerId, {
+        config: {'iceServers': [{ urls: 'stun:stun.l.google.com:19302' }]}
+    });
+
+    peer.on('connection', (conn) => {
+        conn.on('open', () => {
+            console.log('📡 DataChannel connection opened:', conn.peer);
+            window.studentDataConnections[conn.peer] = conn;
+        });
+        conn.on('data', data => {
+            if (data && data.type === 'snapshot') {
+                window.remoteSnapshots[data.studentId] = data.image;
+                if (!document.getElementById(`remote-video-${data.studentId.replace(/[^a-zA-Z0-9]/g, '')}`)) {
+                    const card = document.getElementById(`card-${data.studentId.replace(/[^a-zA-Z0-9]/g, '')}`);
+                    if (card) {
+                        const img = card.querySelector('img');
+                        if (img) {
+                            img.src = data.image;
+                        }
+                    }
+                }
+            }
+            if (data && data.type === 'violation_alert') {
+                handleAdminViolationNotification(data);
+            }
+        });
+        conn.on('close', () => {
+            delete window.studentDataConnections[conn.peer];
+        });
+        conn.on('error', (err) => { console.error('DataChannel error:', err); });
+    });
+
+    peer.on('call', (call) => {
+        if (window.localStream) {
+            call.answer(window.localStream);
+        } else {
+            // Jika kamera tidak aktif, kirim black frame agar monitor admin tidak error
+            const canvas = document.createElement('canvas');
+            call.answer(canvas.captureStream());
+        }
+        
+        // ✅ SETUP WebRTC DataChannel untuk violation messages
+        call.peerConnection.addEventListener('datachannel', (event) => {
+            const channel = event.channel;
+            setupDataChannel(channel);
+        });
+        
+        // ✅ Track active peer connections
+        if (!window.activeCalls) window.activeCalls = {};
+        window.activeCalls[call.peer] = call;
+        console.log('📡 Peer connected for streaming:', call.peer);
+    });
+}
+
+// ✅ FUNGSI BARU: Setup DataChannel untuk P2P messaging
+function setupDataChannel(channel) {
+    channel.onopen = () => {
+        console.log('📲 DataChannel opened - siap kirim messages');
+    };
+    
+    channel.onmessage = (msg) => {
+        try {
+            const data = JSON.parse(msg.data);
+            if (data.type === 'violation_alert') {
+                console.log('🚨 Violation Alert diterima dari admin');
+                // Student side: handle admin commands
+            }
+        } catch (e) {
+            console.error('DataChannel message parse error:', e);
+        }
+    };
+    
+    channel.onerror = (error) => {
+        console.error('DataChannel error:', error);
+    };
+    
+    channel.onclose = () => {
+        console.log('📵 DataChannel closed');
+    };
+}
+
+
+function startMonitorFeed() {
+    publicData.collection('live').onSnapshot(s => {
+        const grid = document.getElementById('monitor-grid');
+        const onlineCountEl = document.getElementById('online-count');
+        
+        // 1. Update jumlah online & layout utama
+        onlineCountEl.textContent = s.size + " Siswa Sedang Aktif";
+        grid.className = "space-y-6"; // Mengurangi jarak antar section kelas
+
+        const currentStudentIds = new Set();
+
+        s.forEach(d => {
+            const l = d.data();
+            const studentId = d.id;
+            const safeId = studentId.replace(/[^a-zA-Z0-9]/g, '');
+            currentStudentIds.add(studentId);
+
+            const isOnline = (Date.now() - l.last) < 15000;
+            const isLocked = l.isLocked === true || l.v >= 5;
+            const kelas = l.kelas || "Tanpa Kelas";
+            const sectionId = `grid-kelas-${kelas.replace(/\s+/g, '-')}`;
+
+            // 2. Cek apakah Section Kelas sudah ada
+            let subGrid = document.getElementById(sectionId);
+            if (!subGrid) {
+                const section = document.createElement('div');
+                section.innerHTML = `
+                    <div class="flex items-center mb-3">
+                        <h3 class="text-[9px] font-black text-slate-500 uppercase tracking-widest bg-slate-100 px-3 py-1 rounded-full">${kelas}</h3>
+                        <div class="h-[1px] flex-grow bg-slate-100 ml-3"></div>
+                    </div>
+                    <!-- Responsive Grid: Berubah dari 2 kolom ke 10 kolom berdasarkan lebar layar -->
+                    <div class="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-6 lg:grid-cols-8 xl:grid-cols-10 gap-2" id="${sectionId}"></div>
+                `;
+                grid.appendChild(section);
+                subGrid = document.getElementById(sectionId);
+            }
+
+            // 3. Cek apakah Card Siswa sudah ada
+            let card = document.getElementById(`card-${safeId}`);
+            if (!card) {
+                card = document.createElement('div');
+                card.id = `card-${safeId}`;
+                subGrid.appendChild(card);
+            }
+
+            // 4. Update CSS Card (Lebih kompak)
+            card.className = `monitor-card bg-white rounded-xl border transition-all ${
+                isLocked ? 'border-red-500 ring-2 ring-red-500/10 shadow-lg z-10 scale-[1.02]' : 
+                l.v > 0 ? 'border-amber-400' : 'border-slate-200'
+            } overflow-hidden relative`;
+
+            // 5. Update Isi Card (Gaya Mikro untuk 10 Kolom)
+            const videoPlaying = document.getElementById(`remote-video-${safeId}`);
+            
+            card.innerHTML = `
+                ${isLocked ? `<div class="absolute inset-0 bg-red-600/5 animate-pulse pointer-events-none z-20"></div>` : ''}
+
+                <!-- Preview Box (Aspect Ratio 16:9 agar hemat tempat vertikal) -->
+                <div class="aspect-video bg-slate-100 relative group" id="container-${studentId}">
+                    ${videoPlaying ? '' : (window.remoteSnapshots[studentId] ? `<img src="${window.remoteSnapshots[studentId]}" class="w-full h-full object-cover">` : `<div class="w-full h-full flex flex-col items-center justify-center bg-slate-50 text-slate-300"><span class="text-xs">👤</span></div>`)}
+                    
+                    <div class="absolute top-1 left-1 flex flex-col gap-1 z-30">
+                        <div class="flex items-center gap-1">
+                            <div class="w-1.5 h-1.5 rounded-full ${isOnline ? 'bg-emerald-500' : 'bg-slate-400'}"></div>
+                            ${isLocked ? `<span class="bg-red-600 text-white text-[6px] font-black px-1 py-0.5 rounded shadow-sm">LOCK</span>` : ''}
+                        </div>
+                        ${l.v > 0 && !isLocked ? `<div class="bg-amber-500 text-white text-[6px] font-black px-1 py-0.5 rounded shadow-sm">V: ${l.v}</div>` : ''}
+                    </div>
+
+                    <!-- Overlay Hover Cepat -->
+                    <div class="absolute inset-0 bg-slate-900/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                        ${l.camStatus === 'ON' ? `<button onclick="openLiveStream('${studentId}')" class="bg-white text-slate-900 p-1 rounded-md shadow-xl hover:scale-110 transition-transform">
+                            <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z"></path></svg>
+                         </button>` : `<div class="bg-white/90 text-slate-700 text-[8px] font-black uppercase tracking-[0.1em] px-3 py-2 rounded-xl">NO CAMERA</div>`}
+                    </div>
+                </div>
+
+                <!-- Info Box (Padding diperkecil ke p-1.5) -->
+                <div class="p-1.5 relative z-30">
+                    <div class="flex flex-col mb-1.5">
+                        <span class="text-[9px] font-bold ${isLocked ? 'text-red-600' : 'text-slate-800'} truncate uppercase leading-tight">${l.nama}</span>
+                        <span class="text-[7px] font-medium text-slate-400 uppercase tracking-tighter">NIS: ${studentId.slice(-5)}</span>
+                    </div>
+                
+                    <div class="grid ${l.camStatus === 'ON' ? 'grid-cols-3' : 'grid-cols-2'} gap-1">
+                        ${l.camStatus === 'ON' ? `
+                    </div>
+                    <div class="grid grid-cols-2 gap-1">
+                        <button onclick="openLiveStream('${studentId}')" class="bg-blue-50 text-blue-600 text-[6px] font-black py-1 rounded-md hover:bg-blue-600 hover:text-white transition-all uppercase">Live</button>
+                        ` : `<button class="bg-slate-100 text-slate-400 text-[6px] font-black py-1 rounded-md uppercase cursor-not-allowed">No Cam</button>`}
+                        <button onclick="remoteUnlockStudent('${studentId}')" class="${isLocked ? 'bg-red-600 text-white' : 'bg-slate-50 text-slate-400'} text-[6px] font-black py-1 rounded-md hover:opacity-80 transition-all uppercase">
+                            ${isLocked ? 'OPEN' : 'PASS'}
+                        </button>
+                    </div>
+                </div>
+            `;
+
+            if (videoPlaying) {
+                const newContainer = document.getElementById(`container-${studentId}`);
+                newContainer.prepend(videoPlaying);
             }
         });
 
-        // --- PWA INSTALL LOGIC ---
-        let deferredPrompt;
-        window.addEventListener('beforeinstallprompt', (e) => {
-            e.preventDefault();
-            deferredPrompt = e;
-            const btn = document.getElementById('btnInstall');
-            if (btn) btn.style.display = 'block';
+        // 6. Cleanup card yang sudah tidak ada di live stream
+        const allCards = grid.querySelectorAll('.monitor-card');
+        allCards.forEach(card => {
+            const id = card.id.replace('card-', '');
+            // Logika penghapusan jika diperlukan
         });
+    });
+}
 
-        document.getElementById('btnInstall')?.addEventListener('click', async () => {
-            if (!deferredPrompt) return;
-            deferredPrompt.prompt();
-            await deferredPrompt.userChoice;
-            deferredPrompt = null;
-            document.getElementById('btnInstall').style.display = 'none';
+function openLiveStream(studentId) {
+    const cleanId = studentId.replace(/[^a-zA-Z0-9]/g, '');
+    const container = document.getElementById(`container-${studentId}`);
+    if (!container) return;
+
+    // Tambahkan indikator loading
+    container.innerHTML += `<div id="loading-${cleanId}" class="absolute inset-0 flex items-center justify-center bg-black/50 text-white text-[10px]">Connecting...</div>`;
+
+    const safePeerId = 'exam2026_' + cleanId;
+    const call = peer.call(safePeerId, new MediaStream());
+
+    if (!window.adminCalls) window.adminCalls = {};
+    window.adminCalls[studentId] = call;
+
+    // Buat data channel untuk snapshot dan notifikasi
+    const conn = peer.connect(safePeerId);
+    conn.on('open', () => {
+        window.adminDataConnections[studentId] = conn;
+    });
+    conn.on('data', (data) => {
+        if (data && data.type === 'snapshot') {
+            window.remoteSnapshots[data.studentId] = data.image;
+            const card = document.getElementById(`card-${data.studentId.replace(/[^a-zA-Z0-9]/g, '')}`);
+            if (card) {
+                const img = card.querySelector('img');
+                if (img) img.src = data.image;
+            }
+        }
+        if (data && data.type === 'violation_alert') {
+            handleAdminViolationNotification(data);
+        }
+    });
+    conn.on('close', () => { delete window.adminDataConnections[studentId]; });
+    conn.on('error', (err) => { console.error('DataChannel error:', err); });
+
+    // Track active monitoring connections
+    if (!window.activeMonitoring) window.activeMonitoring = new Set();
+    window.activeMonitoring.add(studentId);
+
+    call.on('stream', (remoteStream) => {
+        const loading = document.getElementById(`loading-${cleanId}`);
+        if(loading) loading.remove();
+        
+        container.innerHTML = `
+            <video id="remote-video-${cleanId}" autoplay muted playsinline class="w-full h-full object-cover z-10"></video>
+            <button onclick="stopLiveStream('${studentId}')" class="absolute bottom-2 right-2 z-40 bg-red-600 text-white text-[8px] px-2 py-1 rounded">CLOSE</button>
+        `;
+        const video = document.getElementById(`remote-video-${cleanId}`);
+        if (video) video.srcObject = remoteStream;
+    });
+
+    call.on('error', (err) => {
+        alert("Gagal memanggil kamera siswa. Pastikan siswa masih aktif.");
+        stopLiveStream(studentId);
+    });
+}
+
+function stopLiveStream(studentId) {
+    const cleanId = studentId.replace(/[^a-zA-Z0-9]/g, '');
+    const videoElement = document.getElementById(`remote-video-${cleanId}`);
+    if (videoElement) {
+        const stream = videoElement.srcObject;
+        if (stream) {
+            stream.getTracks().forEach(track => track.stop());
+        }
+        videoElement.remove();
+    }
+
+    if (window.adminCalls && window.adminCalls[studentId]) {
+        try { window.adminCalls[studentId].close(); } catch (e) {}
+        delete window.adminCalls[studentId];
+    }
+    if (window.adminDataConnections && window.adminDataConnections[studentId]) {
+        try { window.adminDataConnections[studentId].close(); } catch (e) {}
+        delete window.adminDataConnections[studentId];
+    }
+    
+    // Remove from active monitoring tracking
+    if (window.activeMonitoring) {
+        window.activeMonitoring.delete(studentId);
+    }
+    
+    // Paksa refresh grid untuk memunculkan kembali foto thumbnail terakhir
+    startMonitorFeed();
+}
+
+	// ✅ FUNGSI BARU: Handler untuk violation notification dari siswa via WebRTC
+	function handleAdminViolationNotification(violationData) {
+	    // ✅ OPTIMASI: Simpan hanya di LocalStorage admin (temporary session, TIDAK ke Firebase)
+	    const adminViolationLog = JSON.parse(localStorage.getItem('admin_violation_log') || '[]');
+	    
+	    adminViolationLog.push({
+	        ...violationData,
+	        received_at: Date.now()
+	    });
+	    
+	    // Batasi 100 item terakhir dalam session
+	    if (adminViolationLog.length > 100) {
+	        adminViolationLog.shift();
+	    }
+	    
+	    localStorage.setItem('admin_violation_log', JSON.stringify(adminViolationLog));
+	    
+	    // ✅ TAMPILKAN NOTIFIKASI REAL-TIME
+	    showAdminViolationNotification(`🚨 ${violationData.studentName} (${violationData.kelas}) - Pelanggaran #${violationData.violationCount}`, violationData.studentId);
+	    
+	    // ✅ UPDATE MONITORING CARD DENGAN STATUS MERAH
+	    updateViolationCardUI(violationData.studentId, violationData.violationCount);
+	    
+	    console.log('📢 Violation Alert Diterima dari:', violationData.studentName);
+	}
+
+	function showAdminViolationNotification(message, studentId) {
+	    // Buat toast notification
+	    const existingToast = document.getElementById('admin-toast');
+	    if (existingToast) existingToast.remove();
+	    
+	    const toast = document.createElement('div');
+	    toast.id = 'admin-toast';
+	    toast.className = 'fixed top-4 right-4 bg-red-600 text-white px-6 py-4 rounded-2xl shadow-2xl z-[5000] animate-bounce';
+	    toast.innerHTML = `<div>${message}</div><button onclick="this.parentElement.remove()" class="text-xs mt-2 opacity-75">Tutup</button>`;
+	    document.body.appendChild(toast);
+	    
+	    // Auto remove setelah 10 detik
+	    setTimeout(() => {
+	        if (toast.parentElement) toast.remove();
+	    }, 10000);
+	}
+
+	function updateViolationCardUI(studentId, violationCount) {
+	    // Update card styling untuk menunjukkan violation status
+	    const cleanId = studentId.replace(/[^a-zA-Z0-9]/g, '');
+	    const card = document.getElementById(`card-${cleanId}`);
+	    if (card) {
+	        if (violationCount >= 5) {
+	            // LOCK STATUS - Merah terang
+	            card.style.borderColor = '#dc2626';
+	            card.style.boxShadow = '0 0 20px rgba(220, 38, 38, 0.3)';
+	        } else if (violationCount > 0) {
+	            // WARNING STATUS - Oranye
+	            card.style.borderColor = '#f59e0b';
+	            card.style.boxShadow = '0 0 15px rgba(245, 158, 11, 0.2)';
+	        }
+	    }
+	}
+
+	async function remoteUnlockStudent(studentId) {
+	    if(confirm("Buka akses siswa ini?")) {
+	        try {
+	            await publicData.collection('live').doc(studentId).update({ command: 'unlock', v: 0 });
+	        } catch (e) { alert("Gagal koneksi ke siswa."); }
+	    }
+	}
+
+	async function requestMonitoring(studentId) {
+	    if(confirm("Mulai monitoring real-time siswa ini? (akan mengirim foto setiap 5 detik)")) {
+	        try {
+	            await publicData.collection('live').doc(studentId).update({ 
+	                command: 'start_monitoring', 
+	                monitoring_requested: true,
+	                monitoring_start: Date.now()
+	            });
+	        } catch (e) { alert("Gagal request monitoring."); }
+	    }
+	}
+
+	async function stopMonitoring(studentId) {
+	    if(confirm("Stop monitoring siswa ini?")) {
+	        try {
+	            await publicData.collection('live').doc(studentId).update({ 
+	                command: 'stop_monitoring', 
+	                monitoring_requested: false
+	            });
+	        } catch (e) { alert("Gagal stop monitoring."); }
+	    }
+	}
+
+	function listenForAdminCommands() {
+	    if (!user || !user.id) return;
+	    publicData.collection('live').doc(user.id).onSnapshot(doc => {
+	        if (doc.exists) {
+	            const data = doc.data();
+	            if (data.command === 'unlock') {
+	                forceUnlockLocally();
+	                doc.ref.update({ command: null });
+	            } else if (data.command === 'start_monitoring') {
+	                // Admin meminta monitoring real-time
+	                if (!window.activeMonitoring) window.activeMonitoring = new Set();
+	                window.activeMonitoring.add(user.id);
+	                console.log('Monitoring dimulai oleh admin');
+	                doc.ref.update({ command: null });
+	            } else if (data.command === 'stop_monitoring') {
+	                // Admin stop monitoring
+	                if (window.activeMonitoring) {
+	                    window.activeMonitoring.delete(user.id);
+	                }
+	                console.log('Monitoring dihentikan oleh admin');
+	                doc.ref.update({ command: null });
+	            }
+	        }
+	    });
+	}
+
+	function forceUnlockLocally() {
+	    document.getElementById('lock-screen').classList.add('hidden-element');
+	    document.getElementById('unlock-pwd').value = "";
+	    violationCount = 0;
+	    document.getElementById('violation-count').textContent = "0";
+	    document.getElementById('violation-badge').classList.add('hidden-element');
+ 	   // Memberi tahu siswa untuk klik agar fullscreen bisa aktif kembali
+	    alert("Akses dibuka oleh pengawas. Klik OK untuk lanjut.");
+	    document.documentElement.requestFullscreen().catch(() => {});
+	}
+
+
+	async function clearMonitorData() {
+		if(!confirm("Bersihkan?")) return;
+		const snap = await publicData.collection('live').get();
+		const batch = db.batch(); snap.forEach(doc => batch.delete(doc.ref)); await batch.commit();
+	}
+
+	function startCleanupService() {
+	    // Cleanup lebih agresif untuk 500 siswa - setiap 30 detik
+	    setInterval(async () => {try {
+	        const tenMinutesAgo = Date.now() - (10 * 60 * 1000); // 10 menit (bukan 5)
+	        const snap = await publicData.collection('live').where('last', '<', tenMinutesAgo).get();
+	        if (!snap.empty) {
+	            const batch = db.batch(); 
+	            snap.forEach(doc => batch.delete(doc.ref)); 
+	            await batch.commit();
+	            console.log(`Cleaned up ${snap.size} inactive sessions`);
+	        }
+	    } catch (e) { console.error("Cleanup error:", e); } }, 30000); // Setiap 30 detik
+	}
+
+
+
+
+// --- I. LOGIKA AI GEMINI ---
+async function generateAISoal() {
+    const topic = document.getElementById('ai-topic').value;
+    const count = document.getElementById('ai-count').value || 1;
+    if (!topic) return alert("Isi topik!");
+    const btn = document.getElementById('ai-btn');
+    const loader = document.getElementById('ai-loading');
+    btn.classList.add('hidden-element');
+    loader.classList.remove('hidden-element');
+    try {
+        const prompt = `Buatkan ${count} soal pilihan ganda tentang ${topic}. Berikan HANYA format JSON Array: [{"question": "..."}]. Tanpa teks lain.`;
+        const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`, {
+            method: 'POST', 
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({contents: [{parts: [{text: prompt}]}], generationConfig: { responseMimeType: "application/json" } })
         });
+        const result = await res.json();
+        let text = result.candidates[0].content.parts[0].text;
+	    const startBracket = text.indexOf('[');
+	    const endBracket = text.lastIndexOf(']') + 1;
+	    const cleanJson = text.substring(startBracket, endBracket);
+	    const qs = JSON.parse(cleanJson);
+        const batch = db.batch();
+        qs.forEach(q => {const docRef = publicData.collection('ai_bank').doc(); batch.set(docRef, { question: q.question, topic: topic, timestamp: Date.now() }); });
+        await batch.commit(); alert("Berhasil!"); closeModal('modal-ai');
+    } catch(e) { alert("Gagal."); } finally { btn.classList.remove('hidden-element'); loader.classList.add('hidden-element'); }
+}
 
-        // Initialize
-        window.addEventListener('online', () => { updateNetwork(); showToast('Kembali Online'); });
-        window.addEventListener('offline', () => { updateNetwork(); showToast('Mode Offline'); });
-	document.getElementById('passwordInput').addEventListener('keypress', function (e) {if (e.key === 'Enter') handleLogin();});
-// Pastikan aplikasi langsung masuk jika sudah pernah login
-window.addEventListener('DOMContentLoaded', () => {
-    if (localStorage.getItem('isLoggedIn') === 'true') {
-        document.getElementById('login-screen').style.display = 'none';
-        document.getElementById('main-app').style.display = 'block';
-        initApp();
+
+
+
+
+
+
+
+
+// --- J. LOGIKA AI GEMINI ---
+window.onbeforeunload = function() {if (isExamActive) {return "Ujian sedang berlangsung! Anda akan dicatat melakukan pelanggaran jika keluar."; }};
+window.addEventListener('blur', () => { if(isExamActive) {setTimeout(() => {if (document.activeElement.tagName !== 'IFRAME') {reportViolation();}}, 100);}});
+window.addEventListener('focus', () => {document.body.classList.remove('blur-screen'); if (isExamActive) {clearClipboard();} });
+
+document.addEventListener('visibilitychange', () => {
+    if (isExamActive && document.visibilityState === 'hidden') {
+        // Delay 1 detik untuk menghindari false positive saat alert sistem muncul
+        setTimeout(() => {if (document.visibilityState === 'hidden' && isExamActive) {reportViolation(); }
+        }, 1000);
+    }
+});
+
+document.addEventListener('fullscreenchange', () => {if (isExamActive && !document.fullscreenElement) {reportViolation();
+	alert("Peringatan! Anda keluar dari mode layar penuh. Selesaikan ujian di dalam mode ini.");
+	document.documentElement.requestFullscreen().catch(()=>{});}
+	});
+
+
+window.addEventListener('keydown', function(e) {
+    if (isExamActive && (e.which || e.keyCode) == 116) { // F5
+        e.preventDefault(); reportViolation(); alert("Dilarang me-refresh halaman!"); }
+});
+window.addEventListener('resize', () => {
+    if (!isExamActive) return;
+    const isMobile = /Android|webOS|iPhone|iPad|iPod/i.test(navigator.userAgent);
+    if (!isMobile) {
+        if (Math.abs(window.innerWidth - initialWidth) > 100) {reportViolation();
+            alert("Peringatan: Dilarang mengubah ukuran layar!"); }
     }
 });
 
 
-function playInPlace(container, url) {
-    const videoId = url.match(/(?:youtu\.be\/|youtube\.com\/(?:embed\/|v\/|watch\?v=|watch\?.+&v=))([^#&?]*)/)?.[1];
-    
-    if (videoId && videoId.length === 11) {
-        container.innerHTML = `
-            <iframe 
-                src="https://www.youtube.com/embed/${videoId}?autoplay=1&rel=0" 
-                allow="autoplay; encrypted-media; picture-in-picture" 
-                allowfullscreen
-                style="width: 100%; height: 100%; border: none;">
-            </iframe>`;
-        container.style.background = "#000";
-    } else {
-        window.open(url, '_blank');
-    }
-}
 
-async function fetchSpreadsheetData() {
-    // 1. Cek apakah ada data lama di memori HP
-    const cachedData = localStorage.getItem('app_data_cache');
-    if (cachedData) {
-        renderData(JSON.parse(cachedData)); // Tampilkan data lama dulu agar cepat
-    }
-
-    try {
-        const r = await fetch(API_URL);
-        const data = await r.json();
-        
-        // 2. Simpan data terbaru ke memori HP
-        localStorage.setItem('app_data_cache', JSON.stringify(data));
-        
-        // 3. Update tampilan dengan data terbaru
-        renderData(data);
-    } catch (e) {
-        console.error("Gagal update data terbaru");
-        if (!cachedData) showToast("Koneksi internet diperlukan.");
-    }
-}
-
-
-function renderData(data) {
-    try {
-        const sections = ['grid-lembaga', 'grid-profil', 'grid-game', 'grid-layanan', 'grid-literasi', 'grid-media', 'video-profil'];
-        sections.forEach(id => {
-            const el = document.getElementById(id);
-            if (el) {
-                const statics = el.querySelectorAll('.static-item');
-                el.innerHTML = ''; 
-                statics.forEach(s => el.appendChild(s));
-            }
-        });
-
-        Object.keys(data).forEach(key => {
-            const item = data[key];
-            const targetUrl = item.Url || item.URL || item.url;
-            const sectionId = `grid-${item.SectionID?.toLowerCase().trim()}`;
-            const container = document.getElementById(sectionId);
-
-            if (container) {
-                const card = document.createElement('div');
-                card.className = 'menu-card';
-                card.innerHTML = `
-                    <div class="icon-box"><i class="${item.Icon || 'fa-solid fa-link'}"></i></div>
-                    <span>${item.Title || key}</span>
-                `;
-                
-                card.onclick = () => {
-                    if (targetUrl) {
-                        openExternalLink(targetUrl);
-                    } else {
-                        openModal(item.Title || key, "Konten belum tersedia.");
-                    }
-                };
-                container.appendChild(card);
-            }
-
-            // Logika Video Galeri
-            if (item.Thumbnail && item.Thumbnail.startsWith('http')) {
-                const videoList = document.getElementById('video-profil');
-                if (videoList) {
-                    const v = document.createElement('div');
-                    v.className = 'video-item';
-                    const videoUrl = item.Url || item.URL || item.url;
-                    v.innerHTML = `
-                        <div class="video-thumb" onclick="playInPlace(this, '${videoUrl}')">
-                            <img src="${item.Thumbnail}">
-                            <div class="video-play-btn"><i class="fa-solid fa-play"></i></div>
-                        </div>
-                        <div class="video-info">${item.Title}</div>
-                    `;
-                    videoList.appendChild(v);
-                }
-            }
-        });
-    } catch (e) {
-        console.error("Error rendering data", e);
-        showToast("Gagal memuat data.");
-    }
-}
-
-// 2. Fungsi Khusus Membuka Link (Full Layar & Iframe)
-function openExternalLink(url) {
-    // Daftar website yang HARAM dibuka di Iframe (pasti putih/error)
-    const blockedSites = [
-        'facebook.com', 'instagram.com', 'youtube.com', 'google.com', 
-        'twitter.com', 'shopee', 'tokopedia', 'tiktok.com', 'wa.me', 't.me'
-    ];
-
-    const isBlocked = blockedSites.some(site => url.toLowerCase().includes(site));
-
-    if (isBlocked) {
-        // JIKA LINK MEMBLOKIR IFRAME:
-        // Langsung pindah halaman di jendela yang sama.
-        // Pada PWA yang sudah di-install, ini akan tetap Full Screen tanpa bar URL.
-        window.location.href = url;
-    } else {
-        // JIKA LINK AMAN (Web Sekolah/Lainnya):
-        // Buka di dalam Modal Full Screen aplikasi
-        const modalBody = document.getElementById('modalBody');
-        modalBody.classList.add('no-padding');
-        modalBody.innerHTML = `
-            <div id="loadingIframe" style="position:absolute; top:50%; left:50%; transform:translate(-50%,-50%); font-family:sans-serif; color:#666;">
-                <i class="fa-solid fa-spinner fa-spin"></i> Memuat...
-            </div>
-            <iframe src="${url}" id="externalFrame" 
-                style="width:100%; height:100vh; border:none; display:block;" 
-                onload="document.getElementById('loadingIframe').style.display='none'"
-                allow="geolocation; microphone; camera; clipboard-write">
-            </iframe>`;
-        
-        document.getElementById('contentModal').style.display = 'flex';
-        // Simpan state agar tombol back HP bisa menutup modal
-        history.pushState({ modalOpen: true }, "");
-    }
-}
-
-// 3. Update fungsi openModal standar agar mengembalikan padding
-function openModal(title, content) {
-    const modalBody = document.getElementById('modalBody');
-    modalBody.classList.remove('no-padding'); // Kembalikan padding untuk teks biasa
-    modalBody.innerHTML = content;
-    document.getElementById('contentModal').style.display = 'flex';
-    history.pushState({ modalOpen: true }, "");
-}
-		
-function closeModal() {
-    const modal = document.getElementById('contentModal');
-    if (modal.style.display === 'flex') {
-        modal.style.display = 'none';
-        document.getElementById('modalBody').innerHTML = '';
-    }
-}
-
-// Menangani tombol back pada smartphone
-window.onpopstate = function(event) {
-    const modal = document.getElementById('contentModal');
-    if (modal.style.display === 'flex') {
-        closeModal();
-    }
-};
 
 
 

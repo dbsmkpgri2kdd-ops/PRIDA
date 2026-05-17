@@ -426,19 +426,21 @@
         // --- 2. GLOBAL STATE ---
         let user = null;
         let isExamActive = false;
-	let isResuming = false;
+        let isResuming = false;
         let activePin = "1234";
         let violationCount = 0;
-	let lastViolationTime = 0;
+        let lastViolationTime = 0;
+        let initialWidth = 0;
+        let initialHeight = 0;
         let monitorInterval = null;
         let currentRole = 'student';
         let specialSettings = { pin: "1234", duration: 60 };
         let peer = null;
-	let activeCalls = {};
-	let remoteStreams = {};
-	let monitorSnapshots = {};
-	let peerDataConns = {};
-	let studentSnapshotInterval = null;
+        let activeCalls = {};
+        let remoteStreams = {};
+        let monitorSnapshots = {};
+        let peerDataConns = {};
+        let studentSnapshotInterval = null;
 	
 	// --- 3. INITIALIZATION ---
 	window.onload = async () => {
@@ -1065,9 +1067,20 @@ async function finishExam() {
 function confirmFinishExam() { if(confirm("Apakah anda yakin telah menyelesaikan semua soal dan ingin keluar?")) finishExam(); }
 
 async function clearClipboard() {
-        try {await navigator.clipboard.writeText("Akses dilarang");
-        } catch (err) {const input = document.createElement("input");
-            input.value = " "; document.body.appendChild(input); input.select(); document.execCommand("copy"); document.body.removeChild(input); }
+        try {
+            await navigator.clipboard.writeText("Akses dilarang");
+        } catch (err) {
+            try {
+                const input = document.createElement("input");
+                input.value = " ";
+                document.body.appendChild(input);
+                input.select();
+                document.execCommand("copy");
+                document.body.removeChild(input);
+            } catch (copyError) {
+                console.warn('Clear clipboard failed:', copyError);
+            }
+        }
     }
 
 

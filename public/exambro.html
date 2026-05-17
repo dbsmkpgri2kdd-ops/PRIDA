@@ -1182,55 +1182,92 @@ async function clearClipboard() {
 
 // --- G. SECURITY VIOLATION & LOCKDOWN (REVISED FOR MOBILE) ---
 let isSecuritySetup = false;
+// Tambahkan variabel global ini di bagian atas script jika belum ada
+let blurTimer = null; 
+
 function enableHardLockdown() {
     if (isSecuritySetup) return;
-    // 1. Mencegah Klik Kanan & Seleksi Teks (HP Friendly)
-    // Di HP, oncontextmenu terpicu saat menekan lama. Kita hanya blokir menu, TANPA hukuman.
-    document.oncontextmenu = (e) => {e.preventDefault(); return false; };
 
-    // Mematikan seleksi teks secara sistem (agar tidak muncul gelembung seleksi teks di HP)
+    // 1. Proteksi Klik Kanan & Seleksi (HP Friendly)
+    document.oncontextmenu = (e) => { e.preventDefault(); return false; };
     document.body.style.webkitUserSelect = "none";
     document.body.style.userSelect = "none";
-    document.body.style.webkitTouchCallout = "none"; // Mematikan menu "Open in new tab" pada link
+    document.body.style.webkitTouchCallout = "none";
     document.onselectstart = () => false;
     document.ondragstart = () => false;
 
-    // Jebakan Tombol Back (Android)
+    // 2. Proteksi Tombol Back (Android)
     history.pushState(null, null, location.href);
-    window.onpopstate = function() {history.go(1); if(isExamActive) {reportViolation(); alert("Gunakan tombol navigasi di dalam ujian, dilarang menekan tombol BACK!"); }};
-    document.addEventListener('visibilitychange', () => {if (isExamActive && document.visibilityState !== 'visible') {reportViolation(); }});
+    window.onpopstate = function() {
+        history.go(1);
+        if(isExamActive) {
+            // Berikan alasan spesifik agar pengawas tahu
+            reportViolation("Menekan Tombol BACK"); 
+            alert("⚠️ PERINGATAN: Dilarang menggunakan tombol BACK!");
+        }
+    };
 
-    // Keyboard Protector (Untuk Pengguna Tablet + Keyboard External)
-   window.onkeydown = (e) => {if (!isExamActive) return;
+    // 3. Proteksi Keyboard (Tablet/Laptop)
+    window.onkeydown = (e) => {
+        if (!isExamActive) return;
+        const forbiddenKeys = [122, 123, 91, 92]; 
+        const isControlAction = e.ctrlKey && ['u','s','p','c','v'].includes(e.key.toLowerCase());
+        const isAltAction = e.altKey && (e.key === 'Tab' || e.key === 'F4');
+        
+        if (forbiddenKeys.includes(e.keyCode) || isControlAction || isAltAction) {
+            e.preventDefault(); 
+            reportViolation("Shortcut Terlarang (Keyboard)"); 
+            return false; 
+        }
+    };
 
-    // Daftar tombol yang benar-benar dilarang: F12, F11, Win Key, Cmd Key
-    const forbiddenKeys = [122, 123, 91, 92]; 
-    
-    // Deteksi kombinasi terlarang (Ctrl+U, Ctrl+S, Ctrl+P, Ctrl+C, Ctrl+V)
-    const isControlAction = e.ctrlKey && ['u','s','p','c','v'].includes(e.key.toLowerCase());
-    
-    // Alt+Tab atau Alt+F4 (Alt sendiri tidak apa-apa, tapi kombinasi dilarang)
-    const isAltAction = e.altKey && (e.key === 'Tab' || e.key === 'F4');
-	if (forbiddenKeys.includes(e.keyCode) || isControlAction || isAltAction) {e.preventDefault(); reportViolation(); return false; }};
+    // 4. Manajemen Fokus & Masa Tenggang (Paling Penting!)
+    // visibilitychange: Terjadi saat pindah tab atau tekan tombol home
+    document.addEventListener('visibilitychange', () => {
+        if (isExamActive && document.visibilityState === 'hidden') {
+            // Beri masa tenggang 2 detik untuk visibilitychange (lebih ketat)
+            blurTimer = setTimeout(() => {
+                reportViolation("Pindah Tab / Keluar Aplikasi");
+            }, 2000);
+        } else {
+            if (blurTimer) {
+                clearTimeout(blurTimer);
+                blurTimer = null;
+            }
+        }
+    });
+
+    // onblur: Terjadi saat notifikasi muncul (WA, Baterai, dsb)
+    window.onblur = () => {
+        if (isExamActive) {
+            // Beri masa tenggang 4 detik untuk notifikasi (lebih longgar agar tidak kaget)
+            blurTimer = setTimeout(() => {
+                reportViolation("Kehilangan Fokus (Notifikasi/Pop-up)");
+            }, 4000);
+        }
+    };
+
+    window.onfocus = () => {
+        if (blurTimer) {
+            clearTimeout(blurTimer);
+            blurTimer = null;
+            console.log("Fokus kembali, pelanggaran dibatalkan.");
+        }
+    };
 
     // 5. Proteksi Print
-    window.addEventListener('beforeprint', (e) => {if(isExamActive) {e.preventDefault(); reportViolation(); } });
-    isSecuritySetup = true;
+    window.addEventListener('beforeprint', (e) => {
+        if(isExamActive) { e.preventDefault(); reportViolation("Mencoba Print"); } 
+    });
 
-	let blurTimeout;
-	document.addEventListener('visibilitychange', () => {if (isExamActive && document.visibilityState === 'hidden') {reportViolation();}});
-	window.onblur = () => {if (isExamActive) {blurTimeout = setTimeout(() => {reportViolation();}, 1000);} };
-	window.onfocus = () => {clearTimeout(blurTimeout); };
+    isSecuritySetup = true;
 }
 
-
-
-
-function reportViolation() {
+function reportViolation(reason = "Aktivitas Mencurigakan") {
     if (!isExamActive) return;
     
     const now = Date.now();
-    // Cooldown 3 detik agar tidak dobel hit dalam satu aksi
+    // Cooldown 3 detik agar tidak dobel hit
     if (now - lastViolationTime < 3000) return; 
     lastViolationTime = now; 
 
@@ -1248,16 +1285,19 @@ function reportViolation() {
     document.body.classList.add('violation-shake');
     setTimeout(() => document.body.classList.remove('violation-shake'), 500);
 
-    // Lapor ke Admin via Supabase (Realtime)
+    // Lapor ke Admin via Supabase dengan ALASAN SPESIFIK
     if (user && user.id) {
         db.from('live').update({ 
             v: violationCount, 
-            lastStatus: 'DETEKSI KELUAR/SPLIT' 
+            lastStatus: 'Peringatan: ' + reason.toUpperCase() 
         }).eq('id', user.id);
     }
 
-    // Hanya kunci layar jika sudah mencapai batas
-    if (violationCount >= 5) {
+    // Jika belum 5, berikan feedback ke siswa agar mereka sadar
+    if (violationCount < 5) {
+        // Gunakan toast atau alert kecil (opsional)
+        console.warn("Pelanggaran tercatat: " + reason);
+    } else {
         triggerLock();
     }
 }
@@ -1393,125 +1433,147 @@ function stopSnapshotService() {
     }
 }
 
+// Update juga fungsi connectSnapshotChannel agar lebih selektif
 function connectSnapshotChannel(studentId) {
     if (!peer) return;
+    
+    // Keamanan tambahan: Jangan konek jika ID kosong
+    if (!studentId) return;
+
     const safeId = studentId.replace(/[^a-zA-Z0-9]/g, '');
     const peerId = 'exam2026_' + safeId;
-    const existing = peerDataConns[peerId];
-    if (existing && existing.open) {
-        existing.send({ type: 'request_snapshot' });
+
+    // Jika koneksi sudah ada dan open, kirim request snapshot saja
+    if (peerDataConns[peerId] && peerDataConns[peerId].open) {
+        peerDataConns[peerId].send({ type: 'request_snapshot' });
         return;
     }
 
+    // Buat koneksi data baru
     try {
-        const conn = peer.connect(peerId, { reliable: true });
+        const conn = peer.connect(peerId, { reliable: false }); // false agar lebih cepat/ringan (UDP-like)
         setupDataConnection(conn);
     } catch (e) {
-        console.warn('Gagal membuka koneksi data snapshot:', e);
+        console.warn('Peer connection skip:', studentId);
     }
 }
 
-function updateMonitorCard(studentId, snapshotImg) {
-    const safeId = studentId.replace(/[^a-zA-Z0-9]/g, '');
-    const imgElement = document.getElementById(`snapshot-${safeId}`);
-    if (imgElement) {
-        imgElement.src = snapshotImg;
-        return;
-    }
+// --- PERBAIKAN MONITORING (OPTIMASI BANDWIDTH & CPU) ---
 
-    const container = document.getElementById(`container-${safeId}`);
-    if (!container) return;
-    const placeholder = container.querySelector('div');
-    if (placeholder) placeholder.remove();
-    container.insertAdjacentHTML('afterbegin', `<img id="snapshot-${safeId}" src="${snapshotImg}" class="w-full h-full object-cover">`);
+// Variable untuk melacak koneksi aktif agar bisa dibersihkan
+let activePeerConnections = {}; 
+
+function closeAllPeerConnections() {
+    console.log("Cleaning up active connections...");
+    Object.keys(peerDataConns).forEach(id => {
+        if (peerDataConns[id]) {
+            peerDataConns[id].close();
+            delete peerDataConns[id];
+        }
+    });
+    // Kosongkan cache snapshot untuk menghemat RAM
+    monitorSnapshots = {}; 
 }
-
-
-let currentMonitorSubscription = null;
 
 function startMonitorFeed() {
     const grid = document.getElementById('monitor-grid');
     const onlineCountEl = document.getElementById('online-count');
     const filterKelas = document.getElementById('monitor-filter-kelas').value;
-    
-    // Pastikan dropdown filter kelas terisi
+
+    // 1. Validasi: Jika pilih "SEMUA", beri peringatan atau batasi (opsional)
+    // Untuk performa terbaik, Admin disarankan memilih kelas spesifik.
+
+    // 2. Bersihkan koneksi lama sebelum memulai filter baru
+    closeAllPeerConnections();
+    grid.innerHTML = '<div class="col-span-full text-center py-10 text-slate-400">Memuat data kelas: ' + filterKelas + '...</div>';
+
+    // 3. Sinkronisasi Filter Dropdown (Hanya sekali)
     syncFilterOptions();
 
-    // Gunakan Realtime Supabase jika memungkinkan, atau bersihkan snapshot lama
-    if (currentMonitorSubscription) {
-        // Jika Anda menggunakan listener manual, pastikan tidak double
-    }
+    // Hapus listener lama jika ada (jika Anda menggunakan variabel global untuk subscription)
+    if (window.monitorSub) window.monitorSub.unsubscribe();
 
-    publicData.collection('live').onSnapshot(s => {
+    // 4. Mulai mendengarkan data dari Supabase
+    window.monitorSub = publicData.collection('live').onSnapshot(s => {
         let activeStudents = 0;
-        const studentsByClass = {};
+        const studentsInClass = [];
 
-        // 1. Grouping data berdasarkan kelas
         s.forEach(d => {
             const l = d.data();
             const studentKelas = l.kelas || "Tanpa Kelas";
             
-            // Filter Logika
-            if (filterKelas !== "ALL" && studentKelas !== filterKelas) return;
+            // LOGIKA FILTER KETAT:
+            // Jika filter bukan "ALL", maka lewatkan siswa yang kelasnya tidak cocok
+            if (filterKelas !== "ALL" && studentKelas !== filterKelas) {
+                // Pastikan koneksi PeerJS untuk siswa di luar filter benar-benar tertutup
+                const peerId = 'exam2026_' + d.id.replace(/[^a-zA-Z0-9]/g, '');
+                if (peerDataConns[peerId]) {
+                    peerDataConns[peerId].close();
+                    delete peerDataConns[peerId];
+                }
+                return; 
+            }
 
-            if (!studentsByClass[studentKelas]) studentsByClass[studentKelas] = [];
-            studentsByClass[studentKelas].push({ id: d.id, ...l });
+            studentsInClass.push({ id: d.id, ...l });
             activeStudents++;
         });
 
-        onlineCountEl.textContent = activeStudents + " Siswa Ditampilkan (" + filterKelas + ")";
-        grid.innerHTML = '';
+        // Update Counter
+        onlineCountEl.textContent = `${activeStudents} Siswa Aktif di Kelas ${filterKelas}`;
 
-        // 2. Render kartu per kelompok kelas
-        for (const kelas in studentsByClass) {
-            const sectionId = `section-${kelas.replace(/\s+/g, '-')}`;
-            const classHeader = `
-                <div class="mb-6">
-                    <div class="flex items-center mb-4">
-                        <span class="bg-blue-600 text-white px-4 py-1 rounded-full text-[10px] font-black uppercase tracking-widest">${kelas}</span>
-                        <div class="h-[1px] flex-grow bg-slate-200 ml-4"></div>
-                        <span class="ml-4 text-[10px] font-bold text-slate-400">${studentsByClass[kelas].length} Siswa</span>
+        // 5. Render hanya jika ada data
+        if (studentsInClass.length === 0) {
+            grid.innerHTML = `<div class="col-span-full text-center py-20 bg-white rounded-[3rem] border-2 border-dashed">
+                <p class="text-slate-400 font-bold">Tidak ada siswa aktif di kelas ${filterKelas}</p>
+            </div>`;
+            return;
+        }
+
+        grid.innerHTML = ''; // Bersihkan container sebelum render ulang
+
+        // 6. Buat Container Grid untuk Kelas Terpilih
+        const sectionId = `group-${filterKelas.replace(/\s+/g, '-')}`;
+        grid.insertAdjacentHTML('beforeend', `<div id="${sectionId}" class="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6 xl:grid-cols-8 gap-4"></div>`);
+        const classGrid = document.getElementById(sectionId);
+
+        studentsInClass.forEach(l => {
+            const studentId = l.id;
+            const safeId = studentId.replace(/[^a-zA-Z0-9]/g, '');
+            const isOnline = (Date.now() - l.last) < 40000;
+            const isLocked = l.isLocked === true || l.v >= 5;
+            const snapshotImg = monitorSnapshots[studentId] || "";
+
+            const cardHtml = `
+                <div id="card-${safeId}" class="monitor-card bg-white rounded-2xl border ${isLocked ? 'border-red-500 ring-2 ring-red-500/20' : 'border-slate-100'} overflow-hidden relative shadow-sm">
+                    <div id="container-${safeId}" class="aspect-video bg-slate-100 relative overflow-hidden">
+                        ${snapshotImg ? `<img id="snapshot-${safeId}" src="${snapshotImg}" class="w-full h-full object-cover">` : 
+                        `<div class="w-full h-full flex flex-col items-center justify-center text-slate-300">
+                            <span class="text-[18px]">📷</span>
+                            <span class="text-[7px] font-black uppercase mt-1">Waiting Feed</span>
+                         </div>`}
+                        <div class="absolute top-1 left-1 flex gap-1">
+                            <div class="status-ping ${isOnline ? 'bg-emerald-500' : 'bg-slate-300'}"></div>
+                            ${l.v > 0 ? `<span class="bg-red-600 text-white text-[7px] px-1 rounded font-black">V:${l.v}</span>` : ''}
+                        </div>
                     </div>
-                    <div id="${sectionId}" class="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-6 lg:grid-cols-8 xl:grid-cols-10 gap-3"></div>
+                    <div class="p-2 bg-white">
+                        <p class="text-[8px] font-black truncate uppercase text-slate-700 leading-tight">${l.nama}</p>
+                        <div class="flex gap-1 mt-2">
+                            <button onclick="openLiveStream('${studentId}')" class="flex-1 bg-blue-600 text-white text-[7px] font-black py-1.5 rounded-lg shadow-sm">LIVE</button>
+                            <button onclick="remoteUnlockStudent('${studentId}')" class="flex-1 ${isLocked ? 'bg-red-600 text-white' : 'bg-slate-100 text-slate-400'} text-[7px] font-black py-1.5 rounded-lg">UNLOCK</button>
+                        </div>
+                    </div>
                 </div>
             `;
-            grid.insertAdjacentHTML('beforeend', classHeader);
-            const classGrid = document.getElementById(sectionId);
-
-            studentsByClass[kelas].forEach(l => {
-                const studentId = l.id;
-                const safeId = studentId.replace(/[^a-zA-Z0-9]/g, '');
-                const isOnline = (Date.now() - l.last) < 40000; // Toleransi 40 detik
-                const isLocked = l.isLocked === true || l.v >= 5;
-                const snapshotImg = monitorSnapshots[safeId] || "";
-
-                const cardHtml = `
-                    <div id="card-${safeId}" class="monitor-card bg-white rounded-2xl border ${isLocked ? 'border-red-500 ring-2 ring-red-500/20' : 'border-slate-100'} overflow-hidden relative shadow-sm">
-                        <div class="aspect-video bg-slate-100 relative group">
-                            ${snapshotImg ? `<img id="snapshot-${safeId}" src="${snapshotImg}" class="w-full h-full object-cover">` : 
-                            `<div class="w-full h-full flex items-center justify-center text-slate-300 text-[10px]">No Feed</div>`}
-                            <div class="absolute top-1 left-1 flex gap-1">
-                                <div class="w-2 h-2 rounded-full ${isOnline ? 'bg-emerald-500 animate-pulse' : 'bg-slate-300'}"></div>
-                                ${l.v > 0 ? `<span class="bg-amber-500 text-white text-[7px] px-1 rounded font-black">V:${l.v}</span>` : ''}
-                            </div>
-                        </div>
-                        <div class="p-2">
-                            <p class="text-[9px] font-black truncate uppercase text-slate-700 leading-tight">${l.nama}</p>
-                            <div class="flex gap-1 mt-2">
-                                <button onclick="openLiveStream('${studentId}')" class="flex-1 bg-blue-50 text-blue-600 text-[7px] font-black py-1 rounded-lg">LIVE</button>
-                                <button onclick="remoteUnlockStudent('${studentId}')" class="flex-1 ${isLocked ? 'bg-red-600 text-white' : 'bg-slate-50 text-slate-400'} text-[7px] font-black py-1 rounded-lg">LOCK</button>
-                            </div>
-                        </div>
-                    </div>
-                `;
-                classGrid.insertAdjacentHTML('beforeend', cardHtml);
-                
-                // Hanya koneksi PeerJS jika siswa online & ditampilkan (save resources)
-                if (isOnline) connectSnapshotChannel(studentId);
-            });
-        }
+            classGrid.insertAdjacentHTML('beforeend', cardHtml);
+            
+            // 7. Jalankan PeerJS hanya jika siswa online dan masuk filter
+            if (isOnline) connectSnapshotChannel(studentId);
+        });
     });
 }
+
+
 
 // Fungsi pembantu untuk mengisi dropdown filter di monitor
 async function syncFilterOptions() {

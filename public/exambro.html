@@ -136,27 +136,20 @@
 	</div>
 
             <!-- SECTION MONITOR -->
-<!-- Cari div id="section-monitor" dan sesuaikan bagian kepalanya -->
-<div id="section-monitor" class="hidden-element">
-    <div class="flex flex-col md:flex-row justify-between items-start md:items-end mb-10 gap-4">
-        <div>
-            <h2 class="text-3xl font-black text-slate-900">Live Monitoring</h2>
-            <p class="text-slate-400 text-xs mt-1" id="online-count">0 Siswa Aktif</p>
-        </div>
-        
-        <!-- TAMBAHKAN FILTER INI -->
-        <div class="flex items-center space-x-3 bg-white p-2 rounded-2xl border shadow-sm">
-            <span class="text-[10px] font-bold text-slate-400 ml-2">FILTER KELAS:</span>
-            <select id="monitor-filter-kelas" onchange="startMonitorFeed()" class="bg-slate-50 border-none text-xs font-black rounded-xl p-2 outline-none focus:ring-2 ring-blue-500">
-                <option value="ALL">SEMUA KELAS</option>
-                <!-- Opsi kelas akan diisi otomatis oleh loadKelas() -->
-            </select>
-        </div>
-        
-        <button onclick="clearMonitorData()" class="text-red-500 font-bold text-[10px] uppercase border-b border-red-200">Bersihkan Feed</button>
-    </div>
-    <div id="monitor-grid" class="grid grid-cols-1 gap-8"></div>
-</div>
+	<div id="section-monitor" class="hidden-element">
+	    <div class="flex flex-col md:flex-row justify-between items-start md:items-end mb-10 gap-6">
+	        <div class="space-y-4">
+	            <div><h2 class="text-3xl font-black text-slate-900">Live Monitoring</h2><p class="text-slate-400 text-xs mt-1" id="online-count">0 Siswa Aktif</p></div>
+	            <div class="flex items-center space-x-3 bg-white p-2 rounded-2xl border shadow-sm w-fit">
+	                <span class="text-[10px] font-bold text-slate-400 ml-2">FILTER KELAS:</span>
+	                <select id="monitor-filter-kelas" onchange="startMonitorFeed()" class="bg-slate-50 border-none text-xs font-black rounded-xl p-2 outline-none focus:ring-2 ring-blue-500"><option value="ALL">SEMUA KELAS</option></select>
+	            </div>
+	        </div>
+	        <button onclick="clearMonitorData()" class="text-red-500 font-bold text-[10px] uppercase border-b border-red-200 pb-1 mb-2">Bersihkan Feed</button>
+	    </div>
+	    <div id="monitor-grid" class="grid grid-cols-1 gap-8"></div>
+	</div>
+
             <!-- SECTION BANK AI -->
             <div id="section-bank" class="hidden-element">
                 <div class="flex justify-between items-end mb-10"><h2 class="text-3xl font-black text-slate-900">Bank Soal AI</h2><button onclick="openModal('modal-ai')" class="bg-indigo-600 text-white px-8 py-4 rounded-2xl font-black text-xs">✨ Generate Soal Baru</button></div>
@@ -362,19 +355,25 @@ async function handleLogin() {
     loginBtn.disabled = true; loginBtn.innerHTML = "Memverifikasi...";
     try {
         if (currentRole === 'admin') {
-            if (userIdInput.value === 'admin' && pwd === 'admin123') { user = { id: 'admin', nama: 'Administrator' }; currentRole = 'admin'; setRole('admin'); const adminData = { role: 'admin', user, time: Date.now() }; localStorage.setItem('exambro_session', JSON.stringify(adminData)); initPeer(); showPage('admin-page'); syncAdminData(); startMonitorFeed();
+            if (userIdInput.value === 'admin' && pwd === 'admin123') { 
+                user = { id: 'admin', nama: 'Administrator' }; currentRole = 'admin'; setRole('admin'); 
+                localStorage.setItem('exambro_session', JSON.stringify({ role: 'admin', user, time: Date.now() })); 
+                initPeer(); showPage('admin-page'); syncAdminData(); startMonitorFeed();
             } else { alert("Username atau Password Admin Salah!"); }
         } else {
-            const userId = selectNamaInput.value;
-            if (!userId) { alert("Silahkan pilih nama Anda!"); loginBtn.disabled = false; loginBtn.innerHTML = "MASUK SISTEM"; return; }
-            const doc = await publicData.collection('users').doc(userId).get();
-            if (doc.exists) { const userData = doc.data();
-                if (userData.pwd.toString() === pwd.toString()) { user = { id: doc.id, nama: userData.nama, kelas: userData.kelas, nis: userData.nis }; currentRole = 'student'; setRole('student'); const sessionData = { role: 'student', user: user, time: Date.now() }; localStorage.setItem('exambro_session', JSON.stringify(sessionData)); document.getElementById('display-std-name').textContent = user.nama; showPage('student-page'); syncStudentData(); initPeer(); listenForAdminCommands();
+            const userId = selectNamaInput.value; if (!userId) { alert("Silahkan pilih nama Anda!"); loginBtn.disabled = false; loginBtn.innerHTML = "MASUK SISTEM"; return; }
+            const selectedText = selectNamaInput.options[selectNamaInput.selectedIndex].text, doc = await publicData.collection('users').doc(userId).get();
+            if (doc.exists) { 
+                const userData = doc.data();
+                if (userData.pwd.toString() === pwd.toString()) { 
+                    user = { id: doc.id, nama: selectedText, kelas: userData.kelas, nis: userData.nis }; currentRole = 'student'; setRole('student'); 
+                    localStorage.setItem('exambro_session', JSON.stringify({ role: 'student', user: user, time: Date.now() })); 
+                    document.getElementById('display-std-name').textContent = user.nama; showPage('student-page'); syncStudentData(); initPeer(); listenForAdminCommands();
                 } else { alert("Password Siswa Salah!"); }
             } else { alert("Data tidak ditemukan!"); }
         }
-    } catch (error) { console.error(error); alert("Gangguan Koneksi: " + error.message);
-    } finally { loginBtn.disabled = false; loginBtn.innerHTML = "MASUK SISTEM"; }
+    } catch (error) { console.error(error); alert("Gangguan Koneksi: " + error.message); }
+    finally { loginBtn.disabled = false; loginBtn.innerHTML = "MASUK SISTEM"; }
 }
 
 async function logout() {
@@ -567,7 +566,7 @@ async function startExamEngine(url, mapel, dur, isCameraRequired) {
     const selfVideo = document.getElementById('self-video');
     if (isCameraRequired !== false) {
         try {
-            const stream = await navigator.mediaDevices.getUserMedia({ video: { width: { ideal: 320 }, height: { ideal: 240 }, frameRate: { max: 15 } } });
+            const stream = await navigator.mediaDevices.getUserMedia({ video: { width: { ideal: 160 }, height: { ideal: 120 }, frameRate: { max: 10 } } });
             window.localStream = stream; selfVideo.srcObject = stream; selfVideo.parentElement.classList.remove('hidden-element');
         } catch (e) { console.error("Camera Error:", e); alert("⚠️ Ujian ini wajib menggunakan kamera. Pastikan izin kamera telah diberikan!"); return; }
     } else {
@@ -668,7 +667,7 @@ function initPeer() {
     peer = new Peer(safePeerId, { config: { 'iceServers': [{ urls: 'stun:stun.l.google.com:19302' }] } });
     peer.on('call', (call) => {
         if (window.localStream) { call.answer(window.localStream); } else {
-            const canvas = document.createElement('canvas'); canvas.width = 160; canvas.height = 120;
+            const canvas = document.createElement('canvas'); canvas.width = 120; canvas.height = 90;
             const ctx = canvas.getContext('2d'); ctx.fillStyle = 'black'; ctx.fillRect(0, 0, canvas.width, canvas.height);
             call.answer(canvas.captureStream());
         }
@@ -677,52 +676,29 @@ function initPeer() {
 }
 
 function setupDataConnection(conn) {
-    const remotePeerId = conn.peer; 
-    peerDataConns[remotePeerId] = conn;
-
+    const remotePeerId = conn.peer; peerDataConns[remotePeerId] = conn;
     conn.on('data', (data) => {
         if (!data || !data.type) return;
-
         // --- LOGIKA SISWA: Menerima request dari Admin ---
-        if (data.type === 'request_snapshot') { 
-            const img = captureSnapshot(); 
-            if (img) conn.send({ type: 'snapshot', img: img }); 
-        }
-
+        if (data.type === 'request_snapshot') { const img = captureSnapshot(); if (img) conn.send({ type: 'snapshot', img: img }); }
         // --- LOGIKA SISWA: Menerima perintah UNLOCK ---
-        if (data.type === 'command' && data.content === 'unlock') {
-            forceUnlockLocally();
-        }
-
+        if (data.type === 'command' && data.content === 'unlock') { forceUnlockLocally(); }
         // --- LOGIKA ADMIN: Menerima kiriman foto dari Siswa ---
         if (data.type === 'snapshot' && data.img) {
-            // Ambil ID siswa dari PeerID (contoh: exam2026_rifal123 -> rifal123)
-            const cleanedId = remotePeerId.replace(/^exam2026_/, '');
-            
-            // Simpan ke cache snapshot
-            monitorSnapshots[cleanedId] = data.img;
-
-            // Update gambar di layar menggunakan ID yang sudah dibersihkan
+            const cleanedId = remotePeerId.replace(/^exam2026_/, ''); monitorSnapshots[cleanedId] = data.img;
             const imgElement = document.getElementById(`snapshot-${cleanedId}`);
             if (imgElement) {
-                imgElement.src = data.img;
-                imgElement.classList.remove('hidden-element');
-                
-                // Sembunyikan tulisan "Waiting Feed"
-                const parent = imgElement.parentElement;
-                const placeholder = parent.querySelector('.waiting-placeholder');
-                if (placeholder) placeholder.classList.add('hidden-element');
+                imgElement.src = data.img; imgElement.classList.remove('hidden-element');
+                const placeholder = imgElement.parentElement.querySelector('.waiting-placeholder'); if (placeholder) placeholder.classList.add('hidden-element');
             }
         }
     });
-
-    conn.on('close', () => { delete peerDataConns[remotePeerId]; });
-    conn.on('error', () => { delete peerDataConns[remotePeerId]; });
+    conn.on('close', () => { delete peerDataConns[remotePeerId]; }); conn.on('error', () => { delete peerDataConns[remotePeerId]; });
 }
 
 function captureSnapshot() {
     const video = document.getElementById('self-video'); if (!video || video.readyState < 2) return null;
-    const canvas = document.createElement('canvas'); canvas.width = 160; canvas.height = 120;
+    const canvas = document.createElement('canvas'); canvas.width = 120; canvas.height = 90;
     const ctx = canvas.getContext('2d'); ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
     return canvas.toDataURL('image/jpeg', 0.1); 
 }
@@ -733,23 +709,10 @@ function stopSnapshotService() { if (studentSnapshotInterval) { clearInterval(st
 
 function connectSnapshotChannel(studentId) {
     const currentFilter = document.getElementById('monitor-filter-kelas').value;
-    if (currentFilter === "ALL") return;
-    if (!peer || !studentId) return;
-
-    // Bersihkan ID agar sesuai dengan ID yang dibuat siswa di initPeer
-    const safeId = studentId.replace(/[^a-zA-Z0-9]/g, '');
-    const peerId = 'exam2026_' + safeId;
-
-    if (peerDataConns[peerId] && peerDataConns[peerId].open) { 
-        // Jika sudah konek, langsung minta foto
-        peerDataConns[peerId].send({ type: 'request_snapshot' }); 
-        return; 
-    }
-
-    try { 
-        const conn = peer.connect(peerId, { reliable: false }); 
-        setupDataConnection(conn); 
-    } catch (e) { console.warn('Peer connection skip:', studentId); }
+    if (currentFilter === "ALL" || !peer || !studentId) return;
+    const safeId = studentId.replace(/[^a-zA-Z0-9]/g, ''), peerId = 'exam2026_' + safeId;
+    if (peerDataConns[peerId] && peerDataConns[peerId].open) { peerDataConns[peerId].send({ type: 'request_snapshot' }); return; }
+    try { const conn = peer.connect(peerId, { reliable: false }); setupDataConnection(conn); } catch (e) { console.warn('Peer connection skip:', studentId); }
 }
 
 // --- PERBAIKAN MONITORING (OPTIMASI BANDWIDTH & CPU) ---
@@ -762,73 +725,31 @@ function closeAllPeerConnections() {
 
 function startMonitorFeed() {
     const grid = document.getElementById('monitor-grid'), onlineCountEl = document.getElementById('online-count'), filterKelas = document.getElementById('monitor-filter-kelas').value;
-    closeAllPeerConnections(); grid.innerHTML = '<div class="col-span-full text-center py-10 text-slate-400">Memuat data kelas: ' + filterKelas + '...</div>';
-    syncFilterOptions(); if (window.monitorSub) window.monitorSub.unsubscribe();
+    closeAllPeerConnections(); 
+    if (filterKelas === "ALL") {
+        grid.innerHTML = `<div class="col-span-full text-center py-20 bg-amber-50 rounded-[3rem] border-2 border-dashed border-amber-200"><div class="text-4xl mb-4">⚠️</div><p class="text-amber-700 font-black text-lg">Mode "SEMUA KELAS" Terdeteksi</p><p class="text-amber-600 text-xs mt-2 max-w-xs mx-auto">Untuk mencegah aplikasi macet (karena beban 500+ siswa), silakan <b>Pilih Salah Satu Kelas</b> pada filter di atas untuk melihat monitor kamera.</p></div>`;
+        onlineCountEl.textContent = "Monitoring Global Non-Aktif"; if (window.monitorSub) window.monitorSub.unsubscribe(); return;
+    }
+    grid.innerHTML = '<div class="col-span-full text-center py-10 text-slate-400 italic font-bold">Menghubungkan ke Feed Kelas ' + filterKelas + '...</div>';
+    if (window.monitorSub) window.monitorSub.unsubscribe();
     window.monitorSub = publicData.collection('live').onSnapshot(s => {
         let activeStudents = 0; const studentsInClass = [];
-        s.forEach(d => {
-            const l = d.data(), studentKelas = l.kelas || "Tanpa Kelas";
-            if (filterKelas !== "ALL" && studentKelas !== filterKelas) {
-                const peerId = 'exam2026_' + d.id.replace(/[^a-zA-Z0-9]/g, '');
-                if (peerDataConns[peerId]) { peerDataConns[peerId].close(); delete peerDataConns[peerId]; } return; 
-            }
-            studentsInClass.push({ id: d.id, ...l }); activeStudents++;
-        });
+        s.forEach(d => { const l = d.data(); if ((l.kelas || "Tanpa Kelas") === filterKelas) { studentsInClass.push({ id: d.id, ...l }); activeStudents++; } });
         onlineCountEl.textContent = `${activeStudents} Siswa Aktif di Kelas ${filterKelas}`;
-        if (studentsInClass.length === 0) { grid.innerHTML = `<div class="col-span-full text-center py-20 bg-white rounded-[3rem] border-2 border-dashed"><p class="text-slate-400 font-bold">Tidak ada siswa aktif di kelas ${filterKelas}</p></div>`; return; }
+        if (studentsInClass.length === 0) { grid.innerHTML = `<div class="col-span-full text-center py-20 bg-white rounded-[3rem] border-2 border-dashed"><p class="text-slate-400 font-bold italic">Tidak ada siswa online di kelas ${filterKelas}</p></div>`; return; }
         grid.innerHTML = ''; const sectionId = `group-${filterKelas.replace(/\s+/g, '-')}`;
         grid.insertAdjacentHTML('beforeend', `<div id="${sectionId}" class="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6 xl:grid-cols-8 gap-4"></div>`);
         const classGrid = document.getElementById(sectionId);
-        
-studentsInClass.forEach(l => {
-            const studentId = l.id;
-            // safeId adalah ID tanpa titik/spasi agar valid jadi ID HTML (contoh: rifal123)
-            const safeId = studentId.replace(/[^a-zA-Z0-9]/g, ''); 
-            const isOnline = (Date.now() - l.last) < 40000;
-            const isLocked = l.isLocked === true || l.v >= 5;
-            
-            // Ambil gambar dari cache jika Admin sudah pernah menerima sebelumnya
-            const snapshotImg = monitorSnapshots[safeId] || "";
-
-            const cardHtml = `
-                <div id="card-${safeId}" class="monitor-card bg-white rounded-2xl border ${isLocked ? 'border-red-500 ring-2 ring-red-500/20' : 'border-slate-100'} overflow-hidden relative shadow-sm">
-                    <div id="container-${safeId}" class="aspect-video bg-slate-100 relative overflow-hidden flex items-center justify-center">
-                        
-                        <!-- Gambar Siswa (Gunakan safeId) -->
-                        <img id="snapshot-${safeId}" src="${snapshotImg}" class="w-full h-full object-cover ${snapshotImg ? '' : 'hidden-element'}">
-                        
-                        <!-- Placeholder jika gambar belum masuk -->
-                        <div class="waiting-placeholder ${snapshotImg ? 'hidden-element' : ''} flex flex-col items-center justify-center text-slate-300">
-                            <span class="text-[18px]">📷</span>
-                            <span class="text-[7px] font-black uppercase mt-1">Waiting Feed</span>
-                        </div>
-
-                        <div class="absolute top-1 left-1 flex gap-1">
-                            <div class="status-ping ${isOnline ? 'bg-emerald-500' : 'bg-slate-300'}"></div>
-                            ${l.v > 0 ? `<span class="bg-red-600 text-white text-[7px] px-1 rounded font-black">V:${l.v}</span>` : ''}
-                        </div>
-                    </div>
-                    <div class="p-2 bg-white">
-                        <p class="text-[8px] font-black truncate uppercase text-slate-700 leading-tight">${l.nama}</p>
-                        <div class="flex gap-1 mt-2">
-                            <button onclick="openLiveStream('${studentId}')" class="flex-1 bg-blue-600 text-white text-[7px] font-black py-1.5 rounded-lg shadow-sm">LIVE</button>
-                            <button onclick="remoteUnlockStudent('${studentId}')" class="flex-1 ${isLocked ? 'bg-red-600 text-white' : 'bg-slate-100 text-slate-400'} text-[7px] font-black py-1.5 rounded-lg">UNLOCK</button>
-                        </div>
-                    </div>
-                </div>`;
-            classGrid.insertAdjacentHTML('beforeend', cardHtml); 
-            if (isOnline) connectSnapshotChannel(studentId);
+        studentsInClass.forEach(l => {
+            const studentId = l.id, safeId = studentId.replace(/[^a-zA-Z0-9]/g, ''), isOnline = (Date.now() - l.last) < 40000, isLocked = l.isLocked === true || l.v >= 5, snapshotImg = monitorSnapshots[safeId] || "";
+            const cardHtml = `<div id="card-${safeId}" class="monitor-card bg-white rounded-2xl border ${isLocked ? 'border-red-500 ring-2 ring-red-500/20' : 'border-slate-100'} overflow-hidden relative shadow-sm"><div id="container-${safeId}" class="aspect-video bg-slate-900 relative overflow-hidden flex items-center justify-center"><img id="snapshot-${safeId}" src="${snapshotImg}" class="w-full h-full object-cover ${snapshotImg ? '' : 'hidden-element'}"><div class="waiting-placeholder ${snapshotImg ? 'hidden-element' : ''} flex flex-col items-center justify-center text-slate-600"><span class="text-[12px] opacity-50">📷</span><span class="text-[6px] font-black uppercase mt-1 opacity-50">Offline/Wait</span></div><div class="absolute top-1 left-1 flex gap-1"><div class="status-ping ${isOnline ? 'bg-emerald-500' : 'bg-slate-500'}"></div>${l.v > 0 ? `<span class="bg-red-600 text-white text-[7px] px-1 rounded font-black">V:${l.v}</span>` : ''}</div></div><div class="p-2"><p class="text-[8px] font-black truncate uppercase text-slate-700 leading-tight">${l.nama}</p><div class="flex gap-1 mt-1.5"><button onclick="openLiveStream('${studentId}')" class="flex-1 bg-blue-600 text-white text-[7px] font-black py-1 rounded-md">LIVE</button><button onclick="remoteUnlockStudent('${studentId}')" class="flex-1 ${isLocked ? 'bg-red-600 text-white' : 'bg-slate-100 text-slate-400'} text-[7px] font-black py-1 rounded-md">UNLOCK</button></div></div></div>`;
+            classGrid.insertAdjacentHTML('beforeend', cardHtml); if (isOnline) connectSnapshotChannel(studentId);
         });
     });
     if (window.adminPullingInterval) clearInterval(window.adminPullingInterval);
     window.adminPullingInterval = setInterval(() => {
-        const filterKelas = document.getElementById('monitor-filter-kelas').value; 
-        if (filterKelas === "ALL") return;
-        Object.keys(peerDataConns).forEach(peerId => { 
-            const conn = peerDataConns[peerId]; 
-            if (conn && conn.open) conn.send({ type: 'request_snapshot' }); 
-        });
-    }, 10000);
+        Object.keys(peerDataConns).forEach(peerId => { const conn = peerDataConns[peerId]; if (conn && conn.open) conn.send({ type: 'request_snapshot' }); });
+    }, 10000); 
 }
 
 async function syncFilterOptions() {
@@ -915,9 +836,10 @@ document.addEventListener('fullscreenchange', () => {
 
 window.addEventListener('resize', () => {
     if (!isExamActive) return;
+    if (document.activeElement.tagName === 'INPUT' || document.activeElement.tagName === 'TEXTAREA') return;
     const widthDiff = Math.abs(window.innerWidth - initialWidth), heightDiff = Math.abs(window.innerHeight - initialHeight);
-    if (widthDiff > 50) { reportViolation(); initialWidth = window.innerWidth; }
-    if (heightDiff > (initialHeight * 0.7)) reportViolation();
+    if (widthDiff > 50) {reportViolation("Resize Layar (Split Screen?)"); initialWidth = window.innerWidth; }
+    if (heightDiff > (initialHeight * 0.3) && !document.fullscreenElement) {reportViolation("Keluar Mode Fullscreen");}
 });
 
 document.oncontextmenu = function(e) { e.preventDefault(); e.stopPropagation(); return false; };

@@ -230,6 +230,29 @@
         const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY, { auth: { persistSession: true, autoRefreshToken: true } });
         const db = supabaseClient;
 
+        async function upsertSettingsItem(settingId, data) {
+            let payload = { id: settingId, ...data };
+            let res = await db.from('settings').upsert(payload, { onConflict: 'id' });
+            if (res.error && res.error.code === '42703') {
+                payload = { key: settingId, ...data };
+                res = await db.from('settings').upsert(payload, { onConflict: 'key' });
+            }
+            if (res.error) throw res.error;
+            return res;
+        }
+
+        async function cleanupLiveRows(createdBefore) {
+            let res = await db.from('live').delete().lt('last', createdBefore);
+            if (res.error && res.error.code === '42703') {
+                res = await db.from('live').delete().lt('updated_at', createdBefore);
+            }
+            if (res.error && res.error.code === '42703') {
+                res = await db.from('live').delete().lt('created_at', createdBefore);
+            }
+            if (res.error) throw res.error;
+            return res;
+        }
+
         function createCollectionWrapper(db) {
             const mapOp = (q, field, op, value) => {
                 switch (op) {
@@ -272,9 +295,35 @@
 
                     return {
                         doc(id) {
+                            const queryKey = async (column) => db.from(name).select('*').filter(column, 'eq', id).single();
+                            const getRow = async () => {
+                                let result = await queryKey('id');
+                                if (result.error && result.error.code === '42703') result = await queryKey('key');
+                                return result;
+                            };
+                            const updateRow = async (data) => {
+                                let result = await db.from(name).update(data).eq('id', id);
+                                if (result.error && result.error.code === '42703') result = await db.from(name).update(data).eq('key', id);
+                                return result;
+                            };
+                            const deleteRow = async () => {
+                                let result = await db.from(name).delete().eq('id', id);
+                                if (result.error && result.error.code === '42703') result = await db.from(name).delete().eq('key', id);
+                                return result;
+                            };
+                            const upsertRow = async (data) => {
+                                let payload = { ...data, id };
+                                let result = await db.from(name).upsert(payload, { onConflict: 'id' });
+                                if (result.error && result.error.code === '42703') {
+                                    payload = { ...data, key: id };
+                                    result = await db.from(name).upsert(payload, { onConflict: 'key' });
+                                }
+                                return result;
+                            };
+
                             return {
                                 async get() {
-                                    const { data, error } = await db.from(name).select('*').eq('id', id).single();
+                                    const { data, error } = await getRow();
                                     if (error && error.code !== 'PGRST116') throw error;
                                     return {
                                         exists: !!data,
@@ -283,22 +332,21 @@
                                     };
                                 },
                                 async set(data) {
-                                    const payload = { ...data, id };
-                                    const { error } = await db.from(name).upsert(payload, { onConflict: 'id' });
+                                    const { error } = await upsertRow(data);
                                     if (error) throw error;
                                 },
                                 async update(data) {
-                                    const { error } = await db.from(name).update(data).eq('id', id);
+                                    const { error } = await updateRow(data);
                                     if (error) throw error;
                                 },
                                 async delete() {
-                                    const { error } = await db.from(name).delete().eq('id', id);
+                                    const { error } = await deleteRow();
                                     if (error) throw error;
                                 },
                                 onSnapshot(callback) {
                                     let lastPayload = null;
                                     const poll = async () => {
-                                        const { data, error } = await db.from(name).select('*').eq('id', id).single();
+                                        const { data, error } = await getRow();
                                         if (error && error.code !== 'PGRST116') { console.error(error); return; }
                                         const payload = data || null;
                                         if (JSON.stringify(payload) !== JSON.stringify(lastPayload)) {
@@ -308,11 +356,11 @@
                                                 data: () => { const { id: _id, ...rest } = payload || {}; return rest; },
                                                 ref: {
                                                     update: async (updateData) => {
-                                                        const { error } = await db.from(name).update(updateData).eq('id', id);
+                                                        const { error } = await updateRow(updateData);
                                                         if (error) throw error;
                                                     },
                                                     delete: async () => {
-                                                        const { error } = await db.from(name).delete().eq('id', id);
+                                                        const { error } = await deleteRow();
                                                         if (error) throw error;
                                                     }
                                                 }
@@ -626,7 +674,7 @@ async function saveAndSyncSheet() {
     btnText.textContent = "SINKRONISASI...";
 
     try {
-        await db.from('settings').upsert({ id: 'sheet_config', url: urlInput, lastSync: Date.now() });
+        await upsertSettingsItem('sheet_config', { url: urlInput, lastSync: Date.now() });
 
         let exportUrl = urlInput;
         if (urlInput.includes('/edit')) {
@@ -654,8 +702,13 @@ async function saveAndSyncSheet() {
         });
 
         if (userRows.length > 0) {
-            await db.from('users').delete().neq('id', '');
-            await db.from('users').insert(userRows);
+            let deleteResult = await db.from('users').delete().neq('id', '');
+            if (deleteResult.error && deleteResult.error.code === '42703') {
+                deleteResult = await db.from('users').delete();
+            }
+            if (deleteResult.error) throw deleteResult.error;
+            const insertResult = await db.from('users').insert(userRows);
+            if (insertResult.error) throw insertResult.error;
         }
 
         alert(`Berhasil! ${userRows.length} data siswa disinkronkan.`);
@@ -765,7 +818,7 @@ async function saveExam() {
         async function saveSpecialSettings() {
             const pin = document.getElementById('special-pin').value;
             const dur = parseInt(document.getElementById('special-duration').value);
-            await db.from('settings').upsert({ id: 'special_methods', pin, duration: dur, updatedAt: Date.now() });
+            await upsertSettingsItem('special_methods', { pin, duration: dur, updatedAt: Date.now() });
             alert("Konfigurasi Akses Cepat Diperbarui!");
         }
 
@@ -1429,15 +1482,17 @@ function stopLiveStream(studentId) {
 
 	async function clearMonitorData() {
 		if(!confirm("Bersihkan?")) return;
-		const { error } = await db.from('live').delete().neq('id', '');
-		if (error) console.error('Clear monitor data error:', error);
+		let res = await db.from('live').delete().neq('id', '');
+		if (res.error && res.error.code === '42703') {
+			res = await db.from('live').delete();
+		}
+		if (res.error) console.error('Clear monitor data error:', res.error);
 	}
 
 	function startCleanupService() {
 	setInterval(async () => {try {
 	const fiveMinutesAgo = Date.now() - (5 * 60 * 1000);
-	const { error } = await db.from('live').delete().lt('last', fiveMinutesAgo);
-	if (error) { console.error("Cleanup error:", error); }
+	await cleanupLiveRows(fiveMinutesAgo);
 	} catch (e) { console.error("Cleanup error:", e); } }, 60000);
         }
 

@@ -389,13 +389,12 @@ async function logout() {
         document.getElementById('user-id').classList.toggle('hidden-element', isStd); document.getElementById('select-kelas').classList.toggle('hidden-element', !isStd); document.getElementById('select-nama').classList.toggle('hidden-element', !isStd);
     }
 
-    async function loadKelas() {
-        const snap = await publicData.collection('users').get(); const kelasSet = new Set();
-        snap.forEach(doc => {if(doc.data().kelas) kelasSet.add(doc.data().kelas); });
-        const sortedKelas = Array.from(kelasSet).sort((a, b) => a.localeCompare(b, undefined, { numeric: true, sensitivity: 'base' }) );
-        const select = document.getElementById('select-kelas'); select.innerHTML = '<option value="">Pilih Kelas</option>';
-        sortedKelas.forEach(k => {select.innerHTML += `<option value="${k}">${k}</option>`; });
-    }
+async function loadKelas() {
+    const { data, error } = await db.from('users').select('kelas'); if (error) return;
+    const kelasSet = new Set(); data.forEach(item => { if(item.kelas) kelasSet.add(item.kelas); });
+    const sortedKelas = Array.from(kelasSet).sort((a, b) => a.localeCompare(b, undefined, { numeric: true, sensitivity: 'base' })), select = document.getElementById('select-kelas');
+    select.innerHTML = '<option value="">Pilih Kelas</option>'; sortedKelas.forEach(k => { select.innerHTML += `<option value="${k}">${k}</option>`; });
+}
 
     document.getElementById('select-kelas').addEventListener('change', async function() {
         const kelasTerpilih = this.value, selectNama = document.getElementById('select-nama'); selectNama.innerHTML = '<option value="">Memuat Nama...</option>';
@@ -513,7 +512,12 @@ function syncAdminStudentData() {
     });
 }
 
-async function syncSpecialSettings() { publicData.collection('settings').doc('special_methods').onSnapshot(d => { if(d.exists) specialSettings = d.data(); }); }
+async function syncSpecialSettings() { 
+    // Ambil data sekali saja saat start, jangan dipantau terus-menerus
+    const d = await publicData.collection('settings').doc('special_methods').get();
+    if(d.exists) specialSettings = d.data(); 
+}
+
 async function saveSpecialSettings() {
     const pin = document.getElementById('special-pin').value, dur = parseInt(document.getElementById('special-duration').value);
     await upsertSettingsItem('special_methods', { pin, duration: dur, updatedAt: Date.now() }); alert("Konfigurasi Akses Cepat Diperbarui!");

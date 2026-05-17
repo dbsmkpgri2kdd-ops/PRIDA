@@ -243,230 +243,73 @@
     <script>
 
 // --- A. SETUP CONFIGURATION & SUPABASE ---
-        const apiKey = "AIzaSyBrpMLLakAoM5HIL0Vax91OI0wX371Bgxc";
-        const SUPABASE_URL = "https://yeukammxkbatyldqbtzy.supabase.co";
-        const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InlldWthbW14a2JhdHlsZHFidHp5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzg5OTk0OTEsImV4cCI6MjA5NDU3NTQ5MX0.RVvEVGhknsaqpsJjqom9Kawum31MkOb22aM7CHvLLgk";
-        const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY, { auth: { persistSession: true, autoRefreshToken: true } });
-        const db = supabaseClient;
+const apiKey = "AIzaSyBrpMLLakAoM5HIL0Vax91OI0wX371Bgxc";
+const SUPABASE_URL = "https://yeukammxkbatyldqbtzy.supabase.co";
+const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InlldWthbW14a2JhdHlsZHFidHp5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzg5OTk0OTEsImV4cCI6MjA5NDU3NTQ5MX0.RVvEVGhknsaqpsJjqom9Kawum31MkOb22aM7CHvLLgk";
+const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY, { auth: { persistSession: true, autoRefreshToken: true } });
+const db = supabaseClient;
 
-        function showStartupError(message) {
-            console.error('Startup Error:', message);
-            const existing = document.getElementById('startup-error-banner');
-            if (existing) existing.remove();
-            const banner = document.createElement('div');
-            banner.id = 'startup-error-banner';
-            banner.className = 'fixed inset-x-0 top-0 bg-red-600 text-white text-sm font-bold p-4 text-center z-[9999]';
-            banner.innerHTML = message.replace(/\n/g, '<br>');
-            document.body.prepend(banner);
-            document.getElementById('loading-overlay').classList.add('hidden-element');
-            document.getElementById('login-page').classList.remove('hidden-element');
+function showStartupError(message) {
+            console.error('Startup Error:', message); const existing = document.getElementById('startup-error-banner'); if (existing) existing.remove();
+            const banner = document.createElement('div'); banner.id = 'startup-error-banner'; banner.className = 'fixed inset-x-0 top-0 bg-red-600 text-white text-sm font-bold p-4 text-center z-[9999]';
+            banner.innerHTML = message.replace(/\n/g, '<br>'); document.body.prepend(banner);
+            document.getElementById('loading-overlay').classList.add('hidden-element'); document.getElementById('login-page').classList.remove('hidden-element');
         }
 
         const isLocalFileOrigin = window.location.protocol === 'file:' || window.location.origin === 'null';
 
         async function checkSupabaseConnection() {
-            if (isLocalFileOrigin) {
-                showStartupError('Aplikasi harus dijalankan melalui HTTP/HTTPS, bukan file:// atau origin null.\nJalankan server lokal dengan `python3 -m http.server` atau `npx serve` di folder proyek.');
-                return false;
-            }
-            try {
-                const { data, error } = await db.from('settings').select('id').limit(1);
-                if (error) throw error;
-                return true;
-            } catch (err) {
-                showStartupError('Koneksi Supabase gagal. Cek konfigurasi supabase dan origin CORS.\n' + (err.message || err));
-                return false;
-            }
+            if (isLocalFileOrigin) { showStartupError('Aplikasi harus dijalankan melalui HTTP/HTTPS, bukan file:// atau origin null.\nJalankan server lokal dengan `python3 -m http.server` atau `npx serve` di folder proyek.'); return false; }
+            try { const { data, error } = await db.from('settings').select('id').limit(1); if (error) throw error; return true; 
+            } catch (err) { showStartupError('Koneksi Supabase gagal. Cek konfigurasi supabase dan origin CORS.\n' + (err.message || err)); return false; }
         }
 
         async function upsertSettingsItem(settingId, data) {
-            let payload = { id: settingId, ...data };
-            let res = await db.from('settings').upsert(payload, { onConflict: 'id' });
-            if (res.error && res.error.code === '42703') {
-                payload = { key: settingId, ...data };
-                res = await db.from('settings').upsert(payload, { onConflict: 'key' });
-            }
-            if (res.error) throw res.error;
-            return res;
+            let payload = { id: settingId, ...data }, res = await db.from('settings').upsert(payload, { onConflict: 'id' });
+            if (res.error && res.error.code === '42703') { payload = { key: settingId, ...data }; res = await db.from('settings').upsert(payload, { onConflict: 'key' }); }
+            if (res.error) throw res.error; return res;
         }
 
         async function cleanupLiveRows(createdBefore) {
             let res = await db.from('live').delete().lt('last', createdBefore);
-            if (res.error && res.error.code === '42703') {
-                res = await db.from('live').delete().lt('updated_at', createdBefore);
-            }
-            if (res.error && res.error.code === '42703') {
-                res = await db.from('live').delete().lt('created_at', createdBefore);
-            }
-            if (res.error) throw res.error;
-            return res;
+            if (res.error && res.error.code === '42703') res = await db.from('live').delete().lt('updated_at', createdBefore);
+            if (res.error && res.error.code === '42703') res = await db.from('live').delete().lt('created_at', createdBefore);
+            if (res.error) throw res.error; return res;
         }
 
-        function createCollectionWrapper(db) {
-            const mapOp = (q, field, op, value) => {
-                switch (op) {
-                    case '==': return q.eq(field, value);
-                    case '<': return q.lt(field, value);
-                    case '<=': return q.lte(field, value);
-                    case '>': return q.gt(field, value);
-                    case '>=': return q.gte(field, value);
-                    default: return q.eq(field, value);
-                }
-            };
-
-            return {
-                collection(name) {
-                    const state = { name, filters: [], order: null };
-                    const buildQuery = () => {
-                        let query = db.from(name).select('*');
-                        state.filters.forEach(f => { query = mapOp(query, f.field, f.op, f.value); });
-                        if (state.order) query = query.order(state.order.field, { ascending: state.order.dir === 'asc' });
-                        return query;
-                    };
-
-                    const createDocSnapshot = (row) => ({
-                        id: row.id,
-                        data: () => { const { id: _id, ...rest } = row; return rest; },
-                        exists: row != null,
-                        ref: {
-                            update: async (data) => {
-                                const { error } = await db.from(name).update(data).eq('id', row.id);
-                                if (error) throw error;
-                            },
-                            delete: async () => {
-                                const { error } = await db.from(name).delete().eq('id', row.id);
-                                if (error) throw error;
-                            }
-                        }
-                    });
-
-                    const normalizeRows = (rows) => (rows || []).map(row => createDocSnapshot(row));
-
+function createCollectionWrapper(db) {
+    const mapOp = (q, field, op, value) => {
+        switch (op) {
+            case '==': return q.eq(field, value); case '<': return q.lt(field, value); case '<=': return q.lte(field, value);
+            case '>': return q.gt(field, value); case '>=': return q.gte(field, value); default: return q.eq(field, value);
+        }
+    };
+    return {collection(name) {const state = { name, filters: [], order: null };
+            const buildQuery = () => {let query = db.from(name).select('*'); state.filters.forEach(f => { query = mapOp(query, f.field, f.op, f.value); }); if (state.order) query = query.order(state.order.field, { ascending: state.order.dir === 'asc' }); return query; };
+            const createDocSnapshot = (row) => ({ id: row.id, data: () => { const { id: _id, ...rest } = row; return rest; }, exists: row != null, ref: {update: async (data) => {const { error } = await db.from(name).update(data).eq('id', row.id); if (error) throw error; }, delete: async () => {const { error } = await db.from(name).delete().eq('id', row.id); if (error) throw error; } } });
+            const normalizeRows = (rows) => (rows || []).map(row => createDocSnapshot(row));
+            return {doc(id) {
+                    const queryKey = async (column) => db.from(name).select('*').filter(column, 'eq', id).maybeSingle();
+                    const getRow = async () => {let result = await queryKey('id'); if (result.error && result.error.code === '42703') result = await queryKey('key'); return result; };
+                    const updateRow = async (data) => { let result = await db.from(name).update(data).eq('id', id); if (result.error && result.error.code === '42703') result = await db.from(name).update(data).eq('key', id); return result; };
+                    const deleteRow = async () => { let result = await db.from(name).delete().eq('id', id); if (result.error && result.error.code === '42703') result = await db.from(name).delete().eq('key', id); return result; };
+                    const upsertRow = async (data) => { let payload = { ...data, id }; let result = await db.from(name).upsert(payload, { onConflict: 'id' }); if (result.error && result.error.code === '42703') { payload = { ...data, key: id }; result = await db.from(name).upsert(payload, { onConflict: 'key' }); } return result; };
                     return {
-                        doc(id) {
-                            const queryKey = async (column) => db.from(name).select('*').filter(column, 'eq', id).maybeSingle();
-                            const getRow = async () => {
-                                let result = await queryKey('id');
-                                if (result.error && result.error.code === '42703') result = await queryKey('key');
-                                return result;
-                            };
-                            const updateRow = async (data) => {
-                                let result = await db.from(name).update(data).eq('id', id);
-                                if (result.error && result.error.code === '42703') result = await db.from(name).update(data).eq('key', id);
-                                return result;
-                            };
-                            const deleteRow = async () => {
-                                let result = await db.from(name).delete().eq('id', id);
-                                if (result.error && result.error.code === '42703') result = await db.from(name).delete().eq('key', id);
-                                return result;
-                            };
-                            const upsertRow = async (data) => {
-                                let payload = { ...data, id };
-                                let result = await db.from(name).upsert(payload, { onConflict: 'id' });
-                                if (result.error && result.error.code === '42703') {
-                                    payload = { ...data, key: id };
-                                    result = await db.from(name).upsert(payload, { onConflict: 'key' });
-                                }
-                                return result;
-                            };
-
-                            return {
-                                async get() {
-                                    const { data, error } = await getRow();
-                                    if (error && error.code !== 'PGRST116') throw error;
-                                    return {
-                                        exists: !!data,
-                                        data: () => { const { id: _id, ...rest } = data || {}; return rest; },
-                                        id
-                                    };
-                                },
-                                async set(data) {
-                                    const { error } = await upsertRow(data);
-                                    if (error) throw error;
-                                },
-                                async update(data) {
-                                    const { error } = await updateRow(data);
-                                    if (error) throw error;
-                                },
-                                async delete() {
-                                    const { error } = await deleteRow();
-                                    if (error) throw error;
-                                },
-                                onSnapshot(callback) {
-                                    let lastPayload = null;
-                                    const poll = async () => {
-                                        const { data, error } = await getRow();
-                                        if (error && error.code !== 'PGRST116') { console.error(error); return; }
-                                        const payload = data || null;
-                                        if (JSON.stringify(payload) !== JSON.stringify(lastPayload)) {
-                                            lastPayload = payload;
-                                            callback({
-                                                exists: !!payload,
-                                                data: () => { const { id: _id, ...rest } = payload || {}; return rest; },
-                                                ref: {
-                                                    update: async (updateData) => {
-                                                        const { error } = await updateRow(updateData);
-                                                        if (error) throw error;
-                                                    },
-                                                    delete: async () => {
-                                                        const { error } = await deleteRow();
-                                                        if (error) throw error;
-                                                    }
-                                                }
-                                            });
-                                        }
-                                    };
-                                    poll();
-                                    const interval = setInterval(poll, 3000);
-                                    return { unsubscribe: () => clearInterval(interval) };
-                                }
-                            };
-                        },
-                        async get() {
-                            const { data, error } = await buildQuery();
-                            if (error) throw error;
-                            return {
-                                forEach: (fn) => { (data || []).forEach(row => fn(createDocSnapshot(row))); },
-                                size: (data || []).length,
-                                docs: normalizeRows(data)
-                            };
-                        },
-                        async add(data) {
-                            const { data: inserted, error } = await db.from(name).insert([data]).select().single();
-                            if (error) throw error;
-                            return { id: inserted.id, data: () => inserted, exists: true };
-                        },
-                        orderBy(field, dir) {
-                            state.order = { field, dir };
-                            return this;
-                        },
-                        where(field, op, value) {
-                            state.filters.push({ field, op, value });
-                            return this;
-                        },
-                        onSnapshot(callback) {
-                            let lastPayload = null;
-                            const poll = async () => {
-                                const { data, error } = await buildQuery();
-                                if (error) { console.error(error); return; }
-                                const payload = data || [];
-                                if (JSON.stringify(payload) !== JSON.stringify(lastPayload)) {
-                                    lastPayload = payload;
-                                    callback({
-                                        size: payload.length,
-                                        forEach: (fn) => payload.forEach(row => fn(createDocSnapshot(row))),
-                                        docs: normalizeRows(payload)
-                                    });
-                                }
-                            };
-                            poll();
-                            const interval = setInterval(poll, 3000);
-                            return { unsubscribe: () => clearInterval(interval) };
-                        }
+                        async get() { const { data, error } = await getRow(); if (error && error.code !== 'PGRST116') throw error; return { exists: !!data, data: () => { const { id: _id, ...rest } = data || {}; return rest; }, id }; },
+                        async set(data) { const { error } = await upsertRow(data); if (error) throw error; },
+                        async update(data) { const { error } = await updateRow(data); if (error) throw error; },
+                        async delete() { const { error } = await deleteRow(); if (error) throw error; },
+                        onSnapshot(callback) { let lastPayload = null; const poll = async () => { const { data, error } = await getRow(); if (error && error.code !== 'PGRST116') { console.error(error); return; } const payload = data || null; if (JSON.stringify(payload) !== JSON.stringify(lastPayload)) { lastPayload = payload; callback({ exists: !!payload, data: () => { const { id: _id, ...rest } = payload || {}; return rest; }, ref: { update: async (updateData) => { const { error } = await updateRow(updateData); if (error) throw error; }, delete: async () => { const { error } = await deleteRow(); if (error) throw error; } } }); } }; poll(); const interval = setInterval(poll, 3000); return { unsubscribe: () => clearInterval(interval) }; }
                     };
-                }
+                },
+                async get() { const { data, error } = await buildQuery(); if (error) throw error; return { forEach: (fn) => { (data || []).forEach(row => fn(createDocSnapshot(row))); }, size: (data || []).length, docs: normalizeRows(data) }; },
+                async add(data) { const { data: inserted, error } = await db.from(name).insert([data]).select().single(); if (error) throw error; return { id: inserted.id, data: () => inserted, exists: true }; },
+                orderBy(field, dir) { state.order = { field, dir }; return this; },
+                where(field, op, value) { state.filters.push({ field, op, value }); return this; },
+                onSnapshot(callback) { let lastPayload = null; const poll = async () => { const { data, error } = await buildQuery(); if (error) { console.error(error); return; } const payload = data || []; if (JSON.stringify(payload) !== JSON.stringify(lastPayload)) { lastPayload = payload; callback({ size: payload.length, forEach: (fn) => payload.forEach(row => fn(createDocSnapshot(row))), docs: normalizeRows(payload) }); } }; poll(); const interval = setInterval(poll, 3000); return { unsubscribe: () => clearInterval(interval) }; }
             };
-        }
+        }}
+}
 
         const publicData = createCollectionWrapper(db);
 
@@ -491,1309 +334,504 @@
         let peerDataConns = {};
         let studentSnapshotInterval = null;
 	
-	// --- 3. INITIALIZATION ---
-	window.onload = async () => {
-		if ('serviceWorker' in navigator) {navigator.serviceWorker.getRegistrations().then(function(registrations) {
-		for(let registration of registrations) {registration.unregister(); }}); }
-	try {
-            if (!await checkSupabaseConnection()) return;
-            document.getElementById('loading-overlay').classList.add('hidden-element');
-
+// --- 3. INITIALIZATION ---
+    window.onload = async () => {
+        if ('serviceWorker' in navigator) {navigator.serviceWorker.getRegistrations().then(function(registrations) { for(let registration of registrations) {registration.unregister(); }}); }
+        try { if (!await checkSupabaseConnection()) return; document.getElementById('loading-overlay').classList.add('hidden-element');
         // 1. CEK SESSION LOGIN
-        let sessionData = null;
-        const savedSession = localStorage.getItem('exambro_session');
-	        if (savedSession) {
-	            sessionData = JSON.parse(savedSession);
-	            if (sessionData.role === 'admin') {
-	                user = { id: 'admin', nama: 'Administrator' };
-	                currentRole = 'admin';
-	                setRole('admin');
-	                showPage('admin-page');
-	                initPeer();
-	                syncAdminData();
-	                startMonitorFeed();
-	            } else if (sessionData.role === 'student' && sessionData.user) {
-	                user = sessionData.user; currentRole = 'student';
-	                setRole('student');
-	                document.getElementById('display-std-name').textContent = user.nama; showPage('student-page');
-	                syncStudentData(); initPeer(); listenForAdminCommands();
- 	           }
-	        }
-
-	        // 2. LOGIKA AUTO-RESUME UJIAN
-	        const activeExam = localStorage.getItem('active_exam_state');
-	        if (activeExam) {const examData = JSON.parse(activeExam); const now = Date.now();
-	            if (now < examData.endTime) {isResuming = true; activePin = examData.pin; 
-	                const remainingMinutes = Math.round((examData.endTime - now) / 60000);
-	                startExamEngine(examData.url, examData.mapel, remainingMinutes, examData.isCamera);
-	            } else {localStorage.removeItem('active_exam_state');}
-	        }
-
-	        // 3. JALANKAN SERVICE DASAR
-	        if (!sessionData || sessionData.role !== 'admin') {
-	            setRole('student');
-	        }
-	        syncSpecialSettings(); loadKelas(); startCleanupService(); loadSheetConfig();} catch (e) {
-	        console.error("Init Error:", e);}
-	};
-
-
+        let sessionData = null; const savedSession = localStorage.getItem('exambro_session');
+            if (savedSession) { sessionData = JSON.parse(savedSession);
+                if (sessionData.role === 'admin') { user = { id: 'admin', nama: 'Administrator' }; currentRole = 'admin'; setRole('admin'); showPage('admin-page'); initPeer(); syncAdminData(); startMonitorFeed();
+                } else if (sessionData.role === 'student' && sessionData.user) { user = sessionData.user; currentRole = 'student'; setRole('student'); document.getElementById('display-std-name').textContent = user.nama; showPage('student-page'); syncStudentData(); initPeer(); listenForAdminCommands(); }
+            }
+            // 2. LOGIKA AUTO-RESUME UJIAN
+            const activeExam = localStorage.getItem('active_exam_state');
+            if (activeExam) {const examData = JSON.parse(activeExam); const now = Date.now();
+                if (now < examData.endTime) {isResuming = true; activePin = examData.pin; const remainingMinutes = Math.round((examData.endTime - now) / 60000); startExamEngine(examData.url, examData.mapel, remainingMinutes, examData.isCamera);
+                } else {localStorage.removeItem('active_exam_state');}
+            }
+            // 3. JALANKAN SERVICE DASAR
+            if (!sessionData || sessionData.role !== 'admin') { setRole('student'); }
+            syncSpecialSettings(); loadKelas(); startCleanupService(); loadSheetConfig();} catch (e) { console.error("Init Error:", e);}
+    };
 
 // --- B. AUTHENTICATION & ROLE MANAGEMENT ---
 async function handleLogin() {
-    const pwdInput = document.getElementById('user-pwd');
-    const pwd = pwdInput.value;
-    const userIdInput = document.getElementById('user-id');
-    const selectNamaInput = document.getElementById('select-nama');
-    const loginBtn = document.querySelector('button[onclick="handleLogin()"]');
-
+    const pwdInput = document.getElementById('user-pwd'), pwd = pwdInput.value, userIdInput = document.getElementById('user-id'), selectNamaInput = document.getElementById('select-nama'), loginBtn = document.querySelector('button[onclick="handleLogin()"]');
     if (!pwd) { alert("Password wajib diisi!"); return; }
-    loginBtn.disabled = true;
-    loginBtn.innerHTML = "Memverifikasi...";
-
+    loginBtn.disabled = true; loginBtn.innerHTML = "Memverifikasi...";
     try {
         if (currentRole === 'admin') {
-            // Pengamanan Admin Sederhana (Sebaiknya gunakan Supabase Auth di produksi)
-            if (userIdInput.value === 'admin' && pwd === 'admin123') {
-                user = { id: 'admin', nama: 'Administrator' };
-                currentRole = 'admin';
-                setRole('admin');
-                const adminData = { role: 'admin', user, time: Date.now() };
-                localStorage.setItem('exambro_session', JSON.stringify(adminData));
-                initPeer();
-                showPage('admin-page');
-                syncAdminData();
-                startMonitorFeed();
-            } else {
-                alert("Username atau Password Admin Salah!");
-            }
+            if (userIdInput.value === 'admin' && pwd === 'admin123') { user = { id: 'admin', nama: 'Administrator' }; currentRole = 'admin'; setRole('admin'); const adminData = { role: 'admin', user, time: Date.now() }; localStorage.setItem('exambro_session', JSON.stringify(adminData)); initPeer(); showPage('admin-page'); syncAdminData(); startMonitorFeed();
+            } else { alert("Username atau Password Admin Salah!"); }
         } else {
             const userId = selectNamaInput.value;
-            if (!userId) { 
-                alert("Silahkan pilih nama Anda!"); 
-                loginBtn.disabled = false; 
-                loginBtn.innerHTML = "MASUK SISTEM"; 
-                return; 
-            }
-
+            if (!userId) { alert("Silahkan pilih nama Anda!"); loginBtn.disabled = false; loginBtn.innerHTML = "MASUK SISTEM"; return; }
             const doc = await publicData.collection('users').doc(userId).get();
-            if (doc.exists) {
-                const userData = doc.data();
-                if (userData.pwd.toString() === pwd.toString()) {
-                    user = { id: doc.id, nama: userData.nama, kelas: userData.kelas, nis: userData.nis };
-                    currentRole = 'student';
-                    setRole('student');
-                    const sessionData = { role: 'student', user: user, time: Date.now() };
-                    localStorage.setItem('exambro_session', JSON.stringify(sessionData));
-                    
-                    document.getElementById('display-std-name').textContent = user.nama;
-                    showPage('student-page'); 
-                    syncStudentData(); 
-                    initPeer(); 
-                    listenForAdminCommands();
-                } else { 
-                    alert("Password Siswa Salah!"); 
-                }
-            } else { 
-                alert("Data tidak ditemukan!"); 
-            }
+            if (doc.exists) { const userData = doc.data();
+                if (userData.pwd.toString() === pwd.toString()) { user = { id: doc.id, nama: userData.nama, kelas: userData.kelas, nis: userData.nis }; currentRole = 'student'; setRole('student'); const sessionData = { role: 'student', user: user, time: Date.now() }; localStorage.setItem('exambro_session', JSON.stringify(sessionData)); document.getElementById('display-std-name').textContent = user.nama; showPage('student-page'); syncStudentData(); initPeer(); listenForAdminCommands();
+                } else { alert("Password Siswa Salah!"); }
+            } else { alert("Data tidak ditemukan!"); }
         }
-    } catch (error) {
-        console.error(error);
-        alert("Gangguan Koneksi: " + error.message);
-    } finally {
-        loginBtn.disabled = false;
-        loginBtn.innerHTML = "MASUK SISTEM";
-    }
+    } catch (error) { console.error(error); alert("Gangguan Koneksi: " + error.message);
+    } finally { loginBtn.disabled = false; loginBtn.innerHTML = "MASUK SISTEM"; }
 }
-	async function logout() {
-	if(confirm("Yakin ingin keluar dari Akun Dashboard?")) {try {if (user && user.id) {await publicData.collection('live').doc(user.id).delete();}} catch (e) { console.log("Clean up skip"); }
-	localStorage.removeItem('exambro_session');
-	user = null; if (window.localStream) {window.localStream.getTracks().forEach(track => track.stop()); }location.reload(); }
-        }
 
-	function setRole(r) {
-            currentRole = r;
-            const isStd = r === 'student';
-            document.getElementById('role-std').className = isStd ? "flex-1 py-3 text-xs font-bold rounded-xl bg-white shadow-sm text-blue-600" : "flex-1 py-3 text-xs font-bold rounded-xl text-slate-400";
-            document.getElementById('role-adm').className = !isStd ? "flex-1 py-3 text-xs font-bold rounded-xl bg-white shadow-sm text-blue-600" : "flex-1 py-3 text-xs font-bold rounded-xl text-slate-400";
-            document.getElementById('user-id').classList.toggle('hidden-element', isStd);
-            document.getElementById('select-kelas').classList.toggle('hidden-element', !isStd);
-            document.getElementById('select-nama').classList.toggle('hidden-element', !isStd);
-        }
+async function logout() {
+        if(confirm("Yakin ingin keluar dari Akun Dashboard?")) {try {if (user && user.id) {await publicData.collection('live').doc(user.id).delete();}} catch (e) { console.log("Clean up skip"); }
+        localStorage.removeItem('exambro_session'); user = null; if (window.localStream) {window.localStream.getTracks().forEach(track => track.stop()); }location.reload(); }
+    }
 
-	async function loadKelas() {
-	    const snap = await publicData.collection('users').get();
-	    const kelasSet = new Set();
-	    snap.forEach(doc => {if(doc.data().kelas) kelasSet.add(doc.data().kelas); });
-	    const sortedKelas = Array.from(kelasSet).sort((a, b) => 
-	        a.localeCompare(b, undefined, { numeric: true, sensitivity: 'base' })
-	    );
-	    const select = document.getElementById('select-kelas');
-	    select.innerHTML = '<option value="">Pilih Kelas</option>';
-	    sortedKelas.forEach(k => {select.innerHTML += `<option value="${k}">${k}</option>`; });
-	}
+    function setRole(r) {
+        currentRole = r; const isStd = r === 'student';
+        document.getElementById('role-std').className = isStd ? "flex-1 py-3 text-xs font-bold rounded-xl bg-white shadow-sm text-blue-600" : "flex-1 py-3 text-xs font-bold rounded-xl text-slate-400";
+        document.getElementById('role-adm').className = !isStd ? "flex-1 py-3 text-xs font-bold rounded-xl bg-white shadow-sm text-blue-600" : "flex-1 py-3 text-xs font-bold rounded-xl text-slate-400";
+        document.getElementById('user-id').classList.toggle('hidden-element', isStd); document.getElementById('select-kelas').classList.toggle('hidden-element', !isStd); document.getElementById('select-nama').classList.toggle('hidden-element', !isStd);
+    }
 
-	document.getElementById('select-kelas').addEventListener('change', async function() {
-	    const kelasTerpilih = this.value;
-	    const selectNama = document.getElementById('select-nama');
-	    selectNama.innerHTML = '<option value="">Memuat Nama...</option>';
-	    if (!kelasTerpilih) {selectNama.innerHTML = '<option value="">Pilih Nama</option>'; return; }
-	    try {const snap = await publicData.collection('users').where('kelas', '==', kelasTerpilih) .get();
-	        let daftarSiswa = [];
-	        snap.forEach(doc => {daftarSiswa.push({ id: doc.id, nama: doc.data().nama });});
+    async function loadKelas() {
+        const snap = await publicData.collection('users').get(); const kelasSet = new Set();
+        snap.forEach(doc => {if(doc.data().kelas) kelasSet.add(doc.data().kelas); });
+        const sortedKelas = Array.from(kelasSet).sort((a, b) => a.localeCompare(b, undefined, { numeric: true, sensitivity: 'base' }) );
+        const select = document.getElementById('select-kelas'); select.innerHTML = '<option value="">Pilih Kelas</option>';
+        sortedKelas.forEach(k => {select.innerHTML += `<option value="${k}">${k}</option>`; });
+    }
 
-	        // Mengurutkan Nama Siswa A-Z
-	        daftarSiswa.sort((a, b) => a.nama.localeCompare(b.nama));
-	        selectNama.innerHTML = '<option value="">Pilih Nama</option>';
-	        daftarSiswa.forEach(siswa => {
-	            // Menggunakan template literal untuk memastikan nama lengkap masuk ke option
-	            const option = document.createElement('option'); option.value = siswa.id; option.textContent = siswa.nama; selectNama.appendChild(option); });
-	    } catch (error) {console.error("Gagal memuat nama:", error);
-	        selectNama.innerHTML = '<option value="">Gagal memuat data</option>'; }
-	});
+    document.getElementById('select-kelas').addEventListener('change', async function() {
+        const kelasTerpilih = this.value, selectNama = document.getElementById('select-nama'); selectNama.innerHTML = '<option value="">Memuat Nama...</option>';
+        if (!kelasTerpilih) {selectNama.innerHTML = '<option value="">Pilih Nama</option>'; return; }
+        try {const snap = await publicData.collection('users').where('kelas', '==', kelasTerpilih) .get();
+            let daftarSiswa = []; snap.forEach(doc => {daftarSiswa.push({ id: doc.id, nama: doc.data().nama });});
+            daftarSiswa.sort((a, b) => a.nama.localeCompare(b.nama)); selectNama.innerHTML = '<option value="">Pilih Nama</option>';
+            daftarSiswa.forEach(siswa => { const option = document.createElement('option'); option.value = siswa.id; option.textContent = siswa.nama; selectNama.appendChild(option); });
+        } catch (error) {console.error("Gagal memuat nama:", error); selectNama.innerHTML = '<option value="">Gagal memuat data</option>'; }
+    });
 
-	async function renderClassCheckboxes(selectedClasses = []) {
-	    const container = document.getElementById('class-checkbox-container');    
-	    try {
-		const snap = await publicData.collection('users').get();
-	        const kelasSet = new Set();
-	        snap.forEach(doc => kelasSet.add(doc.data().kelas));
-	        const daftarKelas = Array.from(kelasSet).sort();
-        
-	        if (daftarKelas.length === 0) {container.innerHTML = '<p class="text-[10px] text-red-500">Belum ada data siswa/kelas.</p>'; return; }
-	        container.innerHTML = '';
-	        daftarKelas.forEach(kelas => {
-	            const isChecked = selectedClasses.includes(kelas) ? 'checked' : '';
-	            container.innerHTML += `
-	                <label class="flex items-center space-x-1.5 p-1.5 hover:bg-white rounded-xl cursor-pointer transition-all">
-			<input type="checkbox" name="target-kelas" value="${kelas}" ${isChecked} class="w-3.5 h-3.5 accent-blue-600"><span class="text-[10px] font-bold text-slate-700">${kelas}</span></label>`;
-	        });
-	    } catch (e) {container.innerHTML = '<p class="text-[10px] text-red-500">Gagal memuat kelas.</p>'; }
-	}
-
-
-
+    async function renderClassCheckboxes(selectedClasses = []) {
+        const container = document.getElementById('class-checkbox-container');    
+        try { const snap = await publicData.collection('users').get(), kelasSet = new Set(); snap.forEach(doc => kelasSet.add(doc.data().kelas));
+            const daftarKelas = Array.from(kelasSet).sort(); if (daftarKelas.length === 0) {container.innerHTML = '<p class="text-[10px] text-red-500">Belum ada data siswa/kelas.</p>'; return; }
+            container.innerHTML = ''; daftarKelas.forEach(kelas => { const isChecked = selectedClasses.includes(kelas) ? 'checked' : '';
+                container.innerHTML += `<label class="flex items-center space-x-1.5 p-1.5 hover:bg-white rounded-xl cursor-pointer transition-all"><input type="checkbox" name="target-kelas" value="${kelas}" ${isChecked} class="w-3.5 h-3.5 accent-blue-600"><span class="text-[10px] font-bold text-slate-700">${kelas}</span></label>`;
+            });
+        } catch (e) {container.innerHTML = '<p class="text-[10px] text-red-500">Gagal memuat kelas.</p>'; }
+    }
 
 // --- C. NAVIGATION & COMMON UI HELPERS ---
-        function showPage(id) {
-            ['login-page','admin-page','student-page'].forEach(p => document.getElementById(p).classList.add('hidden-element'));
-            document.getElementById(id).classList.remove('hidden-element');
-        }
+    function showPage(id) {
+        ['login-page','admin-page','student-page'].forEach(p => document.getElementById(p).classList.add('hidden-element'));
+        document.getElementById(id).classList.remove('hidden-element');
+    }
 
-        function switchTab(t) {
-            ['exam','bank','student','monitor'].forEach(id => {
-                document.getElementById('section-'+id).classList.add('hidden-element');
-                document.getElementById('tab-btn-'+id).classList.remove('sidebar-active');
-                document.getElementById('tab-btn-'+id).classList.add('text-slate-400');
-            });
-            document.getElementById('section-'+t).classList.remove('hidden-element');
-            document.getElementById('tab-btn-'+t).classList.add('sidebar-active');
-            document.getElementById('tab-btn-'+t).classList.remove('text-slate-400');
-        }
+    function switchTab(t) {
+        ['exam','bank','student','monitor'].forEach(id => { document.getElementById('section-'+id).classList.add('hidden-element'); document.getElementById('tab-btn-'+id).classList.remove('sidebar-active'); document.getElementById('tab-btn-'+id).classList.add('text-slate-400'); });
+        document.getElementById('section-'+t).classList.remove('hidden-element'); document.getElementById('tab-btn-'+t).classList.add('sidebar-active'); document.getElementById('tab-btn-'+t).classList.remove('text-slate-400');
+    }
 
-	function switchStudentView(view) {
-	    const scheduled = document.getElementById('view-scheduled');
-	    const manual = document.getElementById('view-manual');
-	    const qr = document.getElementById('qr-reader-container');
-	    // Sembunyikan semua view siswa
-	    scheduled.classList.add('hidden-element'); manual.classList.add('hidden-element'); qr.classList.add('hidden-element');
-	    // Tampilkan yang dipilih
-	    if (view === 'scheduled') {scheduled.classList.remove('hidden-element');} else if (view === 'manual') {manual.classList.remove('hidden-element');
-	    } else if (view === 'qr') {qr.classList.remove('hidden-element'); }
-	}
+    function switchStudentView(view) {
+        const scheduled = document.getElementById('view-scheduled'), manual = document.getElementById('view-manual'), qr = document.getElementById('qr-reader-container');
+        scheduled.classList.add('hidden-element'); manual.classList.add('hidden-element'); qr.classList.add('hidden-element');
+        if (view === 'scheduled') {scheduled.classList.remove('hidden-element');} else if (view === 'manual') {manual.classList.remove('hidden-element');} else if (view === 'qr') {qr.classList.remove('hidden-element'); }
+    }
 
-    	function openModal(id) {const modal = document.getElementById(id);if (modal) {modal.classList.remove('hidden-element');} else {console.error("Modal dengan ID " + id + " tidak ditemukan!");}}
-	function closeModal(id) {const modal = document.getElementById(id);if (modal) {modal.classList.add('hidden-element');}}
-
-
+    function openModal(id) {const modal = document.getElementById(id); if (modal) {modal.classList.remove('hidden-element');} else {console.error("Modal dengan ID " + id + " tidak ditemukan!");}}
+    function closeModal(id) {const modal = document.getElementById(id); if (modal) modal.classList.add('hidden-element');}
 
 // --- D. ADMIN SERVICE (DATA MANAGEMENT) ---
 // 1. Fungsi untuk Memuat Link yang tersimpan di Cloud saat Admin dibuka
 async function loadSheetConfig() {
     const doc = await publicData.collection('settings').doc('sheet_config').get();
-    if (doc.exists) {document.getElementById('sheet-url').value = doc.data().url; }
+    if (doc.exists) document.getElementById('sheet-url').value = doc.data().url;
 }
-function syncAdminData() {
-    // 1. Sinkronkan data tabel siswa
-    if (typeof syncAdminStudentData === "function") {
-        syncAdminStudentData();
-    }
 
+function syncAdminData() {
+    if (typeof syncAdminStudentData === "function") syncAdminStudentData();
     // 2. Sinkronkan daftar paket ujian
     publicData.collection('exams').onSnapshot(s => {
-        const list = document.getElementById('admin-exam-list');
-        if (!list) return;
-        list.innerHTML = "";
-        s.forEach(d => {
-            const x = d.data();
-            list.innerHTML += `
-            <div class="bg-white p-6 rounded-[2.5rem] border-2 border-transparent hover:border-blue-200 transition-all flex justify-between items-center group">
-                <div>
-                    <h4 class="font-black text-slate-800">${x.mapel}</h4>
-                    <p class="text-[9px] text-slate-400 font-bold uppercase tracking-widest">${x.kelas} | TOKEN: ${x.token} | PIN: ${x.pin}</p>
-                </div>
-                <div class="flex space-x-2">
-                    <button onclick="copyExam('${d.id}')" class="bg-emerald-50 text-emerald-600 p-3 rounded-xl">📄</button>
-                    <button onclick="editExam('${d.id}')" class="bg-blue-50 text-blue-500 p-3 rounded-xl">✎</button>
-                    <button onclick="delDoc('exams','${d.id}')" class="bg-red-50 text-red-500 p-3 rounded-xl">✕</button>
-                </div>
-            </div>`;
+        const list = document.getElementById('admin-exam-list'); if (!list) return; list.innerHTML = "";
+        s.forEach(d => { const x = d.data();
+            list.innerHTML += `<div class="bg-white p-6 rounded-[2.5rem] border-2 border-transparent hover:border-blue-200 transition-all flex justify-between items-center group"><div><h4 class="font-black text-slate-800">${x.mapel}</h4><p class="text-[9px] text-slate-400 font-bold uppercase tracking-widest">${x.kelas} | TOKEN: ${x.token} | PIN: ${x.pin}</p></div><div class="flex space-x-2"><button onclick="copyExam('${d.id}')" class="bg-emerald-50 text-emerald-600 p-3 rounded-xl">📄</button><button onclick="editExam('${d.id}')" class="bg-blue-50 text-blue-500 p-3 rounded-xl">✎</button><button onclick="delDoc('exams','${d.id}')" class="bg-red-50 text-red-500 p-3 rounded-xl">✕</button></div></div>`;
         });
     });
-
     // 3. Sinkronkan Bank Soal AI
     publicData.collection('ai_bank').onSnapshot(s => {
-        const list = document.getElementById('ai-question-list');
-        if (!list) return;
-        list.innerHTML = "";
-        s.forEach(d => {
-            const q = d.data();
-            list.innerHTML += `<div class="bg-white p-6 rounded-3xl border border-slate-100"><p class="text-slate-800 font-medium">${q.question}</p><span class="text-[9px] bg-indigo-50 text-indigo-500 px-3 py-1 rounded-full font-black uppercase mt-3 inline-block">${q.topic}</span></div>`;
-        });
+        const list = document.getElementById('ai-question-list'); if (!list) return; list.innerHTML = "";
+        s.forEach(d => { const q = d.data(); list.innerHTML += `<div class="bg-white p-6 rounded-3xl border border-slate-100"><p class="text-slate-800 font-medium">${q.question}</p><span class="text-[9px] bg-indigo-50 text-indigo-500 px-3 py-1 rounded-full font-black uppercase mt-3 inline-block">${q.topic}</span></div>`; });
     });
 }
+
 // 2. Fungsi Utama: Simpan Link ke Cloud dan Jalankan Sinkronisasi
 async function saveAndSyncSheet() {
-    const urlInput = document.getElementById('sheet-url').value.trim();
-    if (!urlInput) return alert("Masukkan link Google Sheet!");
-
-    const btn = document.getElementById('btn-sync-sheet');
-    const btnText = document.getElementById('sync-text');
-    btn.disabled = true;
-    btnText.textContent = "SINKRONISASI...";
-
+    const urlInput = document.getElementById('sheet-url').value.trim(); if (!urlInput) return alert("Masukkan link Google Sheet!");
+    const btn = document.getElementById('btn-sync-sheet'), btnText = document.getElementById('sync-text'); btn.disabled = true; btnText.textContent = "SINKRONISASI...";
     try {
-        await upsertSettingsItem('sheet_config', { url: urlInput, lastSync: Date.now() });
-
-        let exportUrl = urlInput;
-        if (urlInput.includes('/edit')) {
-            const match = urlInput.match(/\/d\/(.+?)\//);
-            if (match) exportUrl = `https://docs.google.com/spreadsheets/d/${match[1]}/export?format=csv`;
-        }
-
-        const res = await fetch(exportUrl);
-        const text = await res.text();
-        const rows = text.split(/\r?\n/);
-
-        const rawUserRows = [];
-        rows.forEach((row, index) => {
-            if (index === 0 || !row.trim()) return;
-            const cols = row.match(/(".*?"|[^",]+)(?=\s*,|\s*$)/g);
-            if (cols && cols.length >= 3) {
-                const clean = (str) => str ? str.replace(/^"|"$/g, '').trim() : "";
-                rawUserRows.push({
-                    nis: clean(cols[0]),
-                    nama: clean(cols[1]),
-                    kelas: clean(cols[2]),
-                    pwd: cols[3] ? clean(cols[3]) : "123"
-                });
-            }
+        await upsertSettingsItem('sheet_config', { url: urlInput, lastSync: Date.now() }); let exportUrl = urlInput;
+        if (urlInput.includes('/edit')) { const match = urlInput.match(/\/d\/(.+?)\//); if (match) exportUrl = `https://docs.google.com/spreadsheets/d/${match[1]}/export?format=csv`; }
+        const res = await fetch(exportUrl), text = await res.text(), rows = text.split(/\r?\n/), rawUserRows = [];
+        rows.forEach((row, index) => { if (index === 0 || !row.trim()) return; const cols = row.match(/(".*?"|[^",]+)(?=\s*,|\s*$)/g);
+            if (cols && cols.length >= 3) { const clean = (str) => str ? str.replace(/^"|"$/g, '').trim() : ""; rawUserRows.push({ nis: clean(cols[0]), nama: clean(cols[1]), kelas: clean(cols[2]), pwd: cols[3] ? clean(cols[3]) : "123" }); }
         });
-
         // --- PROTEKSI DUPLIKASI DALAM SATU BATCH ---
-        // Kita hanya mengambil NIS unik pertama yang ditemukan di file CSV
-        const userRows = [];
-        const seenNis = new Set();
-        rawUserRows.forEach(item => {
-            if (!seenNis.has(item.nis)) {
-                seenNis.add(item.nis);
-                userRows.push(item);
-            }
-        });
-
-        if (userRows.length > 0) {
-            const { error: insertError } = await db.from('users').upsert(userRows, { 
-                onConflict: 'nis' 
-            });
-            if (insertError) throw insertError;
-        }
-
-        alert(`Berhasil! ${userRows.length} data siswa disinkronkan.`);
-        if (typeof loadKelas === "function") loadKelas();
-    } catch (e) {
-        console.error(e);
-        alert("Gagal Sinkron: " + e.message);
-    } finally {
-        btn.disabled = false;
-        btnText.textContent = "SIMPAN & SINKRON";
-    }
+        const userRows = [], seenNis = new Set();
+        rawUserRows.forEach(item => { if (!seenNis.has(item.nis)) { seenNis.add(item.nis); userRows.push(item); } });
+        if (userRows.length > 0) { const { error: insertError } = await db.from('users').upsert(userRows, { onConflict: 'nis' }); if (insertError) throw insertError; }
+        alert(`Berhasil! ${userRows.length} data siswa disinkronkan.`); if (typeof loadKelas === "function") loadKelas();
+    } catch (e) { console.error(e); alert("Gagal Sinkron: " + e.message); } finally { btn.disabled = false; btnText.textContent = "SIMPAN & SINKRON"; }
 }
-       
+
 async function saveExam() {
-    const id = document.getElementById('edit-exam-id').value;
-    const nodes = document.querySelectorAll('input[name="target-kelas"]:checked');
-    const selectedClasses = Array.from(nodes).map(node => node.value).join(', ');
-    
-    if (!selectedClasses) return alert("Pilih minimal satu kelas!");
-    if (!document.getElementById('ex-mapel').value) return alert("Isi Nama Mapel!");
-
-    const data = {
-        mapel: document.getElementById('ex-mapel').value,
-        kelas: selectedClasses,
-        date: document.getElementById('ex-date').value,
-        duration: document.getElementById('ex-duration').value,
-        token: document.getElementById('ex-token').value.toUpperCase(),
-        pin: document.getElementById('ex-pin').value,
-        link: document.getElementById('ex-link').value,
-        active: document.getElementById('ex-active').checked,
-        camera: document.getElementById('ex-camera').checked
-    };
-
-    try {
-        if(id) {await publicData.collection('exams').doc(id).update(data);
-        } else {await publicData.collection('exams').add(data);}
-        alert("Paket Berhasil Disimpan!"); closeModal('modal-exam');
-    } catch (e) {alert("Gagal menyimpan ke Cloud: " + e.message); }
+    const id = document.getElementById('edit-exam-id').value, nodes = document.querySelectorAll('input[name="target-kelas"]:checked'), selectedClasses = Array.from(nodes).map(node => node.value).join(', ');
+    if (!selectedClasses) return alert("Pilih minimal satu kelas!"); if (!document.getElementById('ex-mapel').value) return alert("Isi Nama Mapel!");
+    const data = { mapel: document.getElementById('ex-mapel').value, kelas: selectedClasses, date: document.getElementById('ex-date').value, duration: document.getElementById('ex-duration').value, token: document.getElementById('ex-token').value.toUpperCase(), pin: document.getElementById('ex-pin').value, link: document.getElementById('ex-link').value, active: document.getElementById('ex-active').checked, camera: document.getElementById('ex-camera').checked };
+    try { if(id) { await publicData.collection('exams').doc(id).update(data); } else { await publicData.collection('exams').add(data); } alert("Paket Berhasil Disimpan!"); closeModal('modal-exam'); } catch (e) { alert("Gagal menyimpan ke Cloud: " + e.message); }
 }
 
-        async function copyExam(id) {
-		if(!confirm("Salin paket ujian ini?")) return;
-		const d = await publicData.collection('exams').doc(id).get();
-		const data = d.data();
-		data.mapel += " (Copy)";
-		data.active = false; // Hasil copy otomatis non-aktif agar bisa diedit dulu
-		await publicData.collection('exams').add(data);
-		alert("Paket berhasil dikloning!");
-	}
+async function copyExam(id) {
+    if(!confirm("Salin paket ujian ini?")) return;
+    const d = await publicData.collection('exams').doc(id).get(), data = d.data(); data.mapel += " (Copy)"; data.active = false;
+    await publicData.collection('exams').add(data); alert("Paket berhasil dikloning!");
+}
 
-        async function editExam(id) {
-	try {
-            const d = await publicData.collection('exams').doc(id).get();
-            const x = d.data();
-	    document.getElementById('exam-modal-title').textContent = "Edit Paket Ujian";
-            document.getElementById('edit-exam-id').value = id;
-            document.getElementById('ex-mapel').value = x.mapel;
-            document.getElementById('ex-date').value = x.date;
-            document.getElementById('ex-duration').value = x.duration;
-            document.getElementById('ex-token').value = x.token;
-            document.getElementById('ex-pin').value = x.pin;
-            document.getElementById('ex-link').value = x.link;
-			document.getElementById('ex-active').checked = x.active !== false;
-			document.getElementById('ex-camera').checked = x.camera !== false;
-            const selected = x.kelas ? x.kelas.split(', ') : []; renderClassCheckboxes(selected);
-		openModal('modal-exam');} catch (e) {alert("Gagal mengambil data ujian!"); }
-        }
-	
-	async function delDoc(c, id) { if(confirm("Hapus data ini secara permanen dari Cloud?")) await publicData.collection(c).doc(id).delete(); }
+async function editExam(id) {
+    try { const d = await publicData.collection('exams').doc(id).get(), x = d.data();
+        document.getElementById('exam-modal-title').textContent = "Edit Paket Ujian"; document.getElementById('edit-exam-id').value = id; document.getElementById('ex-mapel').value = x.mapel; document.getElementById('ex-date').value = x.date; document.getElementById('ex-duration').value = x.duration; document.getElementById('ex-token').value = x.token; document.getElementById('ex-pin').value = x.pin; document.getElementById('ex-link').value = x.link; document.getElementById('ex-active').checked = x.active !== false; document.getElementById('ex-camera').checked = x.camera !== false;
+        const selected = x.kelas ? x.kelas.split(', ') : []; renderClassCheckboxes(selected); openModal('modal-exam');
+    } catch (e) { alert("Gagal mengambil data ujian!"); }
+}
 
-        function openExamModal() {document.getElementById('edit-exam-id').value = ""; 
-		['ex-mapel', 'ex-date', 'ex-duration', 'ex-token', 'ex-pin', 'ex-link'].forEach(i => document.getElementById(i).value = ""); renderClassCheckboxes([]); openModal('modal-exam');
-        }
+async function delDoc(c, id) { if(confirm("Hapus data ini secara permanen dari Cloud?")) await publicData.collection(c).doc(id).delete(); }
+function openExamModal() { document.getElementById('edit-exam-id').value = ""; ['ex-mapel', 'ex-date', 'ex-duration', 'ex-token', 'ex-pin', 'ex-link'].forEach(i => document.getElementById(i).value = ""); renderClassCheckboxes([]); openModal('modal-exam'); }
 
 function syncAdminStudentData() {
-    const list = document.getElementById('admin-student-list');
-    if (!list) return;
-
-    // Menggunakan onSnapshot agar tabel terupdate otomatis jika ada perubahan data di database
+    const list = document.getElementById('admin-student-list'); if (!list) return;
     publicData.collection('users').onSnapshot(snap => {
-        list.innerHTML = "";
-        let dataSiswa = [];
-        
-        snap.forEach(doc => {
-            dataSiswa.push(doc.data());
-        });
-
-        // Urutkan berdasarkan kelas dan nama
+        list.innerHTML = ""; let dataSiswa = []; snap.forEach(doc => { dataSiswa.push(doc.data()); });
         dataSiswa.sort((a, b) => a.kelas.localeCompare(b.kelas) || a.nama.localeCompare(b.nama));
-
         dataSiswa.forEach(s => {
-            list.innerHTML += `
-                <tr class="hover:bg-slate-50 transition-colors">
-                    <td class="px-8 py-4 text-[11px] font-bold text-slate-600">${s.nis}</td>
-                    <td class="px-8 py-4 text-[11px] font-bold text-slate-900">${s.nama}</td>
-                    <td class="px-8 py-4">
-                        <span class="bg-blue-50 text-blue-600 px-3 py-1 rounded-full text-[9px] font-black uppercase">${s.kelas}</span>
-                    </td>
-                    <td class="px-8 py-4 text-[11px] font-mono text-slate-400">${s.pwd}</td>
-                </tr>
-            `;
+            list.innerHTML += `<tr class="hover:bg-slate-50 transition-colors"><td class="px-8 py-4 text-[11px] font-bold text-slate-600">${s.nis}</td><td class="px-8 py-4 text-[11px] font-bold text-slate-900">${s.nama}</td><td class="px-8 py-4"><span class="bg-blue-50 text-blue-600 px-3 py-1 rounded-full text-[9px] font-black uppercase">${s.kelas}</span></td><td class="px-8 py-4 text-[11px] font-mono text-slate-400">${s.pwd}</td></tr>`;
         });
     });
 }
 
-        async function syncSpecialSettings() {publicData.collection('settings').doc('special_methods').
-		onSnapshot(d => { if(d.exists) specialSettings = d.data(); }); }
-
-        async function saveSpecialSettings() {
-            const pin = document.getElementById('special-pin').value;
-            const dur = parseInt(document.getElementById('special-duration').value);
-            await upsertSettingsItem('special_methods', { pin, duration: dur, updatedAt: Date.now() });
-            alert("Konfigurasi Akses Cepat Diperbarui!");
-        }
-
-
-
-
-
-
-
+async function syncSpecialSettings() { publicData.collection('settings').doc('special_methods').onSnapshot(d => { if(d.exists) specialSettings = d.data(); }); }
+async function saveSpecialSettings() {
+    const pin = document.getElementById('special-pin').value, dur = parseInt(document.getElementById('special-duration').value);
+    await upsertSettingsItem('special_methods', { pin, duration: dur, updatedAt: Date.now() }); alert("Konfigurasi Akses Cepat Diperbarui!");
+}
 
 // --- E. STUDENT SERVICE (EXAM ACCESS) ---
-	function syncStudentData() {
-	    publicData.collection('exams').onSnapshot(s => {
-	        const list = document.getElementById('student-exam-list');
-	        list.innerHTML = "";
-	        const today = new Date().toISOString().split('T')[0];
-	        s.forEach(d => {
-	            const x = d.data();
-	            const allowedClasses = x.kelas ? x.kelas.split(', ') : [];
-	            const isAllowed = allowedClasses.includes(user.kelas);
-	            if(isAllowed && x.active !== false && x.date <= today) { 
-	                list.innerHTML += `
-	                <div class="bg-white p-4 rounded-[2rem] border shadow-sm text-center">
-	                    <h4 class="font-black text-xs text-slate-800 truncate mb-1">${x.mapel}</h4>
-	                    <p class="text-[8px] text-slate-400 font-bold mb-3 uppercase">${x.duration} Menit</p>
-	                    <input type="text" id="tk-${d.id}" class="w-full bg-slate-50 p-2 rounded-xl text-center mb-2 font-black text-xs outline-none" placeholder="TOKEN">
-	                    <button onclick="startExam('${d.id}', '${x.token}')" class="w-full bg-blue-600 text-white py-2 rounded-xl font-black text-[10px]">MULAI</button>
-	                </div>`;
-	            }
-	        });
-	        if (list.innerHTML === "") list.innerHTML = "<p class='col-span-2 text-center py-10 text-slate-400 text-xs italic font-bold'>Tidak ada ujian untuk kelas Anda hari ini.</p>";
-	    });
-	}
-
-
-function logActivity(a) {
-    db.from('logs').insert({
-        user: user ? user.nama : "System",
-        action: a,
-        time: new Date().toISOString()
-    }).then(({ error }) => { if (error) console.warn('Log error:', error); });
+async function syncStudentData() {
+    const list = document.getElementById('student-exam-list'); list.innerHTML = "<p class='text-center text-xs p-4'>Memuat jadwal...</p>";
+    try {
+        const { data: exams, error } = await db.from('exams').select('*'); if (error) throw error;
+        list.innerHTML = ""; const today = new Date().toISOString().split('T')[0];
+        exams.forEach(x => {
+            const allowedClasses = x.kelas ? x.kelas.split(', ') : [], isAllowed = allowedClasses.includes(user.kelas);
+            if(isAllowed && x.active !== false && x.date <= today) { 
+                list.innerHTML += `<div class="bg-white p-4 rounded-[2rem] border shadow-sm text-center"><h4 class="font-black text-xs text-slate-800 truncate mb-1">${x.mapel}</h4><p class="text-[8px] text-slate-400 font-bold mb-3 uppercase">${x.duration} Menit</p><input type="text" id="tk-${x.id}" class="w-full bg-slate-50 p-2 rounded-xl text-center mb-2 font-black text-xs outline-none" placeholder="TOKEN"><button onclick="startExam('${x.id}', '${x.token}')" class="w-full bg-blue-600 text-white py-2 rounded-xl font-black text-[10px]">MULAI</button></div>`;
+            }
+        });
+        if (list.innerHTML === "") list.innerHTML = "<p class='col-span-2 text-center py-10 text-slate-400 text-xs italic font-bold'>Tidak ada ujian hari ini.</p>";
+    } catch (e) { list.innerHTML = "<p class='text-center text-red-500 text-[10px]'>Gagal memuat data.</p>"; }
 }
 
-		
+function logActivity(a) { db.from('logs').insert({ user: user ? user.nama : "System", action: a, time: new Date().toISOString() }).then(({ error }) => { if (error) console.warn('Log error:', error); }); }
+
 let html5QrScanner = null;
 function simulateScan() {
-    // Pindah ke tampilan kamera
-    switchStudentView('qr');
-    html5QrScanner = new Html5Qrcode("qr-reader");
-    html5QrScanner.start(
-        { facingMode: "environment" }, { fps: 10, qrbox: 250 },
-        async (decodedText) => {const scannedUrl = decodedText.trim();
-            if (scannedUrl.startsWith("http")) {await html5QrScanner.stop();
-                // Gunakan pengaturan global/akses cepat
-                activePin = specialSettings.pin || "1234"; startExamEngine(scannedUrl, "Akses Via Scan QR", specialSettings.duration || 60, true);
-            } else {alert("QR Code bukan berisi link valid!");}
-        }
-    ).catch(err => {alert("Kamera Error: " + err); stopQR(); });
+    switchStudentView('qr'); html5QrScanner = new Html5Qrcode("qr-reader");
+    html5QrScanner.start({ facingMode: "environment" }, { fps: 10, qrbox: 250 }, async (decodedText) => { const scannedUrl = decodedText.trim(); if (scannedUrl.startsWith("http")) { await html5QrScanner.stop(); activePin = specialSettings.pin || "1234"; startExamEngine(scannedUrl, "Akses Via Scan QR", specialSettings.duration || 60, true); } else { alert("QR Code bukan berisi link valid!"); } }).catch(err => { alert("Kamera Error: " + err); stopQR(); });
 }
 
-async function stopQR() {
-    if (html5QrScanner) {try { await html5QrScanner.stop(); } catch (e) {} }
-    // Kembali ke daftar jadwal
-    switchStudentView('scheduled');
-}		
-		
-		
+async function stopQR() { if (html5QrScanner) { try { await html5QrScanner.stop(); } catch (e) {} } switchStudentView('scheduled'); }       
+
 function startManualExam() {
     const url = document.getElementById('manual-url').value.trim();
-    // 1. Validasi Input
-    if (!url) {alert("Mohon tempelkan link ujian anda!"); return; }
-    
-    // Validasi sederhana format link
-    if (!url.startsWith("http")) {alert("Link tidak valid! Pastikan diawali dengan http:// atau https://"); return;}
-
-    // 2. Mengambil Pengaturan dari "Akses Cepat" Admin (specialSettings)
-    // Jika Admin belum menyetel, akan menggunakan default (PIN 1234, Durasi 60)
-    activePin = specialSettings.pin || "1234";
-    const duration = specialSettings.duration || 60;
-
-    // 3. Menjalankan Engine Ujian
-    // Parameter: (URL, Label Nama, Menit, Wajib Kamera: true)
-    startExamEngine(url, "Manual Access", duration, true);
-    
-    // Opsional: Kosongkan input setelah dijalankan
-    document.getElementById('manual-url').value = "";
+    if (!url) { alert("Mohon tempelkan link ujian anda!"); return; } if (!url.startsWith("http")) { alert("Link tidak valid! Pastikan diawali dengan http:// atau https://"); return; }
+    activePin = specialSettings.pin || "1234"; const duration = specialSettings.duration || 60;
+    startExamEngine(url, "Manual Access", duration, true); document.getElementById('manual-url').value = "";
 }
-
 
 async function startExam(id, correctToken) {
-    const tokenInput = document.getElementById(`tk-${id}`).value.toUpperCase();
-    if (tokenInput !== correctToken) {alert("Token ujian salah! Silahkan hubungi pengawas.");return;}
-    const doc = await publicData.collection('exams').doc(id).get();
-    if (doc.exists) {const x = doc.data();
-        activePin = x.pin || specialSettings.pin;
-        // Memulai engine ujian dengan membawa data pengaturan kamera
-        startExamEngine(x.link, x.mapel, x.duration, x.camera);
-    }
+    const tokenInput = document.getElementById(`tk-${id}`).value.toUpperCase(); if (tokenInput !== correctToken) { alert("Token ujian salah! Silahkan hubungi pengawas."); return; }
+    const doc = await publicData.collection('exams').doc(id).get(); if (doc.exists) { const x = doc.data(); activePin = x.pin || specialSettings.pin; startExamEngine(x.link, x.mapel, x.duration, x.camera); }
 }
-
-
-
-
-
-
-
-
-
 
 // --- F. THE EXAM ENGGINE (THE HEART OF SYSTEM) ---
 async function startExamEngine(url, mapel, dur, isCameraRequired) {
-    // 1. Membersihkan Clipboard & State Awal
-    await clearClipboard();
-    isExamActive = true;
-    violationCount = 0;
-    initialWidth = window.innerWidth; initialHeight = window.innerHeight; 
-    isResuming = false; // Reset flag resume
-
-    // 2. Setup Kamera (Jika Diwajibkan)
+    await clearClipboard(); isExamActive = true; violationCount = 0; initialWidth = window.innerWidth; initialHeight = window.innerHeight; isResuming = false;
     const selfVideo = document.getElementById('self-video');
     if (isCameraRequired !== false) {
         try {
-            const stream = await navigator.mediaDevices.getUserMedia({
-                video: { width: { ideal: 320 }, height: { ideal: 240 }, frameRate: { max: 15 } }
-            });
-            window.localStream = stream;
-            selfVideo.srcObject = stream;
-            selfVideo.parentElement.classList.remove('hidden-element');
-            startSnapshotService();
-        } catch (e) {
-            console.error("Camera Error:", e);
-            alert("⚠️ Ujian ini wajib menggunakan kamera. Pastikan izin kamera telah diberikan!");
-            return;
-        }
+            const stream = await navigator.mediaDevices.getUserMedia({ video: { width: { ideal: 320 }, height: { ideal: 240 }, frameRate: { max: 15 } } });
+            window.localStream = stream; selfVideo.srcObject = stream; selfVideo.parentElement.classList.remove('hidden-element');
+        } catch (e) { console.error("Camera Error:", e); alert("⚠️ Ujian ini wajib menggunakan kamera. Pastikan izin kamera telah diberikan!"); return; }
     } else {
-        if (window.localStream) {
-            window.localStream.getTracks().forEach(track => track.stop());
-            window.localStream = null;
-        }
-        selfVideo.srcObject = null;
-        selfVideo.parentElement.classList.add('hidden-element');
-        stopSnapshotService();
+        if (window.localStream) { window.localStream.getTracks().forEach(track => track.stop()); window.localStream = null; }
+        selfVideo.srcObject = null; selfVideo.parentElement.classList.add('hidden-element'); stopSnapshotService();
     }
-
-    // 3. Aktifkan Protokol Keamanan (Lockdown)
-    enableHardLockdown();
-    const endTime = Date.now() + (dur * 60 * 1000);
-    localStorage.setItem('active_exam_state', JSON.stringify({
-        url: url,
-        mapel: mapel,
-        endTime: endTime,
-        isCamera: isCameraRequired,
-        pin: activePin
-    }));
-
-    // 5. Setup UI & Iframe (Dengan Keamanan Sandbox)
+    enableHardLockdown(); const endTime = Date.now() + (dur * 60 * 1000);
+    localStorage.setItem('active_exam_state', JSON.stringify({ url: url, mapel: mapel, endTime: endTime, isCamera: isCameraRequired, pin: activePin }));
     document.getElementById('view-mapel').textContent = mapel;
-    
-    // Sandbox: Izinkan form & script, tapi cegah navigasi top-level (kabur dari app)
-    const iframeHtml = `
-        <iframe 
-            src="${url}" 
-            allow="camera; microphone; autoplay; display-capture" 
-            sandbox="allow-forms allow-scripts allow-same-origin allow-popups allow-modals allow-downloads allow-storage-access-by-user-activation"
-            style="width:100%; height:100%; border:none;">
-        </iframe>`;
-    
-    document.getElementById('exam-frame-container').innerHTML = iframeHtml;
-    document.getElementById('exam-viewer').classList.remove('hidden-element');
-
-    // 6. Masuk Mode Layar Penuh (Fullscreen)
-    try {
-        if (!document.fullscreenElement) {
-            await document.documentElement.requestFullscreen();
-        }
-    } catch (err) {
-        console.warn("Fullscreen blocked, user interaction required.");
-    }
-
-    // 7. Sinkronisasi Awal ke Supabase (Status Aktif Seketika)
+    const iframeHtml = `<iframe src="${url}" allow="camera; microphone; autoplay; display-capture" sandbox="allow-forms allow-scripts allow-same-origin allow-popups allow-modals allow-downloads allow-storage-access-by-user-activation" style="width:100%; height:100%; border:none;"></iframe>`;
+    document.getElementById('exam-frame-container').innerHTML = iframeHtml; document.getElementById('exam-viewer').classList.remove('hidden-element');
+    try { if (!document.fullscreenElement) await document.documentElement.requestFullscreen(); } catch (err) { console.warn("Fullscreen blocked, user interaction required."); }
     const syncStatus = async () => {
-        try {
-            const { error } = await db.from('live').upsert({
-                id: user.id,
-                nama: user.nama,
-                kelas: user.kelas || "Umum",
-                img: null,
-                last: Date.now(),
-                v: violationCount,
-                camStatus: isCameraRequired !== false ? "ON" : "OFF",
-                lastStatus: "SEDANG UJIAN",
-                isLocked: false
-            }, { onConflict: 'id' });
-            if (error) throw error;
-        } catch (err) { console.error("Sync Error:", err); }
+        try { await db.from('live').upsert({ id: user.id, nama: user.nama, kelas: user.kelas || "Umum", img: null, last: Date.now(), v: violationCount, camStatus: isCameraRequired !== false ? "ON" : "OFF", lastStatus: "SEDANG UJIAN", isLocked: false }, { onConflict: 'id' }); } catch (err) { console.error("Sync Error:", err); }
     };
-    syncStatus(); // Jalankan sekali saat start
-
-    // 8. Timer Logic (Penghitung Mundur)
-    let timeRemaining = dur * 60;
-    if (window.examTimerInterval) clearInterval(window.examTimerInterval);
-    
+    syncStatus(); let timeRemaining = dur * 60; if (window.examTimerInterval) clearInterval(window.examTimerInterval);
     window.examTimerInterval = setInterval(() => {
-        if (!isExamActive) { clearInterval(window.examTimerInterval); return; }
-        
-        timeRemaining--;
-        if (timeRemaining <= 0) {
-            clearInterval(window.examTimerInterval);
-            finishExam();
-            alert("Waktu ujian telah habis!");
-            return;
-        }
-
-        const m = Math.floor(timeRemaining / 60);
-        const s = timeRemaining % 60;
-        document.getElementById('exam-timer').textContent = 
-            `${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`;
+        if (!isExamActive) { clearInterval(window.examTimerInterval); return; } timeRemaining--;
+        if (timeRemaining <= 0) { clearInterval(window.examTimerInterval); finishExam(); alert("Waktu ujian telah habis!"); return; }
+        const m = Math.floor(timeRemaining / 60), s = timeRemaining % 60;
+        document.getElementById('exam-timer').textContent = `${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`;
     }, 1000);
-
-    // 9. Monitoring Loop (Heartbeat saja, tanpa menyimpan foto/video ke Supabase)
     if (monitorInterval) clearInterval(monitorInterval);
     monitorInterval = setInterval(async () => {
         if (!isExamActive) return;
-        syncStatus();
-    }, 15000);
+        await db.from('live').upsert({ id: user.id, nama: user.nama, kelas: user.kelas, last: Date.now(), v: violationCount, camStatus: window.localStream ? "ON" : "OFF", lastStatus: "SEDANG UJIAN" }, { onConflict: 'id' });
+    }, 60000);
 }
+
+
 
 
 async function finishExam() {
-    isExamActive = false;
-    // Stop Monitor & Session
-    if (monitorInterval) clearInterval(monitorInterval), monitorInterval = null; localStorage.removeItem('active_exam_state');
-    // Stop Camera Tracks
-    if (window.localStream) {window.localStream.getTracks().forEach(t => t.stop());window.localStream = null; }
-    // Delete Live Data
-    if (user?.id) {try { await publicData.collection('live').doc(user.id).delete(); } catch (e) { console.log("Gagal hapus live"); }}
-    // Exit Fullscreen & UI Reset
+    isExamActive = false; if (monitorInterval) clearInterval(monitorInterval), monitorInterval = null; localStorage.removeItem('active_exam_state');
+    if (window.localStream) { window.localStream.getTracks().forEach(t => t.stop()); window.localStream = null; }
+    if (user?.id) { try { await publicData.collection('live').doc(user.id).delete(); } catch (e) { console.log("Gagal hapus live"); } }
     if (document.fullscreenElement) document.exitFullscreen().catch(() => {});
-    alert("Ujian selsesai! Pastikan jawaban sudah dikirim."); location.reload();
+    alert("Ujian selesai! Pastikan jawaban sudah dikirim."); location.reload();
 }
 
 function confirmFinishExam() { if(confirm("Apakah anda yakin telah menyelesaikan semua soal dan ingin keluar?")) finishExam(); }
-
 async function clearClipboard() {
-        try {
-            await navigator.clipboard.writeText("Akses dilarang");
-        } catch (err) {
-            try {
-                const input = document.createElement("input");
-                input.value = " ";
-                document.body.appendChild(input);
-                input.select();
-                document.execCommand("copy");
-                document.body.removeChild(input);
-            } catch (copyError) {
-                console.warn('Clear clipboard failed:', copyError);
-            }
-        }
+    try { await navigator.clipboard.writeText("Akses dilarang"); } catch (err) {
+        try { const input = document.createElement("input"); input.value = " "; document.body.appendChild(input); input.select(); document.execCommand("copy"); document.body.removeChild(input); } catch (copyError) { console.warn('Clear clipboard failed:', copyError); }
     }
-
+}
 
 // --- G. SECURITY VIOLATION & LOCKDOWN (REVISED FOR MOBILE) ---
-let isSecuritySetup = false;
-// Tambahkan variabel global ini di bagian atas script jika belum ada
-let blurTimer = null; 
-
+let isSecuritySetup = false, blurTimer = null; 
 function enableHardLockdown() {
     if (isSecuritySetup) return;
-
-    // 1. Proteksi Klik Kanan & Seleksi (HP Friendly)
-    document.oncontextmenu = (e) => { e.preventDefault(); return false; };
-    document.body.style.webkitUserSelect = "none";
-    document.body.style.userSelect = "none";
-    document.body.style.webkitTouchCallout = "none";
-    document.onselectstart = () => false;
-    document.ondragstart = () => false;
-
-    // 2. Proteksi Tombol Back (Android)
+    document.oncontextmenu = (e) => { e.preventDefault(); return false; }; document.body.style.webkitUserSelect = "none"; document.body.style.userSelect = "none"; document.body.style.webkitTouchCallout = "none"; document.onselectstart = () => false; document.ondragstart = () => false;
     history.pushState(null, null, location.href);
-    window.onpopstate = function() {
-        history.go(1);
-        if(isExamActive) {
-            // Berikan alasan spesifik agar pengawas tahu
-            reportViolation("Menekan Tombol BACK"); 
-            alert("⚠️ PERINGATAN: Dilarang menggunakan tombol BACK!");
-        }
-    };
-
-    // 3. Proteksi Keyboard (Tablet/Laptop)
+    window.onpopstate = function() { history.go(1); if(isExamActive) { reportViolation("Menekan Tombol BACK"); alert("⚠️ PERINGATAN: Dilarang menggunakan tombol BACK!"); } };
     window.onkeydown = (e) => {
         if (!isExamActive) return;
-        const forbiddenKeys = [122, 123, 91, 92]; 
-        const isControlAction = e.ctrlKey && ['u','s','p','c','v'].includes(e.key.toLowerCase());
-        const isAltAction = e.altKey && (e.key === 'Tab' || e.key === 'F4');
-        
-        if (forbiddenKeys.includes(e.keyCode) || isControlAction || isAltAction) {
-            e.preventDefault(); 
-            reportViolation("Shortcut Terlarang (Keyboard)"); 
-            return false; 
-        }
+        const forbiddenKeys = [122, 123, 91, 92], isControlAction = e.ctrlKey && ['u','s','p','c','v'].includes(e.key.toLowerCase()), isAltAction = e.altKey && (e.key === 'Tab' || e.key === 'F4');
+        if (forbiddenKeys.includes(e.keyCode) || isControlAction || isAltAction) { e.preventDefault(); reportViolation("Shortcut Terlarang (Keyboard)"); return false; }
     };
-
-    // 4. Manajemen Fokus & Masa Tenggang (Paling Penting!)
-    // visibilitychange: Terjadi saat pindah tab atau tekan tombol home
     document.addEventListener('visibilitychange', () => {
-        if (isExamActive && document.visibilityState === 'hidden') {
-            // Beri masa tenggang 2 detik untuk visibilitychange (lebih ketat)
-            blurTimer = setTimeout(() => {
-                reportViolation("Pindah Tab / Keluar Aplikasi");
-            }, 2000);
-        } else {
-            if (blurTimer) {
-                clearTimeout(blurTimer);
-                blurTimer = null;
-            }
-        }
+        if (isExamActive && document.visibilityState === 'hidden') { blurTimer = setTimeout(() => { reportViolation("Pindah Tab / Keluar Aplikasi"); }, 2000); } else if (blurTimer) { clearTimeout(blurTimer); blurTimer = null; }
     });
-
-    // onblur: Terjadi saat notifikasi muncul (WA, Baterai, dsb)
-    window.onblur = () => {
-        if (isExamActive) {
-            // Beri masa tenggang 4 detik untuk notifikasi (lebih longgar agar tidak kaget)
-            blurTimer = setTimeout(() => {
-                reportViolation("Kehilangan Fokus (Notifikasi/Pop-up)");
-            }, 4000);
-        }
-    };
-
-    window.onfocus = () => {
-        if (blurTimer) {
-            clearTimeout(blurTimer);
-            blurTimer = null;
-            console.log("Fokus kembali, pelanggaran dibatalkan.");
-        }
-    };
-
-    // 5. Proteksi Print
-    window.addEventListener('beforeprint', (e) => {
-        if(isExamActive) { e.preventDefault(); reportViolation("Mencoba Print"); } 
-    });
-
+    window.onblur = () => { if (isExamActive) { blurTimer = setTimeout(() => { reportViolation("Kehilangan Fokus (Notifikasi/Pop-up)"); }, 4000); } };
+    window.onfocus = () => { if (blurTimer) { clearTimeout(blurTimer); blurTimer = null; console.log("Fokus kembali, pelanggaran dibatalkan."); } };
+    window.addEventListener('beforeprint', (e) => { if(isExamActive) { e.preventDefault(); reportViolation("Mencoba Print"); } });
     isSecuritySetup = true;
 }
 
 function reportViolation(reason = "Aktivitas Mencurigakan") {
-    if (!isExamActive) return;
-    
-    const now = Date.now();
-    // Cooldown 3 detik agar tidak dobel hit
-    if (now - lastViolationTime < 3000) return; 
-    lastViolationTime = now; 
-
-    violationCount++;
-    
-    // Update UI Siswa
-    const vCountEl = document.getElementById('violation-count');
-    const vBadgeEl = document.getElementById('violation-badge');
-    if(vCountEl) vCountEl.textContent = violationCount;
-    if(vBadgeEl) vBadgeEl.classList.remove('hidden-element');
-
-    // Efek Suara & Getar Visual
-    const alarm = document.getElementById('alarm-sound');
-    if(alarm) alarm.play().catch(() => {});
-    document.body.classList.add('violation-shake');
-    setTimeout(() => document.body.classList.remove('violation-shake'), 500);
-
-    // Lapor ke Admin via Supabase dengan ALASAN SPESIFIK
-    if (user && user.id) {
-        db.from('live').update({ 
-            v: violationCount, 
-            lastStatus: 'Peringatan: ' + reason.toUpperCase() 
-        }).eq('id', user.id);
-    }
-
-    // Jika belum 5, berikan feedback ke siswa agar mereka sadar
-    if (violationCount < 5) {
-        // Gunakan toast atau alert kecil (opsional)
-        console.warn("Pelanggaran tercatat: " + reason);
-    } else {
-        triggerLock();
-    }
+    if (!isExamActive) return; const now = Date.now(); if (now - lastViolationTime < 3000) return; lastViolationTime = now; violationCount++;
+    const vCountEl = document.getElementById('violation-count'), vBadgeEl = document.getElementById('violation-badge');
+    if(vCountEl) vCountEl.textContent = violationCount; if(vBadgeEl) vBadgeEl.classList.remove('hidden-element');
+    const alarm = document.getElementById('alarm-sound'); if(alarm) alarm.play().catch(() => {});
+    document.body.classList.add('violation-shake'); setTimeout(() => document.body.classList.remove('violation-shake'), 500);
+    if (user && user.id) { db.from('live').update({ v: violationCount, lastStatus: 'Peringatan: ' + reason.toUpperCase() }).eq('id', user.id); }
+    if (violationCount < 5) { console.warn("Pelanggaran tercatat: " + reason); } else { triggerLock(); }
 }
 
-	async function triggerLock() { 
-	    if (isExamActive) {document.getElementById('lock-screen').classList.remove('hidden-element');
-	        if (user && user.id) {try {await publicData.collection('live').doc(user.id).update({isLocked: true, v: violationCount, lastStatus: 'TERKUNCI - BUTUH PIN' }); } 
-		catch (e) { console.error("Gagal lapor status kunci"); } }
-	    } 
-	}
+async function triggerLock() { 
+        if (isExamActive) { document.getElementById('lock-screen').classList.remove('hidden-element');
+            if (user && user.id) { try { await publicData.collection('live').doc(user.id).update({ isLocked: true, v: violationCount, lastStatus: 'TERKUNCI - BUTUH PIN' }); } catch (e) { console.error("Gagal lapor status kunci"); } }
+        } 
+    }
 
-        async function unlockApp() {
-            if (document.getElementById('unlock-pwd').value === activePin) {
-                document.getElementById('lock-screen').classList.add('hidden-element');
-                document.getElementById('unlock-pwd').value = "";
-                violationCount = 0;
-                document.getElementById('violation-count').textContent = "0";
-                document.getElementById('violation-badge').classList.add('hidden-element');
-			// BERITAHU ADMIN: Update status bahwa sudah terbuka
-		        if (user && user.id) {await publicData.collection('live').doc(user.id).update({
-	                isLocked: false, v: 0, lastStatus: 'AKTIF'}); }
-
-                setTimeout(() => document.documentElement.requestFullscreen().catch(() => {}), 500);
-            } else { alert("PIN Pengawas Salah!"); }
-        }
-
-
+async function unlockApp() {
+        if (document.getElementById('unlock-pwd').value === activePin) {
+            document.getElementById('lock-screen').classList.add('hidden-element'); document.getElementById('unlock-pwd').value = ""; violationCount = 0;
+            document.getElementById('violation-count').textContent = "0"; document.getElementById('violation-badge').classList.add('hidden-element');
+            if (user && user.id) { await publicData.collection('live').doc(user.id).update({ isLocked: false, v: 0, lastStatus: 'AKTIF' }); }
+            setTimeout(() => document.documentElement.requestFullscreen().catch(() => {}), 500);
+        } else { alert("PIN Pengawas Salah!"); }
+    }
 
 // --- H. LIVE MONITORING & PEER JS ---
 function initPeer() {
-    if (!user) return;
-    const cleanId = user.id.replace(/[^a-zA-Z0-9]/g, '');
-    const safePeerId = 'exam2026_' + cleanId;
-    
-    if (peer) {
-        try { peer.destroy(); } catch(e) {}
-        peer = null;
-    }
-
-    peer = new Peer(safePeerId, {
-        config: {'iceServers': [{ urls: 'stun:stun.l.google.com:19302' }]}
-    });
-
+    if (!user) return; const cleanId = user.id.replace(/[^a-zA-Z0-9]/g, ''), safePeerId = 'exam2026_' + cleanId;
+    if (peer) { try { peer.destroy(); } catch(e) {} peer = null; }
+    peer = new Peer(safePeerId, { config: { 'iceServers': [{ urls: 'stun:stun.l.google.com:19302' }] } });
     peer.on('call', (call) => {
-        if (window.localStream) {
-            call.answer(window.localStream);
-        } else {
-            const canvas = document.createElement('canvas');
-            canvas.width = 160;
-            canvas.height = 120;
-            const ctx = canvas.getContext('2d');
-            ctx.fillStyle = 'black';
-            ctx.fillRect(0, 0, canvas.width, canvas.height);
+        if (window.localStream) { call.answer(window.localStream); } else {
+            const canvas = document.createElement('canvas'); canvas.width = 160; canvas.height = 120;
+            const ctx = canvas.getContext('2d'); ctx.fillStyle = 'black'; ctx.fillRect(0, 0, canvas.width, canvas.height);
             call.answer(canvas.captureStream());
         }
     });
-
-    peer.on('connection', (conn) => {
-        setupDataConnection(conn);
-    });
+    peer.on('connection', (conn) => { setupDataConnection(conn); });
 }
 
 function setupDataConnection(conn) {
-    const remotePeerId = conn.peer;
-    peerDataConns[remotePeerId] = conn;
-
-    conn.on('open', () => {
-        if (currentRole !== 'student') {
-            conn.send({ type: 'request_snapshot' });
-        } else if (window.localStream) {
-            sendSnapshotToConnection(conn);
-        }
-    });
-
+    const remotePeerId = conn.peer; peerDataConns[remotePeerId] = conn;
     conn.on('data', (data) => {
-        if (!data || !data.type) return;
-
-        if (currentRole === 'student') {
-            if (data.type === 'request_snapshot') {
-                sendSnapshotToConnection(conn);
-            }
-        } else {
-            if (data.type === 'snapshot' && data.img) {
-                const studentId = remotePeerId.replace(/^exam2026_/, '');
-                monitorSnapshots[studentId] = data.img;
-                updateMonitorCard(studentId, data.img);
-            }
-        }
+        if (data.type === 'request_snapshot') { const img = captureSnapshot(); if (img) conn.send({ type: 'snapshot', img: img }); }
+        if (data.type === 'command' && data.content === 'unlock') forceUnlockLocally();
     });
-
-    conn.on('close', () => { delete peerDataConns[remotePeerId]; });
-    conn.on('error', () => { delete peerDataConns[remotePeerId]; });
 }
 
 function captureSnapshot() {
-    const video = document.getElementById('self-video');
-    if (!video || video.readyState < 2) return null;
-    const canvas = document.createElement('canvas');
-    canvas.width = 160;
-    canvas.height = 120;
-    const ctx = canvas.getContext('2d');
-    ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
-    return canvas.toDataURL('image/jpeg', 0.25);
+    const video = document.getElementById('self-video'); if (!video || video.readyState < 2) return null;
+    const canvas = document.createElement('canvas'); canvas.width = 160; canvas.height = 120;
+    const ctx = canvas.getContext('2d'); ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+    return canvas.toDataURL('image/jpeg', 0.1); 
 }
 
-function sendSnapshotToConnection(conn) {
-    if (!conn || !conn.open || !window.localStream) return;
-    const img = captureSnapshot();
-    if (!img) return;
-    conn.send({ type: 'snapshot', img, timestamp: Date.now() });
-}
+function sendSnapshotToConnection(conn) { if (!conn || !conn.open || !window.localStream) return; const img = captureSnapshot(); if (!img) return; conn.send({ type: 'snapshot', img, timestamp: Date.now() }); }
+function startSnapshotService() { return; }
+function stopSnapshotService() { if (studentSnapshotInterval) { clearInterval(studentSnapshotInterval); studentSnapshotInterval = null; } }
 
-function startSnapshotService() {
-    stopSnapshotService();
-    if (!window.localStream) return;
-    // Interval diubah ke 20000ms (20 detik) untuk menghemat bandwidth
-    studentSnapshotInterval = setInterval(() => {
-        const img = captureSnapshot();
-        if (!img) return;
-        Object.values(peerDataConns).forEach(c => {
-            if (c.open) {
-                c.send({ type: 'snapshot', img, timestamp: Date.now() });
-                console.log("Snapshot sent to admin");
-            }
-        });
-    }, 15000); 
-}
-
-function stopSnapshotService() {
-    if (studentSnapshotInterval) {
-        clearInterval(studentSnapshotInterval);
-        studentSnapshotInterval = null;
-    }
-}
-
-// Update juga fungsi connectSnapshotChannel agar lebih selektif
 function connectSnapshotChannel(studentId) {
-    if (!peer) return;
-    
-    // Keamanan tambahan: Jangan konek jika ID kosong
-    if (!studentId) return;
-
-    const safeId = studentId.replace(/[^a-zA-Z0-9]/g, '');
-    const peerId = 'exam2026_' + safeId;
-
-    // Jika koneksi sudah ada dan open, kirim request snapshot saja
-    if (peerDataConns[peerId] && peerDataConns[peerId].open) {
-        peerDataConns[peerId].send({ type: 'request_snapshot' });
-        return;
-    }
-
-    // Buat koneksi data baru
-    try {
-        const conn = peer.connect(peerId, { reliable: false }); // false agar lebih cepat/ringan (UDP-like)
-        setupDataConnection(conn);
-    } catch (e) {
-        console.warn('Peer connection skip:', studentId);
-    }
+    if (!peer || !studentId) return;
+    const safeId = studentId.replace(/[^a-zA-Z0-9]/g, ''), peerId = 'exam2026_' + safeId;
+    if (peerDataConns[peerId] && peerDataConns[peerId].open) { peerDataConns[peerId].send({ type: 'request_snapshot' }); return; }
+    try { const conn = peer.connect(peerId, { reliable: false }); setupDataConnection(conn); } catch (e) { console.warn('Peer connection skip:', studentId); }
 }
 
 // --- PERBAIKAN MONITORING (OPTIMASI BANDWIDTH & CPU) ---
-
-// Variable untuk melacak koneksi aktif agar bisa dibersihkan
 let activePeerConnections = {}; 
-
 function closeAllPeerConnections() {
     console.log("Cleaning up active connections...");
-    Object.keys(peerDataConns).forEach(id => {
-        if (peerDataConns[id]) {
-            peerDataConns[id].close();
-            delete peerDataConns[id];
-        }
-    });
-    // Kosongkan cache snapshot untuk menghemat RAM
+    Object.keys(peerDataConns).forEach(id => { if (peerDataConns[id]) { peerDataConns[id].close(); delete peerDataConns[id]; } });
     monitorSnapshots = {}; 
 }
 
 function startMonitorFeed() {
-    const grid = document.getElementById('monitor-grid');
-    const onlineCountEl = document.getElementById('online-count');
-    const filterKelas = document.getElementById('monitor-filter-kelas').value;
-
-    // 1. Validasi: Jika pilih "SEMUA", beri peringatan atau batasi (opsional)
-    // Untuk performa terbaik, Admin disarankan memilih kelas spesifik.
-
-    // 2. Bersihkan koneksi lama sebelum memulai filter baru
-    closeAllPeerConnections();
-    grid.innerHTML = '<div class="col-span-full text-center py-10 text-slate-400">Memuat data kelas: ' + filterKelas + '...</div>';
-
-    // 3. Sinkronisasi Filter Dropdown (Hanya sekali)
-    syncFilterOptions();
-
-    // Hapus listener lama jika ada (jika Anda menggunakan variabel global untuk subscription)
-    if (window.monitorSub) window.monitorSub.unsubscribe();
-
-    // 4. Mulai mendengarkan data dari Supabase
+    const grid = document.getElementById('monitor-grid'), onlineCountEl = document.getElementById('online-count'), filterKelas = document.getElementById('monitor-filter-kelas').value;
+    closeAllPeerConnections(); grid.innerHTML = '<div class="col-span-full text-center py-10 text-slate-400">Memuat data kelas: ' + filterKelas + '...</div>';
+    syncFilterOptions(); if (window.monitorSub) window.monitorSub.unsubscribe();
     window.monitorSub = publicData.collection('live').onSnapshot(s => {
-        let activeStudents = 0;
-        const studentsInClass = [];
-
+        let activeStudents = 0; const studentsInClass = [];
         s.forEach(d => {
-            const l = d.data();
-            const studentKelas = l.kelas || "Tanpa Kelas";
-            
-            // LOGIKA FILTER KETAT:
-            // Jika filter bukan "ALL", maka lewatkan siswa yang kelasnya tidak cocok
+            const l = d.data(), studentKelas = l.kelas || "Tanpa Kelas";
             if (filterKelas !== "ALL" && studentKelas !== filterKelas) {
-                // Pastikan koneksi PeerJS untuk siswa di luar filter benar-benar tertutup
                 const peerId = 'exam2026_' + d.id.replace(/[^a-zA-Z0-9]/g, '');
-                if (peerDataConns[peerId]) {
-                    peerDataConns[peerId].close();
-                    delete peerDataConns[peerId];
-                }
-                return; 
+                if (peerDataConns[peerId]) { peerDataConns[peerId].close(); delete peerDataConns[peerId]; } return; 
             }
-
-            studentsInClass.push({ id: d.id, ...l });
-            activeStudents++;
+            studentsInClass.push({ id: d.id, ...l }); activeStudents++;
         });
-
-        // Update Counter
         onlineCountEl.textContent = `${activeStudents} Siswa Aktif di Kelas ${filterKelas}`;
-
-        // 5. Render hanya jika ada data
-        if (studentsInClass.length === 0) {
-            grid.innerHTML = `<div class="col-span-full text-center py-20 bg-white rounded-[3rem] border-2 border-dashed">
-                <p class="text-slate-400 font-bold">Tidak ada siswa aktif di kelas ${filterKelas}</p>
-            </div>`;
-            return;
-        }
-
-        grid.innerHTML = ''; // Bersihkan container sebelum render ulang
-
-        // 6. Buat Container Grid untuk Kelas Terpilih
-        const sectionId = `group-${filterKelas.replace(/\s+/g, '-')}`;
+        if (studentsInClass.length === 0) { grid.innerHTML = `<div class="col-span-full text-center py-20 bg-white rounded-[3rem] border-2 border-dashed"><p class="text-slate-400 font-bold">Tidak ada siswa aktif di kelas ${filterKelas}</p></div>`; return; }
+        grid.innerHTML = ''; const sectionId = `group-${filterKelas.replace(/\s+/g, '-')}`;
         grid.insertAdjacentHTML('beforeend', `<div id="${sectionId}" class="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6 xl:grid-cols-8 gap-4"></div>`);
         const classGrid = document.getElementById(sectionId);
-
         studentsInClass.forEach(l => {
-            const studentId = l.id;
-            const safeId = studentId.replace(/[^a-zA-Z0-9]/g, '');
-            const isOnline = (Date.now() - l.last) < 40000;
-            const isLocked = l.isLocked === true || l.v >= 5;
-            const snapshotImg = monitorSnapshots[studentId] || "";
-
-            const cardHtml = `
-                <div id="card-${safeId}" class="monitor-card bg-white rounded-2xl border ${isLocked ? 'border-red-500 ring-2 ring-red-500/20' : 'border-slate-100'} overflow-hidden relative shadow-sm">
-                    <div id="container-${safeId}" class="aspect-video bg-slate-100 relative overflow-hidden">
-                        ${snapshotImg ? `<img id="snapshot-${safeId}" src="${snapshotImg}" class="w-full h-full object-cover">` : 
-                        `<div class="w-full h-full flex flex-col items-center justify-center text-slate-300">
-                            <span class="text-[18px]">📷</span>
-                            <span class="text-[7px] font-black uppercase mt-1">Waiting Feed</span>
-                         </div>`}
-                        <div class="absolute top-1 left-1 flex gap-1">
-                            <div class="status-ping ${isOnline ? 'bg-emerald-500' : 'bg-slate-300'}"></div>
-                            ${l.v > 0 ? `<span class="bg-red-600 text-white text-[7px] px-1 rounded font-black">V:${l.v}</span>` : ''}
-                        </div>
-                    </div>
-                    <div class="p-2 bg-white">
-                        <p class="text-[8px] font-black truncate uppercase text-slate-700 leading-tight">${l.nama}</p>
-                        <div class="flex gap-1 mt-2">
-                            <button onclick="openLiveStream('${studentId}')" class="flex-1 bg-blue-600 text-white text-[7px] font-black py-1.5 rounded-lg shadow-sm">LIVE</button>
-                            <button onclick="remoteUnlockStudent('${studentId}')" class="flex-1 ${isLocked ? 'bg-red-600 text-white' : 'bg-slate-100 text-slate-400'} text-[7px] font-black py-1.5 rounded-lg">UNLOCK</button>
-                        </div>
-                    </div>
-                </div>
-            `;
-            classGrid.insertAdjacentHTML('beforeend', cardHtml);
-            
-            // 7. Jalankan PeerJS hanya jika siswa online dan masuk filter
-            if (isOnline) connectSnapshotChannel(studentId);
+            const studentId = l.id, safeId = studentId.replace(/[^a-zA-Z0-9]/g, ''), isOnline = (Date.now() - l.last) < 40000, isLocked = l.isLocked === true || l.v >= 5, snapshotImg = monitorSnapshots[studentId] || "";
+            const cardHtml = `<div id="card-${safeId}" class="monitor-card bg-white rounded-2xl border ${isLocked ? 'border-red-500 ring-2 ring-red-500/20' : 'border-slate-100'} overflow-hidden relative shadow-sm"><div id="container-${safeId}" class="aspect-video bg-slate-100 relative overflow-hidden">${snapshotImg ? `<img id="snapshot-${safeId}" src="${snapshotImg}" class="w-full h-full object-cover">` : `<div class="w-full h-full flex flex-col items-center justify-center text-slate-300"><span class="text-[18px]">📷</span><span class="text-[7px] font-black uppercase mt-1">Waiting Feed</span></div>`}<div class="absolute top-1 left-1 flex gap-1"><div class="status-ping ${isOnline ? 'bg-emerald-500' : 'bg-slate-300'}"></div>${l.v > 0 ? `<span class="bg-red-600 text-white text-[7px] px-1 rounded font-black">V:${l.v}</span>` : ''}</div></div><div class="p-2 bg-white"><p class="text-[8px] font-black truncate uppercase text-slate-700 leading-tight">${l.nama}</p><div class="flex gap-1 mt-2"><button onclick="openLiveStream('${studentId}')" class="flex-1 bg-blue-600 text-white text-[7px] font-black py-1.5 rounded-lg shadow-sm">LIVE</button><button onclick="remoteUnlockStudent('${studentId}')" class="flex-1 ${isLocked ? 'bg-red-600 text-white' : 'bg-slate-100 text-slate-400'} text-[7px] font-black py-1.5 rounded-lg">UNLOCK</button></div></div></div>`;
+            classGrid.insertAdjacentHTML('beforeend', cardHtml); if (isOnline) connectSnapshotChannel(studentId);
         });
     });
+    if (window.adminPullingInterval) clearInterval(window.adminPullingInterval);
+    window.adminPullingInterval = setInterval(() => {
+        const filterKelas = document.getElementById('monitor-filter-kelas').value; if (filterKelas === "ALL") return;
+        Object.keys(peerDataConns).forEach(peerId => { const conn = peerDataConns[peerId]; if (conn && conn.open) conn.send({ type: 'request_snapshot' }); });
+    }, 10000);
 }
 
-
-
-// Fungsi pembantu untuk mengisi dropdown filter di monitor
 async function syncFilterOptions() {
-    const filterSelect = document.getElementById('monitor-filter-kelas');
-    if (filterSelect.options.length > 1) return; // Sudah terisi
-
+    const filterSelect = document.getElementById('monitor-filter-kelas'); if (filterSelect.options.length > 1) return;
     try {
-        const snap = await publicData.collection('users').get();
-        const kelasSet = new Set();
-        snap.forEach(doc => { if(doc.data().kelas) kelasSet.add(doc.data().kelas); });
-        
-        Array.from(kelasSet).sort().forEach(k => {
-            const opt = document.createElement('option');
-            opt.value = k;
-            opt.textContent = k;
-            filterSelect.appendChild(opt);
-        });
+        const snap = await publicData.collection('users').get(), kelasSet = new Set(); snap.forEach(doc => { if(doc.data().kelas) kelasSet.add(doc.data().kelas); });
+        Array.from(kelasSet).sort().forEach(k => { const opt = document.createElement('option'); opt.value = k; opt.textContent = k; filterSelect.appendChild(opt); });
     } catch (e) { console.error("Filter sync error", e); }
 }
+
 function openLiveStream(studentId) {
-    const cleanId = studentId.replace(/[^a-zA-Z0-9]/g, '');
-    const container = document.getElementById(`container-${cleanId}`);
-    if (!container || !peer) return;
-
+    const cleanId = studentId.replace(/[^a-zA-Z0-9]/g, ''), container = document.getElementById(`container-${cleanId}`); if (!container || !peer) return;
     container.innerHTML += `<div id="loading-${cleanId}" class="absolute inset-0 flex items-center justify-center bg-black/50 text-white text-[10px]">Connecting...</div>`;
-
-    const safePeerId = 'exam2026_' + cleanId;
-    const call = peer.call(safePeerId, new MediaStream());
-
+    const safePeerId = 'exam2026_' + cleanId, call = peer.call(safePeerId, new MediaStream());
     call.on('stream', (remoteStream) => {
-        const loading = document.getElementById(`loading-${cleanId}`);
-        if(loading) loading.remove();
-        
-        container.innerHTML = `
-            <video id="remote-video-${cleanId}" autoplay muted playsinline class="w-full h-full object-cover z-10"></video>
-            <button onclick="stopLiveStream('${studentId}')" class="absolute bottom-2 right-2 z-40 bg-red-600 text-white text-[8px] px-2 py-1 rounded">CLOSE</button>
-        `;
-        const video = document.getElementById(`remote-video-${cleanId}`);
-        if (video) video.srcObject = remoteStream;
+        const loading = document.getElementById(`loading-${cleanId}`); if(loading) loading.remove();
+        container.innerHTML = `<video id="remote-video-${cleanId}" autoplay muted playsinline class="w-full h-full object-cover z-10"></video><button onclick="stopLiveStream('${studentId}')" class="absolute bottom-2 right-2 z-40 bg-red-600 text-white text-[8px] px-2 py-1 rounded">CLOSE</button>`;
+        const video = document.getElementById(`remote-video-${cleanId}`); if (video) video.srcObject = remoteStream;
     });
-
-    call.on('error', (err) => {
-        alert("Gagal memanggil kamera siswa. Pastikan siswa masih aktif.");
-        stopLiveStream(studentId);
-    });
+    call.on('error', (err) => { alert("Gagal memanggil kamera siswa. Pastikan siswa masih aktif."); stopLiveStream(studentId); });
 }
 
 function stopLiveStream(studentId) {
-    const cleanId = studentId.replace(/[^a-zA-Z0-9]/g, '');
-    const videoElement = document.getElementById(`remote-video-${cleanId}`);
-    if (videoElement) {
-        const stream = videoElement.srcObject;
-        if (stream) {
-            stream.getTracks().forEach(track => track.stop());
-        }
-        videoElement.remove();
-    }
-    
-    startMonitorFeed();
+    const cleanId = studentId.replace(/[^a-zA-Z0-9]/g, ''), videoElement = document.getElementById(`remote-video-${cleanId}`);
+    if (videoElement) { const stream = videoElement.srcObject; if (stream) stream.getTracks().forEach(track => track.stop()); videoElement.remove(); } startMonitorFeed();
 }
 
+function remoteUnlockStudent(studentId) {
+    if(confirm("Buka akses siswa ini?")) {
+        const safeId = studentId.replace(/[^a-zA-Z0-9]/g, ''), peerId = 'exam2026_' + safeId;
+        if (peerDataConns[peerId] && peerDataConns[peerId].open) { peerDataConns[peerId].send({ type: 'command', content: 'unlock' }); alert("Perintah buka kunci terkirim via P2P."); }
+        else { alert("Siswa tidak terkoneksi secara langsung. Mencoba via database..."); db.from('live').update({ command: 'unlock' }).eq('id', studentId); }
+    }
+}
 
-	async function remoteUnlockStudent(studentId) {
-	    if(confirm("Buka akses siswa ini?")) {
-	        try {
-	            await publicData.collection('live').doc(studentId).update({ command: 'unlock', v: 0 });
-	        } catch (e) { alert("Gagal koneksi ke siswa."); }
-	    }
-	}
+// GANTI fungsi listenForAdminCommands dengan ini:
+function listenForAdminCommands() {
+    if (!user || !user.id) return;
+    setInterval(async () => {
+        try {
+            const { data, error } = await db.from('live').select('command').eq('id', user.id).maybeSingle();
+            if (data && data.command === 'unlock') { forceUnlockLocally(); await db.from('live').update({ command: null }).eq('id', user.id); }
+        } catch (e) { console.log("Check command skip"); }
+    }, 30000);
+}
 
-	function listenForAdminCommands() {
-	    if (!user || !user.id) return;
-	    publicData.collection('live').doc(user.id).onSnapshot(doc => {
-	        if (doc.exists && doc.data().command === 'unlock') {
-	            forceUnlockLocally();
-	            doc.ref.update({ command: null });
-	        }
-	    });
-	}
+function forceUnlockLocally() {
+    document.getElementById('lock-screen').classList.add('hidden-element'); document.getElementById('unlock-pwd').value = ""; violationCount = 0;
+    document.getElementById('violation-count').textContent = "0"; document.getElementById('violation-badge').classList.add('hidden-element');
+    alert("Akses dibuka oleh pengawas. Klik OK untuk lanjut."); document.documentElement.requestFullscreen().catch(() => {});
+}
 
-	function forceUnlockLocally() {
-	    document.getElementById('lock-screen').classList.add('hidden-element');
-	    document.getElementById('unlock-pwd').value = "";
-	    violationCount = 0;
-	    document.getElementById('violation-count').textContent = "0";
-	    document.getElementById('violation-badge').classList.add('hidden-element');
- 	   // Memberi tahu siswa untuk klik agar fullscreen bisa aktif kembali
-	    alert("Akses dibuka oleh pengawas. Klik OK untuk lanjut.");
-	    document.documentElement.requestFullscreen().catch(() => {});
-	}
+async function clearMonitorData() {
+    if(!confirm("Bersihkan?")) return; let res = await db.from('live').delete().neq('id', '');
+    if (res.error && res.error.code === '42703') res = await db.from('live').delete();
+    if (res.error) console.error('Clear monitor data error:', res.error);
+}
 
-
-	async function clearMonitorData() {
-		if(!confirm("Bersihkan?")) return;
-		let res = await db.from('live').delete().neq('id', '');
-		if (res.error && res.error.code === '42703') {
-			res = await db.from('live').delete();
-		}
-		if (res.error) console.error('Clear monitor data error:', res.error);
-	}
-
-	function startCleanupService() {
-	setInterval(async () => {try {
-	const fiveMinutesAgo = Date.now() - (5 * 60 * 1000);
-	await cleanupLiveRows(fiveMinutesAgo);
-	} catch (e) { console.error("Cleanup error:", e); } }, 60000);
-        }
-
-
+function startCleanupService() { setInterval(async () => { try { const fiveMinutesAgo = Date.now() - (5 * 60 * 1000); await cleanupLiveRows(fiveMinutesAgo); } catch (e) { console.error("Cleanup error:", e); } }, 60000); }
 
 
 // --- I. LOGIKA AI GEMINI ---
 async function generateAISoal() {
-    const topic = document.getElementById('ai-topic').value;
-    const count = document.getElementById('ai-count').value || 1;
-    if (!topic) return alert("Isi topik!");
-    const btn = document.getElementById('ai-btn');
-    const loader = document.getElementById('ai-loading');
-    btn.classList.add('hidden-element');
-    loader.classList.remove('hidden-element');
+    const topic = document.getElementById('ai-topic').value, count = document.getElementById('ai-count').value || 1; if (!topic) return alert("Isi topik!");
+    const btn = document.getElementById('ai-btn'), loader = document.getElementById('ai-loading'); btn.classList.add('hidden-element'); loader.classList.remove('hidden-element');
     try {
         const prompt = `Buatkan ${count} soal pilihan ganda tentang ${topic}. Berikan HANYA format JSON Array: [{"question": "..."}]. Tanpa teks lain.`;
-        const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`, {
-            method: 'POST', 
-            headers: {'Content-Type': 'application/json'},
-            body: JSON.stringify({contents: [{parts: [{text: prompt}]}], generationConfig: { responseMimeType: "application/json" } })
-        });
-        const result = await res.json();
-        let text = result.candidates[0].content.parts[0].text;
-	    const startBracket = text.indexOf('[');
-	    const endBracket = text.lastIndexOf(']') + 1;
-	    const cleanJson = text.substring(startBracket, endBracket);
-	    const qs = JSON.parse(cleanJson);
-        const rows = qs.map(q => ({ question: q.question, topic: topic, timestamp: Date.now() }));
-        const { error } = await db.from('ai_bank').insert(rows);
-        if (error) throw error;
-        alert("Berhasil!"); closeModal('modal-ai');
+        const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`, { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({contents: [{parts: [{text: prompt}]}], generationConfig: { responseMimeType: "application/json" } }) });
+        const result = await res.json(); let text = result.candidates[0].content.parts[0].text;
+        const startBracket = text.indexOf('['), endBracket = text.lastIndexOf(']') + 1, cleanJson = text.substring(startBracket, endBracket), qs = JSON.parse(cleanJson);
+        const rows = qs.map(q => ({ question: q.question, topic: topic, timestamp: Date.now() })), { error } = await db.from('ai_bank').insert(rows);
+        if (error) throw error; alert("Berhasil!"); closeModal('modal-ai');
     } catch(e) { alert("Gagal."); } finally { btn.classList.remove('hidden-element'); loader.classList.add('hidden-element'); }
 }
 
-
-
-
-
-
-
 // --- J. LOGIKA PROTEKSI & KEAMANAN TERPADU (HP OPTIMIZED - FINAL) ---
+window.onbeforeunload = function() { if (isExamActive) return "Ujian sedang berlangsung! Anda akan dicatat melakukan pelanggaran jika keluar."; };
 
-window.onbeforeunload = function() {
-    if (isExamActive) {
-        return "Ujian sedang berlangsung! Anda akan dicatat melakukan pelanggaran jika keluar.";
-    }
-};
-
-// 1. Deteksi Pindah Tab / Keluar Aplikasi
 let blurTimeout;
-window.addEventListener('blur', () => {
-    if(isExamActive) {
-        // Beri waktu 1 detik, jika dalam 1 detik fokus kembali, jangan anggap pelanggaran
-        blurTimeout = setTimeout(() => {
-            reportViolation();
-        }, 1000);
-    }
-});
-
-
-// 2. Deteksi Fullscreen
+window.addEventListener('blur', () => { if(isExamActive) { blurTimeout = setTimeout(() => { reportViolation(); }, 1000); } });
 document.addEventListener('fullscreenchange', () => {
-    if (isExamActive && !document.fullscreenElement) {
-        reportViolation();
-        alert("Peringatan! Ujian wajib dalam mode Fullscreen.");
-        setTimeout(() => {
-            document.documentElement.requestFullscreen().catch(() => {});
-        }, 1000);
-    }
+    if (isExamActive && !document.fullscreenElement) { reportViolation(); alert("Peringatan! Ujian wajib dalam mode Fullscreen."); setTimeout(() => { document.documentElement.requestFullscreen().catch(() => {}); }, 1000); }
 });
 
-// 3. Deteksi Split Screen (Logika yang lebih akurat untuk HP)
 window.addEventListener('resize', () => {
     if (!isExamActive) return;
-
-    const widthDiff = Math.abs(window.innerWidth - initialWidth);
-    const heightDiff = Math.abs(window.innerHeight - initialHeight);
-
-    // 1. Deteksi Perubahan Lebar (Hampir pasti Split Screen atau Rotasi)
-    if (widthDiff > 50) { 
-        reportViolation();
-        // Update initialWidth agar tidak spamming violation saat dalam mode split
-        initialWidth = window.innerWidth; 
-    }
-
-    // 2. Deteksi Perubahan Tinggi (Lebih longgar untuk Keyboard)
-    // Di HP, keyboard bisa memakan 50% layar. Kita set threshold di 70% 
-    // untuk benar-benar mendeteksi Split Screen yang ekstrem.
-    if (heightDiff > (initialHeight * 0.7)) {
-        reportViolation();
-    }
+    const widthDiff = Math.abs(window.innerWidth - initialWidth), heightDiff = Math.abs(window.innerHeight - initialHeight);
+    if (widthDiff > 50) { reportViolation(); initialWidth = window.innerWidth; }
+    if (heightDiff > (initialHeight * 0.7)) reportViolation();
 });
 
-// 4. Proteksi Tombol & Klik Kanan
-// Proteksi Tekan Lama (Long Press) - AGAR TIDAK MELANGGAR
-document.oncontextmenu = function(e) {
-    e.preventDefault();
-    e.stopPropagation();
-    return false;
-};
+document.oncontextmenu = function(e) { e.preventDefault(); e.stopPropagation(); return false; };
+document.body.style.webkitTouchCallout = "none"; document.body.style.webkitUserSelect = "none"; document.body.style.userSelect = "none";
+window.addEventListener('error', (event) => { showStartupError('Kesalahan aplikasi terdeteksi: ' + (event.message || 'Unknown error')); });
+window.addEventListener('unhandledrejection', (event) => { showStartupError('Kesalahan promise tidak tertangani: ' + (event.reason?.message || event.reason || 'Unknown promise error')); });
 
-// Matikan fitur seleksi teks agar tidak mengganggu saat siswa menyentuh layar lama
-document.body.style.webkitTouchCallout = "none";
-document.body.style.webkitUserSelect = "none";
-document.body.style.userSelect = "none";
-
-window.addEventListener('error', (event) => {
-    showStartupError('Kesalahan aplikasi terdeteksi: ' + (event.message || 'Unknown error'));
-});
-
-window.addEventListener('unhandledrejection', (event) => {
-    showStartupError('Kesalahan promise tidak tertangani: ' + (event.reason?.message || event.reason || 'Unknown promise error'));
-});
-
-    </script>
+</script>
 </body>
 </html>

@@ -695,7 +695,45 @@ async function loadSheetConfig() {
     const doc = await publicData.collection('settings').doc('sheet_config').get();
     if (doc.exists) {document.getElementById('sheet-url').value = doc.data().url; }
 }
+function syncAdminData() {
+    // 1. Sinkronkan data tabel siswa
+    if (typeof syncAdminStudentData === "function") {
+        syncAdminStudentData();
+    }
 
+    // 2. Sinkronkan daftar paket ujian
+    publicData.collection('exams').onSnapshot(s => {
+        const list = document.getElementById('admin-exam-list');
+        if (!list) return;
+        list.innerHTML = "";
+        s.forEach(d => {
+            const x = d.data();
+            list.innerHTML += `
+            <div class="bg-white p-6 rounded-[2.5rem] border-2 border-transparent hover:border-blue-200 transition-all flex justify-between items-center group">
+                <div>
+                    <h4 class="font-black text-slate-800">${x.mapel}</h4>
+                    <p class="text-[9px] text-slate-400 font-bold uppercase tracking-widest">${x.kelas} | TOKEN: ${x.token} | PIN: ${x.pin}</p>
+                </div>
+                <div class="flex space-x-2">
+                    <button onclick="copyExam('${d.id}')" class="bg-emerald-50 text-emerald-600 p-3 rounded-xl">📄</button>
+                    <button onclick="editExam('${d.id}')" class="bg-blue-50 text-blue-500 p-3 rounded-xl">✎</button>
+                    <button onclick="delDoc('exams','${d.id}')" class="bg-red-50 text-red-500 p-3 rounded-xl">✕</button>
+                </div>
+            </div>`;
+        });
+    });
+
+    // 3. Sinkronkan Bank Soal AI
+    publicData.collection('ai_bank').onSnapshot(s => {
+        const list = document.getElementById('ai-question-list');
+        if (!list) return;
+        list.innerHTML = "";
+        s.forEach(d => {
+            const q = d.data();
+            list.innerHTML += `<div class="bg-white p-6 rounded-3xl border border-slate-100"><p class="text-slate-800 font-medium">${q.question}</p><span class="text-[9px] bg-indigo-50 text-indigo-500 px-3 py-1 rounded-full font-black uppercase mt-3 inline-block">${q.topic}</span></div>`;
+        });
+    });
+}
 // 2. Fungsi Utama: Simpan Link ke Cloud dan Jalankan Sinkronisasi
 async function saveAndSyncSheet() {
     const urlInput = document.getElementById('sheet-url').value.trim();
@@ -703,7 +741,6 @@ async function saveAndSyncSheet() {
 
     const btn = document.getElementById('btn-sync-sheet');
     const btnText = document.getElementById('sync-text');
-
     btn.disabled = true;
     btnText.textContent = "SINKRONISASI...";
 
@@ -720,13 +757,13 @@ async function saveAndSyncSheet() {
         const text = await res.text();
         const rows = text.split(/\r?\n/);
 
-        const userRows = [];
+        const rawUserRows = [];
         rows.forEach((row, index) => {
             if (index === 0 || !row.trim()) return;
             const cols = row.match(/(".*?"|[^",]+)(?=\s*,|\s*$)/g);
             if (cols && cols.length >= 3) {
                 const clean = (str) => str ? str.replace(/^"|"$/g, '').trim() : "";
-                userRows.push({
+                rawUserRows.push({
                     nis: clean(cols[0]),
                     nama: clean(cols[1]),
                     kelas: clean(cols[2]),
@@ -735,18 +772,26 @@ async function saveAndSyncSheet() {
             }
         });
 
-        if (userRows.length > 0) {
-    // Gunakan upsert dengan onConflict 'nis' agar tidak error jika NIS sudah ada
-    const { error: insertError } = await db.from('users').upsert(userRows, { 
-        onConflict: 'nis',
-        ignoreDuplicates: false // Set false agar data terbaru di Google Sheet menimpa data lama
-    });
+        // --- PROTEKSI DUPLIKASI DALAM SATU BATCH ---
+        // Kita hanya mengambil NIS unik pertama yang ditemukan di file CSV
+        const userRows = [];
+        const seenNis = new Set();
+        rawUserRows.forEach(item => {
+            if (!seenNis.has(item.nis)) {
+                seenNis.add(item.nis);
+                userRows.push(item);
+            }
+        });
 
-    if (insertError) throw insertError;
-}
+        if (userRows.length > 0) {
+            const { error: insertError } = await db.from('users').upsert(userRows, { 
+                onConflict: 'nis' 
+            });
+            if (insertError) throw insertError;
+        }
 
         alert(`Berhasil! ${userRows.length} data siswa disinkronkan.`);
-        loadKelas();
+        if (typeof loadKelas === "function") loadKelas();
     } catch (e) {
         console.error(e);
         alert("Gagal Sinkron: " + e.message);

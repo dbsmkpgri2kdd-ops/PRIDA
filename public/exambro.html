@@ -12,10 +12,8 @@
     <script src="https://unpkg.com/peerjs@1.5.2/dist/peerjs.min.js"></script>
     <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
     
-    <!-- Firebase SDK Compat -->
-    <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-auth-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore-compat.js"></script>
+    <!-- SUPABASE -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 
     <style>
         body { font-family: 'Plus Jakarta Sans', sans-serif; user-select: none; background-color: #f8fafc; overflow-x: hidden; }
@@ -225,24 +223,157 @@
 	
     <script>
 
-// --- A. SETUP CONFIGURATION & FIREBASE ---
+// --- A. SETUP CONFIGURATION & SUPABASE ---
         const apiKey = "AIzaSyBrpMLLakAoM5HIL0Vax91OI0wX371Bgxc";
-        const firebaseConfig = {
-            apiKey: "AIzaSyDOkyWxtvVpwir6nbhEB3MNd44Caz_RWJU",
-            authDomain: "studio-4448301263-a6cd9.firebaseapp.com",
-            projectId: "studio-4448301263-a6cd9",
-            storageBucket: "studio-4448301263-a6cd9.firebasestorage.app",
-            messagingSenderId: "578574487721",
-            appId: "1:578574487721:web:c153cee7b19304b75d59b8"
-        };
+        const SUPABASE_URL = "https://cxdftugdvdhwvejwnmbj.supabase.co";
+        const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImN4ZGZ0dWdkdmRod3ZlandubWJqIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzg5NDUwMjEsImV4cCI6MjA5NDUyMTAyMX0.qsafiaztRRGgVekezoaFulLzteJRKGlucUan4b0-IuQ";
+        const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY, { auth: { persistSession: true, autoRefreshToken: true } });
+        const db = supabaseClient;
 
-        firebase.initializeApp(firebaseConfig);
-        const auth = firebase.auth();
-        const db = firebase.firestore();
-        try {db.settings({experimentalForceLongPolling: true, merge: true }); } catch (e) { console.warn("Firestore settings already set"); }
+        function createCollectionWrapper(db) {
+            const mapOp = (q, field, op, value) => {
+                switch (op) {
+                    case '==': return q.eq(field, value);
+                    case '<': return q.lt(field, value);
+                    case '<=': return q.lte(field, value);
+                    case '>': return q.gt(field, value);
+                    case '>=': return q.gte(field, value);
+                    default: return q.eq(field, value);
+                }
+            };
+
+            return {
+                collection(name) {
+                    const state = { name, filters: [], order: null };
+                    const buildQuery = () => {
+                        let query = db.from(name).select('*');
+                        state.filters.forEach(f => { query = mapOp(query, f.field, f.op, f.value); });
+                        if (state.order) query = query.order(state.order.field, { ascending: state.order.dir === 'asc' });
+                        return query;
+                    };
+
+                    const createDocSnapshot = (row) => ({
+                        id: row.id,
+                        data: () => { const { id: _id, ...rest } = row; return rest; },
+                        exists: row != null,
+                        ref: {
+                            update: async (data) => {
+                                const { error } = await db.from(name).update(data).eq('id', row.id);
+                                if (error) throw error;
+                            },
+                            delete: async () => {
+                                const { error } = await db.from(name).delete().eq('id', row.id);
+                                if (error) throw error;
+                            }
+                        }
+                    });
+
+                    const normalizeRows = (rows) => (rows || []).map(row => createDocSnapshot(row));
+
+                    return {
+                        doc(id) {
+                            return {
+                                async get() {
+                                    const { data, error } = await db.from(name).select('*').eq('id', id).single();
+                                    if (error && error.code !== 'PGRST116') throw error;
+                                    return {
+                                        exists: !!data,
+                                        data: () => { const { id: _id, ...rest } = data || {}; return rest; },
+                                        id
+                                    };
+                                },
+                                async set(data) {
+                                    const payload = { ...data, id };
+                                    const { error } = await db.from(name).upsert(payload, { onConflict: 'id' });
+                                    if (error) throw error;
+                                },
+                                async update(data) {
+                                    const { error } = await db.from(name).update(data).eq('id', id);
+                                    if (error) throw error;
+                                },
+                                async delete() {
+                                    const { error } = await db.from(name).delete().eq('id', id);
+                                    if (error) throw error;
+                                },
+                                onSnapshot(callback) {
+                                    let lastPayload = null;
+                                    const poll = async () => {
+                                        const { data, error } = await db.from(name).select('*').eq('id', id).single();
+                                        if (error && error.code !== 'PGRST116') { console.error(error); return; }
+                                        const payload = data || null;
+                                        if (JSON.stringify(payload) !== JSON.stringify(lastPayload)) {
+                                            lastPayload = payload;
+                                            callback({
+                                                exists: !!payload,
+                                                data: () => { const { id: _id, ...rest } = payload || {}; return rest; },
+                                                ref: {
+                                                    update: async (updateData) => {
+                                                        const { error } = await db.from(name).update(updateData).eq('id', id);
+                                                        if (error) throw error;
+                                                    },
+                                                    delete: async () => {
+                                                        const { error } = await db.from(name).delete().eq('id', id);
+                                                        if (error) throw error;
+                                                    }
+                                                }
+                                            });
+                                        }
+                                    };
+                                    poll();
+                                    const interval = setInterval(poll, 3000);
+                                    return { unsubscribe: () => clearInterval(interval) };
+                                }
+                            };
+                        },
+                        async get() {
+                            const { data, error } = await buildQuery();
+                            if (error) throw error;
+                            return {
+                                forEach: (fn) => { (data || []).forEach(row => fn(createDocSnapshot(row))); },
+                                size: (data || []).length,
+                                docs: normalizeRows(data)
+                            };
+                        },
+                        async add(data) {
+                            const { data: inserted, error } = await db.from(name).insert([data]).select().single();
+                            if (error) throw error;
+                            return { id: inserted.id, data: () => inserted, exists: true };
+                        },
+                        orderBy(field, dir) {
+                            state.order = { field, dir };
+                            return this;
+                        },
+                        where(field, op, value) {
+                            state.filters.push({ field, op, value });
+                            return this;
+                        },
+                        onSnapshot(callback) {
+                            let lastPayload = null;
+                            const poll = async () => {
+                                const { data, error } = await buildQuery();
+                                if (error) { console.error(error); return; }
+                                const payload = data || [];
+                                if (JSON.stringify(payload) !== JSON.stringify(lastPayload)) {
+                                    lastPayload = payload;
+                                    callback({
+                                        size: payload.length,
+                                        forEach: (fn) => payload.forEach(row => fn(createDocSnapshot(row))),
+                                        docs: normalizeRows(payload)
+                                    });
+                                }
+                            };
+                            poll();
+                            const interval = setInterval(poll, 3000);
+                            return { unsubscribe: () => clearInterval(interval) };
+                        }
+                    };
+                }
+            };
+        }
+
+        const publicData = createCollectionWrapper(db);
 
         const appId = 'exambro-system-2026';
-        const publicData = db.collection('artifacts').doc(appId).collection('public').doc('data');
 
         // --- 2. GLOBAL STATE ---
         let user = null;
@@ -265,17 +396,27 @@
 	window.onload = async () => {
 		if ('serviceWorker' in navigator) {navigator.serviceWorker.getRegistrations().then(function(registrations) {
 		for(let registration of registrations) {registration.unregister(); }}); }
-	try {await auth.signInAnonymously(); document.getElementById('loading-overlay').classList.add('hidden-element');
+	try { document.getElementById('loading-overlay').classList.add('hidden-element');
 
         // 1. CEK SESSION LOGIN
+        let sessionData = null;
         const savedSession = localStorage.getItem('exambro_session');
 	        if (savedSession) {
-	            const sessionData = JSON.parse(savedSession); 
-	            if (sessionData.role === 'admin') {showPage('admin-page'); initPeer(); syncAdminData(); startMonitorFeed();
+	            sessionData = JSON.parse(savedSession);
+	            if (sessionData.role === 'admin') {
+	                user = { id: 'admin', nama: 'Administrator' };
+	                currentRole = 'admin';
+	                setRole('admin');
+	                showPage('admin-page');
+	                initPeer();
+	                syncAdminData();
+	                startMonitorFeed();
 	            } else if (sessionData.role === 'student' && sessionData.user) {
-	                user = sessionData.user; document.getElementById('display-std-name').textContent = user.nama;showPage('student-page'); 
-	                syncStudentData(); initPeer(); listenForAdminCommands(); 
- 	           } 
+	                user = sessionData.user; currentRole = 'student';
+	                setRole('student');
+	                document.getElementById('display-std-name').textContent = user.nama; showPage('student-page');
+	                syncStudentData(); initPeer(); listenForAdminCommands();
+ 	           }
 	        }
 
 	        // 2. LOGIKA AUTO-RESUME UJIAN
@@ -288,7 +429,10 @@
 	        }
 
 	        // 3. JALANKAN SERVICE DASAR
-	        setRole('student'); syncSpecialSettings(); loadKelas(); startCleanupService(); loadSheetConfig();} catch (e) {
+	        if (!sessionData || sessionData.role !== 'admin') {
+	            setRole('student');
+	        }
+	        syncSpecialSettings(); loadKelas(); startCleanupService(); loadSheetConfig();} catch (e) {
 	        console.error("Init Error:", e);}
 	};
 
@@ -308,16 +452,19 @@ async function handleLogin() {
 
     try {
         if (currentRole === 'admin') {
-            // Pengamanan Admin Sederhana (Sebaiknya gunakan Firebase Auth di produksi)
+            // Pengamanan Admin Sederhana (Sebaiknya gunakan Supabase Auth di produksi)
             if (userIdInput.value === 'admin' && pwd === 'admin123') {
-                const adminData = { role: 'admin', user: {nama: 'Administrator'}, time: Date.now() };
+                user = { id: 'admin', nama: 'Administrator' };
+                currentRole = 'admin';
+                setRole('admin');
+                const adminData = { role: 'admin', user, time: Date.now() };
                 localStorage.setItem('exambro_session', JSON.stringify(adminData));
-		initPeer();  
-		showPage('admin-page'); 
-                syncAdminData(); 
+                initPeer();
+                showPage('admin-page');
+                syncAdminData();
                 startMonitorFeed();
-            } else { 
-                alert("Username atau Password Admin Salah!"); 
+            } else {
+                alert("Username atau Password Admin Salah!");
             }
         } else {
             const userId = selectNamaInput.value;
@@ -333,6 +480,8 @@ async function handleLogin() {
                 const userData = doc.data();
                 if (userData.pwd.toString() === pwd.toString()) {
                     user = { id: doc.id, nama: userData.nama, kelas: userData.kelas, nis: userData.nis };
+                    currentRole = 'student';
+                    setRole('student');
                     const sessionData = { role: 'student', user: user, time: Date.now() };
                     localStorage.setItem('exambro_session', JSON.stringify(sessionData));
                     
@@ -467,60 +616,55 @@ async function loadSheetConfig() {
 
 // 2. Fungsi Utama: Simpan Link ke Cloud dan Jalankan Sinkronisasi
 async function saveAndSyncSheet() {
-    const urlInput = document.getElementById('sheet-url').value.trim(); 
+    const urlInput = document.getElementById('sheet-url').value.trim();
     if (!urlInput) return alert("Masukkan link Google Sheet!");
-    
+
     const btn = document.getElementById('btn-sync-sheet');
     const btnText = document.getElementById('sync-text');
-    
+
     btn.disabled = true;
     btnText.textContent = "SINKRONISASI...";
 
     try {
-        await publicData.collection('settings').doc('sheet_config').set({url: urlInput, lastSync: Date.now()});
+        await db.from('settings').upsert({ id: 'sheet_config', url: urlInput, lastSync: Date.now() });
 
-        let exportUrl = urlInput; 
+        let exportUrl = urlInput;
         if (urlInput.includes('/edit')) {
-            const match = urlInput.match(/\/d\/(.+?)\//); 
-            if (match) exportUrl = `https://docs.google.com/spreadsheets/d/${match[1]}/export?format=csv`; 
+            const match = urlInput.match(/\/d\/(.+?)\//);
+            if (match) exportUrl = `https://docs.google.com/spreadsheets/d/${match[1]}/export?format=csv`;
         }
 
         const res = await fetch(exportUrl);
         const text = await res.text();
         const rows = text.split(/\r?\n/);
-        
-        const batch = db.batch();
-        // Hapus database lama sebelum timpa yang baru
-        const oldDocs = await publicData.collection('users').get();
-        oldDocs.forEach(doc => batch.delete(doc.ref));
 
-        let addedCount = 0;
+        const userRows = [];
         rows.forEach((row, index) => {
-            if (index === 0 || !row.trim()) return; // Lewati header atau baris kosong
-            
-            // Regex Sakti untuk handle CSV dengan tanda kutip
+            if (index === 0 || !row.trim()) return;
             const cols = row.match(/(".*?"|[^",]+)(?=\s*,|\s*$)/g);
             if (cols && cols.length >= 3) {
                 const clean = (str) => str ? str.replace(/^"|"$/g, '').trim() : "";
-                const docRef = publicData.collection('users').doc();
-                batch.set(docRef, {
+                userRows.push({
                     nis: clean(cols[0]),
                     nama: clean(cols[1]),
                     kelas: clean(cols[2]),
                     pwd: cols[3] ? clean(cols[3]) : "123"
-                }); 
-                addedCount++;
+                });
             }
         });
 
-        await batch.commit(); 
-        alert(`Berhasil! ${addedCount} data siswa disinkronkan.`);
-        loadKelas(); 
-    } catch (e) { 
-        alert("Gagal Sinkron: " + e.message); 
-    } finally { 
-        btn.disabled = false; 
-        btnText.textContent = "SIMPAN & SINKRON"; 
+        if (userRows.length > 0) {
+            await db.from('users').delete().neq('id', '');
+            await db.from('users').insert(userRows);
+        }
+
+        alert(`Berhasil! ${userRows.length} data siswa disinkronkan.`);
+        loadKelas();
+    } catch (e) {
+        alert("Gagal Sinkron: " + e.message);
+    } finally {
+        btn.disabled = false;
+        btnText.textContent = "SIMPAN & SINKRON";
     }
 }
 
@@ -621,7 +765,7 @@ async function saveExam() {
         async function saveSpecialSettings() {
             const pin = document.getElementById('special-pin').value;
             const dur = parseInt(document.getElementById('special-duration').value);
-            await publicData.collection('settings').doc('special_methods').set({pin, duration: dur, updatedAt: Date.now()});
+            await db.from('settings').upsert({ id: 'special_methods', pin, duration: dur, updatedAt: Date.now() });
             alert("Konfigurasi Akses Cepat Diperbarui!");
         }
 
@@ -657,7 +801,13 @@ async function saveExam() {
 	}
 
 
-function logActivity(a) {publicData.collection('logs').add({ user: user ? user.nama : "System", action: a, time: firebase.firestore.FieldValue.serverTimestamp() });}
+function logActivity(a) {
+    db.from('logs').insert({
+        user: user ? user.nama : "System",
+        action: a,
+        time: new Date().toISOString()
+    }).then(({ error }) => { if (error) console.warn('Log error:', error); });
+}
 
 		
 let html5QrScanner = null;
@@ -797,19 +947,21 @@ async function startExamEngine(url, mapel, dur, isCameraRequired) {
         console.warn("Fullscreen blocked, user interaction required.");
     }
 
-    // 7. Sinkronisasi Awal ke Firestore (Status Aktif Seketika)
+    // 7. Sinkronisasi Awal ke Supabase (Status Aktif Seketika)
     const syncStatus = async () => {
         try {
-            await publicData.collection('live').doc(user.id).set({
+            const { error } = await db.from('live').upsert({
+                id: user.id,
                 nama: user.nama,
                 kelas: user.kelas || "Umum",
-                img: firebase.firestore.FieldValue.delete(),
+                img: null,
                 last: Date.now(),
                 v: violationCount,
                 camStatus: isCameraRequired !== false ? "ON" : "OFF",
                 lastStatus: "SEDANG UJIAN",
                 isLocked: false
-            }, { merge: true });
+            }, { onConflict: 'id' });
+            if (error) throw error;
         } catch (err) { console.error("Sync Error:", err); }
     };
     syncStatus(); // Jalankan sekali saat start
@@ -835,7 +987,7 @@ async function startExamEngine(url, mapel, dur, isCameraRequired) {
             `${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`;
     }, 1000);
 
-    // 9. Monitoring Loop (Heartbeat saja, tanpa menyimpan foto/video ke Firebase)
+    // 9. Monitoring Loop (Heartbeat saja, tanpa menyimpan foto/video ke Supabase)
     if (monitorInterval) clearInterval(monitorInterval);
     monitorInterval = setInterval(async () => {
         if (!isExamActive) return;
@@ -941,7 +1093,7 @@ function handleKeyboardLock(e) {
 	    document.body.classList.add('violation-shake');
 	    setTimeout(() => document.body.classList.remove('violation-shake'), 500);
 
-	    // CATATAN: Bagian simpan ke Firestore 'violations' telah DIHAPUS agar tidak ada riwayat tersimpan.
+	    // CATATAN: Bagian simpan riwayat pelanggaran telah DIHAPUS agar tidak ada data tersimpan secara permanen.
 	    if (violationCount >= 5) triggerLock();
 	}
 
@@ -1099,7 +1251,7 @@ function updateMonitorCard(studentId, snapshotImg) {
         return;
     }
 
-    const container = document.getElementById(`container-${studentId}`);
+    const container = document.getElementById(`container-${safeId}`);
     if (!container) return;
     const placeholder = container.querySelector('div');
     if (placeholder) placeholder.remove();
@@ -1113,20 +1265,19 @@ function startMonitorFeed() {
         const onlineCountEl = document.getElementById('online-count');
         
         onlineCountEl.textContent = s.size + " Siswa Sedang Aktif";
+        monitorSnapshots = monitorSnapshots || {};
+        grid.innerHTML = '';
         grid.className = "space-y-6";
-
-        const currentStudentIds = new Set();
 
         s.forEach(d => {
             const l = d.data();
             const studentId = d.id;
             const safeId = studentId.replace(/[^a-zA-Z0-9]/g, '');
-            currentStudentIds.add(studentId);
 
             const isOnline = (Date.now() - l.last) < 15000;
             const isLocked = l.isLocked === true || l.v >= 5;
             const kelas = l.kelas || "Tanpa Kelas";
-            const sectionId = `grid-kelas-${kelas.replace(/\s+/g, '-')}`;
+            const sectionId = `grid-kelas-${kelas.replace(/\s+/g, '-').replace(/[^a-zA-Z0-9\-_]/g, '')}`;
 
             let subGrid = document.getElementById(sectionId);
             if (!subGrid) {
@@ -1155,11 +1306,11 @@ function startMonitorFeed() {
             } overflow-hidden relative`;
 
             const videoPlaying = document.getElementById(`remote-video-${safeId}`);
-            const snapshotImg = monitorSnapshots[studentId] || "";
+            const snapshotImg = monitorSnapshots[safeId] || "";
 
             card.innerHTML = `
                 ${isLocked ? `<div class="absolute inset-0 bg-red-600/5 animate-pulse pointer-events-none z-20"></div>` : ''}
-                <div class="aspect-video bg-slate-100 relative group" id="container-${studentId}">
+                <div class="aspect-video bg-slate-100 relative group" id="container-${safeId}">
                     ${videoPlaying ? '' : (snapshotImg ? `<img id="snapshot-${safeId}" src="${snapshotImg}" class="w-full h-full object-cover">` : `<div class="w-full h-full flex flex-col items-center justify-center bg-slate-50 text-slate-300"><span class="text-xs">👤</span></div>`)}
                     <div class="absolute top-1 left-1 flex flex-col gap-1 z-30">
                         <div class="flex items-center gap-1">
@@ -1189,8 +1340,8 @@ function startMonitorFeed() {
             `;
 
             if (videoPlaying) {
-                const newContainer = document.getElementById(`container-${studentId}`);
-                newContainer.prepend(videoPlaying);
+                const newContainer = document.getElementById(`container-${safeId}`);
+                if (newContainer) newContainer.prepend(videoPlaying);
             }
 
             connectSnapshotChannel(studentId);
@@ -1205,7 +1356,7 @@ function startMonitorFeed() {
 
 function openLiveStream(studentId) {
     const cleanId = studentId.replace(/[^a-zA-Z0-9]/g, '');
-    const container = document.getElementById(`container-${studentId}`);
+    const container = document.getElementById(`container-${cleanId}`);
     if (!container || !peer) return;
 
     container.innerHTML += `<div id="loading-${cleanId}" class="absolute inset-0 flex items-center justify-center bg-black/50 text-white text-[10px]">Connecting...</div>`;
@@ -1278,15 +1429,16 @@ function stopLiveStream(studentId) {
 
 	async function clearMonitorData() {
 		if(!confirm("Bersihkan?")) return;
-		const snap = await publicData.collection('live').get();
-		const batch = db.batch(); snap.forEach(doc => batch.delete(doc.ref)); await batch.commit();
+		const { error } = await db.from('live').delete().neq('id', '');
+		if (error) console.error('Clear monitor data error:', error);
 	}
 
 	function startCleanupService() {
 	setInterval(async () => {try {
 	const fiveMinutesAgo = Date.now() - (5 * 60 * 1000);
-	const snap = await publicData.collection('live').where('last', '<', fiveMinutesAgo).get();
-	if (!snap.empty) {const batch = db.batch(); snap.forEach(doc => batch.delete(doc.ref)); await batch.commit(); } } catch (e) { console.error("Cleanup error:", e); } }, 60000);
+	const { error } = await db.from('live').delete().lt('last', fiveMinutesAgo);
+	if (error) { console.error("Cleanup error:", error); }
+	} catch (e) { console.error("Cleanup error:", e); } }, 60000);
         }
 
 
@@ -1314,9 +1466,10 @@ async function generateAISoal() {
 	    const endBracket = text.lastIndexOf(']') + 1;
 	    const cleanJson = text.substring(startBracket, endBracket);
 	    const qs = JSON.parse(cleanJson);
-        const batch = db.batch();
-        qs.forEach(q => {const docRef = publicData.collection('ai_bank').doc(); batch.set(docRef, { question: q.question, topic: topic, timestamp: Date.now() }); });
-        await batch.commit(); alert("Berhasil!"); closeModal('modal-ai');
+        const rows = qs.map(q => ({ question: q.question, topic: topic, timestamp: Date.now() }));
+        const { error } = await db.from('ai_bank').insert(rows);
+        if (error) throw error;
+        alert("Berhasil!"); closeModal('modal-ai');
     } catch(e) { alert("Gagal."); } finally { btn.classList.remove('hidden-element'); loader.classList.add('hidden-element'); }
 }
 

@@ -1046,8 +1046,6 @@ async function startExamEngine(url, mapel, dur, isCameraRequired) {
 
     // 3. Aktifkan Protokol Keamanan (Lockdown)
     enableHardLockdown();
-
-    enableHardLockdown();
     const endTime = Date.now() + (dur * 60 * 1000);
     localStorage.setItem('active_exam_state', JSON.stringify({
         url: url,
@@ -1273,9 +1271,8 @@ function initPeer() {
     const safePeerId = 'exam2026_' + cleanId;
     
     if (peer) {
-        peer.destroy();
+        try { peer.destroy(); } catch(e) {}
         peer = null;
-        peerDataConns = {};
     }
 
     peer = new Peer(safePeerId, {

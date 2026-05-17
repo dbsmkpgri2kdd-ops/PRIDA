@@ -789,12 +789,22 @@ function renderMonitorCards(students) {
     students.forEach(l => {
         const studentId = l.id;
         const safeId = studentId.replace(/[^a-zA-Z0-9]/g, '');
-        const isOnline = (Date.now() - l.last) < 60000; // Toleransi 1 menit
+        const isOnline = (Date.now() - l.last) < 60000;
         const isLocked = l.isLocked === true || l.v >= 5;
+        const violationCount = l.v || 0; // Mengambil jumlah pelanggaran
+        const lastStatus = l.lastStatus || "Aktif"; // Mengambil alasan pelanggaran terakhir
         const existingImg = monitorSnapshots[safeId] || "";
 
         const cardHtml = `
             <div id="card-${safeId}" class="monitor-card bg-white rounded-2xl border ${isLocked ? 'border-red-500 ring-2 ring-red-500/10' : 'border-slate-100'} overflow-hidden shadow-sm relative">
+                
+                <!-- BADGE PELANGGARAN (Muncul di pojok kanan atas gambar) -->
+                <div class="absolute top-1 right-1 z-10 flex flex-col items-end gap-1">
+                    <span class="${violationCount > 0 ? 'bg-red-600' : 'bg-slate-400'} text-white text-[7px] font-black px-1.5 py-0.5 rounded-full shadow-sm">
+                        ⚠️ ${violationCount}
+                    </span>
+                </div>
+
                 <div id="container-${safeId}" class="aspect-video bg-slate-900 relative overflow-hidden flex items-center justify-center">
                     <img id="snapshot-${safeId}" src="${existingImg}" class="w-full h-full object-cover ${existingImg ? '' : 'hidden-element'}">
                     <div class="waiting-placeholder ${existingImg ? 'hidden-element' : ''} flex flex-col items-center justify-center text-white/20">
@@ -804,8 +814,15 @@ function renderMonitorCards(students) {
                         <div class="w-2 h-2 rounded-full ${isOnline ? 'bg-emerald-500' : 'bg-slate-500'}"></div>
                     </div>
                 </div>
+
                 <div class="p-2">
                     <p class="text-[8px] font-black truncate uppercase text-slate-700 leading-tight">${l.nama}</p>
+                    
+                    <!-- KETERANGAN STATUS TERAKHIR -->
+                    <p class="text-[6px] font-bold ${violationCount > 0 ? 'text-red-500' : 'text-slate-400'} truncate mt-0.5 uppercase">
+                        ${lastStatus}
+                    </p>
+
                     <div class="flex gap-1 mt-1.5">
                         <button onclick="openLiveStream('${studentId}')" class="flex-1 bg-blue-600 text-white text-[7px] font-black py-1 rounded">LIVE</button>
                         <button onclick="remoteUnlockStudent('${studentId}')" class="flex-1 ${isLocked ? 'bg-red-600 text-white' : 'bg-slate-100 text-slate-400'} text-[7px] font-black py-1 rounded">UNLOCK</button>
@@ -814,7 +831,6 @@ function renderMonitorCards(students) {
             </div>`;
         innerGrid.insertAdjacentHTML('beforeend', cardHtml);
         
-        // Hubungkan koneksi data jika online
         if (isOnline) connectToStudentData(studentId);
     });
 }

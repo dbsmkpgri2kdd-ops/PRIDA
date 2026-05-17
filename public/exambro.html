@@ -1195,69 +1195,72 @@ function enableHardLockdown() {
     document.onselectstart = () => false;
     document.ondragstart = () => false;
 
-    // 2. Jebakan Tombol Back (Android)
+    // Jebakan Tombol Back (Android)
     history.pushState(null, null, location.href);
-    window.onpopstate = function() {history.go(1);
-        if(isExamActive) {reportViolation(); alert("Gunakan tombol navigasi di dalam ujian, dilarang menekan tombol BACK!"); }
-    };
+    window.onpopstate = function() {history.go(1); if(isExamActive) {reportViolation(); alert("Gunakan tombol navigasi di dalam ujian, dilarang menekan tombol BACK!"); }};
+    document.addEventListener('visibilitychange', () => {if (isExamActive && document.visibilityState !== 'visible') {reportViolation(); }});
 
-    // 3. Deteksi Visibility (Pindah Tab / Keluar Aplikasi)
-    document.addEventListener('visibilitychange', () => {
-        if (isExamActive && document.visibilityState !== 'visible') {reportViolation(); }
-    });
+    // Keyboard Protector (Untuk Pengguna Tablet + Keyboard External)
+   window.onkeydown = (e) => {if (!isExamActive) return;
 
-    // 4. Keyboard Protector (Untuk Pengguna Tablet + Keyboard External)
-    window.onkeydown = (e) => {
-        if (!isExamActive) return;
+    // Daftar tombol yang benar-benar dilarang: F12, F11, Win Key, Cmd Key
+    const forbiddenKeys = [122, 123, 91, 92]; 
+    
+    // Deteksi kombinasi terlarang (Ctrl+U, Ctrl+S, Ctrl+P, Ctrl+C, Ctrl+V)
+    const isControlAction = e.ctrlKey && ['u','s','p','c','v'].includes(e.key.toLowerCase());
+    
+    // Alt+Tab atau Alt+F4 (Alt sendiri tidak apa-apa, tapi kombinasi dilarang)
+    const isAltAction = e.altKey && (e.key === 'Tab' || e.key === 'F4');
+	if (forbiddenKeys.includes(e.keyCode) || isControlAction || isAltAction) {e.preventDefault(); reportViolation(); return false; }};
 
-        // Tombol yang dilarang (F12, Meta/Windows, Alt, dll)
-        const forbiddenKeys = [122, 123, 44, 18, 91, 92]; 
-        const isControlAction = e.ctrlKey && 'uIpscvj'.includes(e.key.toLowerCase());
-        const isShiftAction = e.ctrlKey && e.shiftKey && 'IJ'.includes(e.key.toUpperCase());
-
-        if (forbiddenKeys.includes(e.keyCode) || isControlAction || isShiftAction) {
-            e.preventDefault(); reportViolation(); return false; }
-    };
     // 5. Proteksi Print
-    window.addEventListener('beforeprint', (e) => {if(isExamActive) {e.preventDefault(); reportViolation(); }
-    });
+    window.addEventListener('beforeprint', (e) => {if(isExamActive) {e.preventDefault(); reportViolation(); } });
     isSecuritySetup = true;
+
+	let blurTimeout;
+	document.addEventListener('visibilitychange', () => {if (isExamActive && document.visibilityState === 'hidden') {reportViolation();}});
+	window.onblur = () => {if (isExamActive) {blurTimeout = setTimeout(() => {reportViolation();}, 1000);} };
+	window.onfocus = () => {clearTimeout(blurTimeout); };
 }
 
 
 
-function handleKeyboardLock(e) {
-    if (!isExamActive) return;
-    // List tombol yang dilarang
-    const forbiddenKeys = [
-        123, // F12
-        44,  // PrintScreen
-        112, 113, 114, 115, 117, 118, 119, 120, 121, 122 // F1-F12 kecuali F6/F5 tertentu
-    ];
 
-    if (forbiddenKeys.includes(e.keyCode) || 
-        (e.ctrlKey && (e.key === 'u' || e.key === 's' || e.key === 'p' || e.key === 'c' || e.key === 'v' || e.key === 'i' || e.key === 'j')) ||
-        (e.ctrlKey && e.shiftKey && (e.key === 'I' || e.key === 'J' || e.key === 'C')) ||
-        (e.metaKey && e.shiftKey && e.key === '4') // Mac Screenshot
-    ) {
-        e.preventDefault(); e.stopPropagation(); reportViolation();
-        alert("Aksi ini dilarang selama ujian!"); return false;
+function reportViolation() {
+    if (!isExamActive) return;
+    
+    const now = Date.now();
+    // Cooldown 3 detik agar tidak dobel hit dalam satu aksi
+    if (now - lastViolationTime < 3000) return; 
+    lastViolationTime = now; 
+
+    violationCount++;
+    
+    // Update UI Siswa
+    const vCountEl = document.getElementById('violation-count');
+    const vBadgeEl = document.getElementById('violation-badge');
+    if(vCountEl) vCountEl.textContent = violationCount;
+    if(vBadgeEl) vBadgeEl.classList.remove('hidden-element');
+
+    // Efek Suara & Getar Visual
+    const alarm = document.getElementById('alarm-sound');
+    if(alarm) alarm.play().catch(() => {});
+    document.body.classList.add('violation-shake');
+    setTimeout(() => document.body.classList.remove('violation-shake'), 500);
+
+    // Lapor ke Admin via Supabase (Realtime)
+    if (user && user.id) {
+        db.from('live').update({ 
+            v: violationCount, 
+            lastStatus: 'DETEKSI KELUAR/SPLIT' 
+        }).eq('id', user.id);
+    }
+
+    // Hanya kunci layar jika sudah mencapai batas
+    if (violationCount >= 5) {
+        triggerLock();
     }
 }
-        function reportViolation() {
-	if (!isExamActive) return;
-	    const now = Date.now();
-	    if (now - lastViolationTime < 2000) return; lastViolationTime = now; violationCount++;
- 	   // Update tampilan lokal untuk siswa
-	    document.getElementById('violation-count').textContent = violationCount;
-	    document.getElementById('violation-badge').classList.remove('hidden-element');
-	    document.getElementById('alarm-sound').play();
-	    document.body.classList.add('violation-shake');
-	    setTimeout(() => document.body.classList.remove('violation-shake'), 500);
-
-	    // CATATAN: Bagian simpan riwayat pelanggaran telah DIHAPUS agar tidak ada data tersimpan secara permanen.
-	    if (violationCount >= 5) triggerLock();
-	}
 
 	async function triggerLock() { 
 	    if (isExamActive) {document.getElementById('lock-screen').classList.remove('hidden-element');
@@ -1380,7 +1383,7 @@ function startSnapshotService() {
                 console.log("Snapshot sent to admin");
             }
         });
-    }, 20000); 
+    }, 15000); 
 }
 
 function stopSnapshotService() {
@@ -1664,15 +1667,16 @@ window.onbeforeunload = function() {
 };
 
 // 1. Deteksi Pindah Tab / Keluar Aplikasi
-window.addEventListener('blur', () => { 
-    if(isExamActive) reportViolation(); 
-});
-
-document.addEventListener('visibilitychange', () => {
-    if (isExamActive && document.visibilityState === 'hidden') {
-        reportViolation();
+let blurTimeout;
+window.addEventListener('blur', () => {
+    if(isExamActive) {
+        // Beri waktu 1 detik, jika dalam 1 detik fokus kembali, jangan anggap pelanggaran
+        blurTimeout = setTimeout(() => {
+            reportViolation();
+        }, 1000);
     }
 });
+
 
 // 2. Deteksi Fullscreen
 document.addEventListener('fullscreenchange', () => {
@@ -1692,36 +1696,22 @@ window.addEventListener('resize', () => {
     const widthDiff = Math.abs(window.innerWidth - initialWidth);
     const heightDiff = Math.abs(window.innerHeight - initialHeight);
 
-    // Deteksi Split Screen Horizontal atau Rotasi
-    if (widthDiff > 100) {
+    // 1. Deteksi Perubahan Lebar (Hampir pasti Split Screen atau Rotasi)
+    if (widthDiff > 50) { 
         reportViolation();
-        alert("Deteksi perubahan orientasi atau pembagian layar!");
-        // Update initial untuk menghindari loop alert
-        initialWidth = window.innerWidth;
+        // Update initialWidth agar tidak spamming violation saat dalam mode split
+        initialWidth = window.innerWidth; 
     }
 
-    // Deteksi Split Screen Vertikal (Atas-Bawah)
-    // Jika tinggi layar hilang lebih dari 35%, kemungkinan besar Split Screen
-    if (heightDiff > (initialHeight * 0.35)) {
-        // Karena kita tidak bisa cek input di dalam IFRAME, 
-        // Kita beri toleransi: Jika resize terjadi tapi user masih di dalam frame,
-        // kita asumsikan itu keyboard. Namun jika perubahannya sangat ekstrem (>50%), itu Split Screen.
-        if (heightDiff > (initialHeight * 0.5)) {
-            reportViolation();
-            alert("Peringatan: Dilarang menggunakan mode Split Screen!");
-        }
+    // 2. Deteksi Perubahan Tinggi (Lebih longgar untuk Keyboard)
+    // Di HP, keyboard bisa memakan 50% layar. Kita set threshold di 70% 
+    // untuk benar-benar mendeteksi Split Screen yang ekstrem.
+    if (heightDiff > (initialHeight * 0.7)) {
+        reportViolation();
     }
 });
 
 // 4. Proteksi Tombol & Klik Kanan
-window.addEventListener('keydown', function(e) {
-    if (!isExamActive) return;
-    if ((e.which || e.keyCode) == 116 || (e.ctrlKey && e.keyCode == 82) || e.keyCode == 123) {
-        e.preventDefault();
-        reportViolation();
-    }
-});
-
 // Proteksi Tekan Lama (Long Press) - AGAR TIDAK MELANGGAR
 document.oncontextmenu = function(e) {
     e.preventDefault();

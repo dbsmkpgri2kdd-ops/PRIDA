@@ -443,7 +443,7 @@ async function loadSheetConfig() {
 }
 
 function syncAdminData() {
-    if (typeof syncAdminStudentData === "function") syncAdminStudentData();
+    if (typeof syncAdminStudentData === "function") syncAdminStudentData(); syncFilterOptions();
     // 2. Sinkronkan daftar paket ujian
     publicData.collection('exams').onSnapshot(s => {
         const list = document.getElementById('admin-exam-list'); if (!list) return; list.innerHTML = "";
@@ -775,7 +775,7 @@ function startMonitorFeed() {
                 peerDataConns[peerId].send({ type: 'request_snapshot' });
             }
         });
-    }, 20000); 
+    }, 5000); 
 }
 
 // 3. Render Kartu Monitor
@@ -914,8 +914,8 @@ function captureSnapshot() {
 
     const canvas = document.createElement('canvas');
     // Ukuran sangat kecil untuk menghemat bandwidth (300+ siswa)
-    canvas.width = 160; 
-    canvas.height = 120;
+    canvas.width = 120; 
+    canvas.height = 190;
     
     const ctx = canvas.getContext('2d');
     ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
@@ -941,11 +941,34 @@ function captureSnapshot() {
 
 
 async function syncFilterOptions() {
-    const filterSelect = document.getElementById('monitor-filter-kelas'); if (filterSelect.options.length > 1) return;
+    const filterSelect = document.getElementById('monitor-filter-kelas');
+    // Jika pilihan sudah ada (lebih dari 1), jangan isi lagi agar tidak duplikat
+    if (filterSelect.options.length > 1) return;
+
     try {
-        const snap = await publicData.collection('users').get(), kelasSet = new Set(); snap.forEach(doc => { if(doc.data().kelas) kelasSet.add(doc.data().kelas); });
-        Array.from(kelasSet).sort().forEach(k => { const opt = document.createElement('option'); opt.value = k; opt.textContent = k; filterSelect.appendChild(opt); });
-    } catch (e) { console.error("Filter sync error", e); }
+        const { data, error } = await db.from('users').select('kelas');
+        if (error) throw error;
+
+        const kelasSet = new Set();
+        data.forEach(item => { 
+            if(item.kelas) kelasSet.add(item.kelas.trim()); 
+        });
+
+        // Urutkan kelas secara alfabetis/numerik
+        const sortedKelas = Array.from(kelasSet).sort((a, b) => 
+            a.localeCompare(b, undefined, { numeric: true })
+        );
+
+        sortedKelas.forEach(k => {
+            const opt = document.createElement('option');
+            opt.value = k;
+            opt.textContent = k;
+            filterSelect.appendChild(opt);
+        });
+        console.log("Filter kelas berhasil dimuat:", sortedKelas);
+    } catch (e) {
+        console.error("Gagal memuat filter kelas:", e);
+    }
 }
 
 

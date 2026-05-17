@@ -618,33 +618,72 @@ async function clearClipboard() {
 let isSecuritySetup = false, blurTimer = null; 
 function enableHardLockdown() {
     if (isSecuritySetup) return;
-    document.oncontextmenu = (e) => { e.preventDefault(); return false; }; document.body.style.webkitUserSelect = "none"; document.body.style.userSelect = "none"; document.body.style.webkitTouchCallout = "none"; document.onselectstart = () => false; document.ondragstart = () => false;
+    // Proteksi Klik Kanan & Seleksi Teks
+    document.oncontextmenu = (e) => { e.preventDefault(); return false; }; 
+    document.body.style.webkitUserSelect = "none"; 
+    document.body.style.userSelect = "none"; 
+    document.body.style.webkitTouchCallout = "none"; 
+
+    // 1. PERBAIKAN TOMBOL KEMBALI (SILENT MODE)
+    // Menambahkan entri ke history agar tombol back tidak berfungsi
     history.pushState(null, null, location.href);
-    window.onpopstate = function() { history.go(1); if(isExamActive) { reportViolation("Menekan Tombol BACK"); alert("⚠️ PERINGATAN: Dilarang menggunakan tombol BACK!"); } };
+    window.onpopstate = function() {history.pushState(null, null, location.href);
+        // Cukup diam, tidak ada alert() dan tidak ada reportViolation()
+    };
+
+    // Shortcut Keyboard Terlarang
     window.onkeydown = (e) => {
         if (!isExamActive) return;
-        const forbiddenKeys = [122, 123, 91, 92], isControlAction = e.ctrlKey && ['u','s','p','c','v'].includes(e.key.toLowerCase()), isAltAction = e.altKey && (e.key === 'Tab' || e.key === 'F4');
-        if (forbiddenKeys.includes(e.keyCode) || isControlAction || isAltAction) { e.preventDefault(); reportViolation("Shortcut Terlarang (Keyboard)"); return false; }
+        const forbiddenKeys = [122, 123, 91, 92], 
+              isControlAction = e.ctrlKey && ['u','s','p','c','v'].includes(e.key.toLowerCase()), 
+              isAltAction = e.altKey && (e.key === 'Tab' || e.key === 'F4');
+        if (forbiddenKeys.includes(e.keyCode) || isControlAction || isAltAction) { 
+            e.preventDefault(); reportViolation("Shortcut Terlarang"); return false; }
     };
+
+    // Deteksi Jika Benar-benar Pindah Aplikasi (Minimize/Pindah Tab)
     document.addEventListener('visibilitychange', () => {
-        if (isExamActive && document.visibilityState === 'hidden') { blurTimer = setTimeout(() => { reportViolation("Pindah Tab / Keluar Aplikasi"); }, 2000); } else if (blurTimer) { clearTimeout(blurTimer); blurTimer = null; }
+        if (isExamActive && document.visibilityState === 'hidden') { 
+            blurTimer = setTimeout(() => {reportViolation("Keluar dari Aplikasi"); }, 2500); 
+        } else if (blurTimer) {clearTimeout(blurTimer); blurTimer = null; }
     });
-    window.onblur = () => { if (isExamActive) { blurTimer = setTimeout(() => { reportViolation("Kehilangan Fokus (Notifikasi/Pop-up)"); }, 4000); } };
-    window.onfocus = () => { if (blurTimer) { clearTimeout(blurTimer); blurTimer = null; console.log("Fokus kembali, pelanggaran dibatalkan."); } };
-    window.addEventListener('beforeprint', (e) => { if(isExamActive) { e.preventDefault(); reportViolation("Mencoba Print"); } });
+
+    // 2. PERBAIKAN BLUR (AGAR BISA MENGETIK)
+    window.onblur = () => { 
+        if (!isExamActive) return; 
+        // Menggunakan jeda waktu singkat untuk mengecek ke mana fokus berpindah
+        setTimeout(() => {
+            // Jika fokus berpindah ke IFRAME (tempat soal) atau INPUT, jangan lapor pelanggaran
+            if (document.activeElement && 
+               (document.activeElement.tagName === 'IFRAME' || 
+                document.activeElement.tagName === 'INPUT' || 
+                document.activeElement.tagName === 'TEXTAREA')) {
+                if (blurTimer) { clearTimeout(blurTimer); blurTimer = null; }
+                return; }
+            // Jika fokus hilang bukan karena input (misal buka notifikasi/panel hp)
+            blurTimer = setTimeout(() => {reportViolation("Kehilangan Fokus Layar"); }, 3500); }, 300);
+    };
+    window.onfocus = () => {if (blurTimer) { clearTimeout(blurTimer); blurTimer = null; } };
     isSecuritySetup = true;
 }
 
 function reportViolation(reason = "Aktivitas Mencurigakan") {
-    if (!isExamActive) return; const now = Date.now(); if (now - lastViolationTime < 3000) return; lastViolationTime = now; violationCount++;
+    if (!isExamActive) return; const now = Date.now(); 
+    // Mencegah double hitungan dalam waktu singkat (4 detik)
+    if (now - lastViolationTime < 4000) return; lastViolationTime = now; violationCount++;
+    // Update tampilan counter pelanggaran di layar siswa
     const vCountEl = document.getElementById('violation-count'), vBadgeEl = document.getElementById('violation-badge');
     if(vCountEl) vCountEl.textContent = violationCount; if(vBadgeEl) vBadgeEl.classList.remove('hidden-element');
+    // Suara Peringatan
     const alarm = document.getElementById('alarm-sound'); if(alarm) alarm.play().catch(() => {});
-    document.body.classList.add('violation-shake'); setTimeout(() => document.body.classList.remove('violation-shake'), 500);
-    if (user && user.id) { db.from('live').update({ v: violationCount, lastStatus: 'Peringatan: ' + reason.toUpperCase() }).eq('id', user.id); }
-    if (violationCount < 5) { console.warn("Pelanggaran tercatat: " + reason); } else { triggerLock(); }
+    // Efek Getar Visual
+    document.body.classList.add('violation-shake'); 
+    setTimeout(() => document.body.classList.remove('violation-shake'), 500);
+    // Kirim data pelanggaran ke Database Admin secara Real-time
+    if (user && user.id) {db.from('live').update({ v: violationCount, lastStatus: 'Peringatan: ' + reason.toUpperCase() }).eq('id', user.id); }
+    // Jika sudah 5 kali melanggar, kunci layar otomatis
+    if (violationCount >= 5) {triggerLock(); }
 }
-
 async function triggerLock() { 
         if (isExamActive) { document.getElementById('lock-screen').classList.remove('hidden-element');
             if (user && user.id) { try { await publicData.collection('live').doc(user.id).update({ isLocked: true, v: violationCount, lastStatus: 'TERKUNCI - BUTUH PIN' }); } catch (e) { console.error("Gagal lapor status kunci"); } }

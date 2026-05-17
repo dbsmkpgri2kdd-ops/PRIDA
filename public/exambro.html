@@ -140,9 +140,9 @@
 	    <div class="flex flex-col md:flex-row justify-between items-start md:items-end mb-10 gap-6">
 	        <div class="space-y-4">
 	            <div><h2 class="text-3xl font-black text-slate-900">Live Monitoring</h2><p class="text-slate-400 text-xs mt-1" id="online-count">0 Siswa Aktif</p></div>
-	            <div class="flex items-center space-x-3 bg-white p-2 rounded-2xl border shadow-sm w-fit">
-	                <span class="text-[10px] font-bold text-slate-400 ml-2">FILTER KELAS:</span>
-	                <select id="monitor-filter-kelas" onchange="startMonitorFeed()" class="bg-slate-50 border-none text-xs font-black rounded-xl p-2 outline-none focus:ring-2 ring-blue-500"><option value="ALL">SEMUA KELAS</option></select>
+	            <div class="flex items-center space-x-2 bg-white p-1 rounded-xl border shadow-sm w-fit">
+	                <span class="text-[8px] font-bold text-slate-400 ml-2">FILTER KELAS:</span>
+	                <select id="monitor-filter-kelas" onchange="startMonitorFeed()" class="bg-slate-50 border-none text-[9px] font-bold rounded-lg py-1 px-2 min-w-[100px] outline-none focus:ring-1 ring-blue-500 cursor-pointer"><option value="ALL">SEMUA KELAS</option></select>
 	            </div>
 	        </div>
 	        <button onclick="clearMonitorData()" class="text-red-500 font-bold text-[10px] uppercase border-b border-red-200 pb-1 mb-2">Bersihkan Feed</button>
@@ -687,7 +687,6 @@ function connectSnapshotChannel(studentId) {
     if (peerDataConns[peerId] && peerDataConns[peerId].open) { peerDataConns[peerId].send({ type: 'request_snapshot' }); return; }
     try { const conn = peer.connect(peerId, { reliable: false }); setupDataConnection(conn); } catch (e) { console.warn('Peer connection skip:', studentId); }
 }
-
 // --- PERBAIKAN MONITORING (OPTIMASI BANDWIDTH & CPU) ---
 let activePeerConnections = {}; 
 // --- KODE REVISI MONITORING & P2P (OPTIMASI 300+ SISWA) ---
@@ -695,298 +694,103 @@ let activePeerConnections = {};
 // 1. Fungsi Membersihkan Koneksi (Penting untuk Performa Admin)
 function closeAllPeerConnections() {
     console.log("Cleaning up connections for class switch...");
-    
-    // Hentikan interval snapshot global
-    if (window.adminSnapshotInterval) {
-        clearInterval(window.adminSnapshotInterval);
-        window.adminSnapshotInterval = null;
-    }
-
-    // Putus semua koneksi data yang ada
-    Object.keys(peerDataConns).forEach(peerId => {
-        if (peerDataConns[peerId]) {
-            try {
-                peerDataConns[peerId].close();
-            } catch (e) {}
-            delete peerDataConns[peerId];
-        }
-    });
-
-    // Hentikan semua aliran video yang mungkin masih terbuka
-    Object.keys(activeCalls).forEach(peerId => {
-        if (activeCalls[peerId]) {
-            try {
-                activeCalls[peerId].close();
-            } catch (e) {}
-            delete activeCalls[peerId];
-        }
-    });
-
-    monitorSnapshots = {}; // Bersihkan cache gambar
+    if (window.adminSnapshotInterval) { clearInterval(window.adminSnapshotInterval); window.adminSnapshotInterval = null; }
+    Object.keys(peerDataConns).forEach(peerId => { if (peerDataConns[peerId]) { try { peerDataConns[peerId].close(); } catch (e) {} delete peerDataConns[peerId]; } });
+    Object.keys(activeCalls).forEach(peerId => { if (activeCalls[peerId]) { try { activeCalls[peerId].close(); } catch (e) {} delete activeCalls[peerId]; } });
+    monitorSnapshots = {}; 
 }
 
 // 2. Fungsi Utama Monitor Feed (Pilih Kelas)
 function startMonitorFeed() {
-    const grid = document.getElementById('monitor-grid');
-    const onlineCountEl = document.getElementById('online-count');
-    const filterKelas = document.getElementById('monitor-filter-kelas').value;
-
-    // WAJIB: Putus koneksi lama sebelum buka kelas baru
+    const grid = document.getElementById('monitor-grid'), onlineCountEl = document.getElementById('online-count'), filterKelas = document.getElementById('monitor-filter-kelas').value;
     closeAllPeerConnections(); 
-
     if (filterKelas === "ALL") {
-        grid.innerHTML = `
-            <div class="col-span-full text-center py-20 bg-amber-50 rounded-[3rem] border-2 border-dashed border-amber-200">
-                <div class="text-4xl mb-4">⚠️</div>
-                <p class="text-amber-700 font-black text-lg">Mode "SEMUA KELAS" Dinonaktifkan</p>
-                <p class="text-amber-600 text-xs mt-2 max-w-xs mx-auto">
-                    Untuk stabilitas sistem (300+ siswa), silakan <b>Pilih Salah Satu Kelas</b> untuk memantau kamera.
-                </p>
-            </div>`;
-        onlineCountEl.textContent = "Monitor Global Standby";
-        if (window.monitorSub) window.monitorSub.unsubscribe();
-        return;
+        grid.innerHTML = `<div class="col-span-full text-center py-20 bg-amber-50 rounded-[3rem] border-2 border-dashed border-amber-200"><div class="text-4xl mb-4">⚠️</div><p class="text-amber-700 font-black text-lg">Mode "SEMUA KELAS" Dinonaktifkan</p><p class="text-amber-600 text-xs mt-2 max-w-xs mx-auto">Untuk stabilitas sistem (300+ siswa), silakan <b>Pilih Salah Satu Kelas</b> untuk memantau kamera.</p></div>`;
+        onlineCountEl.textContent = "Monitor Global Standby"; if (window.monitorSub) window.monitorSub.unsubscribe(); return;
     }
-
     grid.innerHTML = '<div class="col-span-full text-center py-10 text-slate-400 font-bold animate-pulse">Menghubungkan ke Peer Siswa...</div>';
-
-    // Berlangganan status dari Supabase hanya untuk kelas terpilih
     if (window.monitorSub) window.monitorSub.unsubscribe();
     window.monitorSub = publicData.collection('live').onSnapshot(s => {
-        let activeStudents = 0;
-        const studentsInClass = [];
-        
-        s.forEach(d => {
-            const l = d.data();
-            if ((l.kelas || "Umum") === filterKelas) {
-                studentsInClass.push({ id: d.id, ...l });
-                activeStudents++;
-            }
-        });
-
-        onlineCountEl.textContent = `${activeStudents} Siswa Aktif di Kelas ${filterKelas}`;
-        renderMonitorCards(studentsInClass);
+        let activeStudents = 0; const studentsInClass = [];
+        s.forEach(d => { const l = d.data(); if ((l.kelas || "Umum") === filterKelas) { studentsInClass.push({ id: d.id, ...l }); activeStudents++; } });
+        onlineCountEl.textContent = `${activeStudents} Siswa Aktif di Kelas ${filterKelas}`; renderMonitorCards(studentsInClass);
     });
-
-    // AKTIFKAN: Interval Request Snapshot setiap 20 detik (Hanya untuk kelas aktif)
     window.adminSnapshotInterval = setInterval(() => {
-        Object.keys(peerDataConns).forEach(peerId => {
-            if (peerDataConns[peerId] && peerDataConns[peerId].open) {
-                peerDataConns[peerId].send({ type: 'request_snapshot' });
-            }
-        });
-    }, 5000); 
+        Object.keys(peerDataConns).forEach(peerId => { if (peerDataConns[peerId] && peerDataConns[peerId].open) peerDataConns[peerId].send({ type: 'request_snapshot' }); });
+    }, 15000); 
 }
 
 // 3. Render Kartu Monitor
 function renderMonitorCards(students) {
-    const grid = document.getElementById('monitor-grid');
-    grid.innerHTML = '';
-    const containerId = "monitor-grid-inner";
-    grid.innerHTML = `<div id="${containerId}" class="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-6 lg:grid-cols-8 gap-4"></div>`;
+    const grid = document.getElementById('monitor-grid'); grid.innerHTML = '';
+    const containerId = "monitor-grid-inner"; grid.innerHTML = `<div id="${containerId}" class="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-6 lg:grid-cols-8 gap-4"></div>`;
     const innerGrid = document.getElementById(containerId);
-
     students.forEach(l => {
-        const studentId = l.id;
-        const safeId = studentId.replace(/[^a-zA-Z0-9]/g, '');
-        const isOnline = (Date.now() - l.last) < 60000;
-        const isLocked = l.isLocked === true || l.v >= 5;
-        const violationCount = l.v || 0; // Mengambil jumlah pelanggaran
-        const lastStatus = l.lastStatus || "Aktif"; // Mengambil alasan pelanggaran terakhir
-        const existingImg = monitorSnapshots[safeId] || "";
-
-        const cardHtml = `
-            <div id="card-${safeId}" class="monitor-card bg-white rounded-2xl border ${isLocked ? 'border-red-500 ring-2 ring-red-500/10' : 'border-slate-100'} overflow-hidden shadow-sm relative">
-                
-                <!-- BADGE PELANGGARAN (Muncul di pojok kanan atas gambar) -->
-                <div class="absolute top-1 right-1 z-10 flex flex-col items-end gap-1">
-                    <span class="${violationCount > 0 ? 'bg-red-600' : 'bg-slate-400'} text-white text-[7px] font-black px-1.5 py-0.5 rounded-full shadow-sm">
-                        ⚠️ ${violationCount}
-                    </span>
-                </div>
-
-                <div id="container-${safeId}" class="aspect-video bg-slate-900 relative overflow-hidden flex items-center justify-center">
-                    <img id="snapshot-${safeId}" src="${existingImg}" class="w-full h-full object-cover ${existingImg ? '' : 'hidden-element'}">
-                    <div class="waiting-placeholder ${existingImg ? 'hidden-element' : ''} flex flex-col items-center justify-center text-white/20">
-                        <span class="text-[8px] font-black uppercase tracking-tighter">Wait Conn</span>
-                    </div>
-                    <div class="absolute top-1 left-1">
-                        <div class="w-2 h-2 rounded-full ${isOnline ? 'bg-emerald-500' : 'bg-slate-500'}"></div>
-                    </div>
-                </div>
-
-                <div class="p-2">
-                    <p class="text-[8px] font-black truncate uppercase text-slate-700 leading-tight">${l.nama}</p>
-                    
-                    <!-- KETERANGAN STATUS TERAKHIR -->
-                    <p class="text-[6px] font-bold ${violationCount > 0 ? 'text-red-500' : 'text-slate-400'} truncate mt-0.5 uppercase">
-                        ${lastStatus}
-                    </p>
-
-                    <div class="flex gap-1 mt-1.5">
-                        <button onclick="openLiveStream('${studentId}')" class="flex-1 bg-blue-600 text-white text-[7px] font-black py-1 rounded">LIVE</button>
-                        <button onclick="remoteUnlockStudent('${studentId}')" class="flex-1 ${isLocked ? 'bg-red-600 text-white' : 'bg-slate-100 text-slate-400'} text-[7px] font-black py-1 rounded">UNLOCK</button>
-                    </div>
-                </div>
-            </div>`;
-        innerGrid.insertAdjacentHTML('beforeend', cardHtml);
-        
-        if (isOnline) connectToStudentData(studentId);
+        const studentId = l.id, safeId = studentId.replace(/[^a-zA-Z0-9]/g, ''), isOnline = (Date.now() - l.last) < 60000, isLocked = l.isLocked === true || l.v >= 5;
+        const violationCount = l.v || 0, lastStatus = l.lastStatus || "Aktif", existingImg = monitorSnapshots[safeId] || "";
+        const cardHtml = `<div id="card-${safeId}" class="monitor-card bg-white rounded-2xl border ${isLocked ? 'border-red-500 ring-2 ring-red-500/10' : 'border-slate-100'} overflow-hidden shadow-sm relative"><div class="absolute top-1 right-1 z-10 flex flex-col items-end gap-1"><span class="${violationCount > 0 ? 'bg-red-600' : 'bg-slate-400'} text-white text-[7px] font-black px-1.5 py-0.5 rounded-full shadow-sm">⚠️ ${violationCount}</span></div><div id="container-${safeId}" class="aspect-video bg-slate-900 relative overflow-hidden flex items-center justify-center"><img id="snapshot-${safeId}" src="${existingImg}" class="w-full h-full object-cover ${existingImg ? '' : 'hidden-element'}"><div class="waiting-placeholder ${existingImg ? 'hidden-element' : ''} flex flex-col items-center justify-center text-white/20"><span class="text-[8px] font-black uppercase tracking-tighter">Wait Conn</span></div><div class="absolute top-1 left-1"><div class="w-2 h-2 rounded-full ${isOnline ? 'bg-emerald-500' : 'bg-slate-500'}"></div></div></div><div class="p-2"><p class="text-[8px] font-black truncate uppercase text-slate-700 leading-tight">${l.nama}</p><p class="text-[6px] font-bold ${violationCount > 0 ? 'text-red-500' : 'text-slate-400'} truncate mt-0.5 uppercase">${lastStatus}</p><div class="flex gap-1 mt-1.5"><button onclick="openLiveStream('${studentId}')" class="flex-1 bg-blue-600 text-white text-[7px] font-black py-1 rounded">LIVE</button><button onclick="remoteUnlockStudent('${studentId}')" class="flex-1 ${isLocked ? 'bg-red-600 text-white' : 'bg-slate-100 text-slate-400'} text-[7px] font-black py-1 rounded">UNLOCK</button></div></div></div>`;
+        innerGrid.insertAdjacentHTML('beforeend', cardHtml); if (isOnline) connectToStudentData(studentId);
     });
 }
 
 // 4. Koneksi Data (Bukan Video)
 function connectToStudentData(studentId) {
-    const safeId = studentId.replace(/[^a-zA-Z0-9]/g, '');
-    const peerId = 'exam2026_' + safeId;
-
-    if (peerDataConns[peerId] && peerDataConns[peerId].open) {
-        return; // Sudah terkoneksi
-    }
-
+    const safeId = studentId.replace(/[^a-zA-Z0-9]/g, ''), peerId = 'exam2026_' + safeId;
+    if (peerDataConns[peerId] && peerDataConns[peerId].open) return;
     try {
         const conn = peer.connect(peerId, { reliable: false });
-        conn.on('open', () => {
-            setupDataConnection(conn);
-            conn.send({ type: 'request_snapshot' }); // Minta gambar pertama
-        });
-    } catch (e) {
-        console.warn("P2P Connect Failed for student:", studentId);
-    }
+        conn.on('open', () => { setupDataConnection(conn); conn.send({ type: 'request_snapshot' }); });
+    } catch (e) { console.warn("P2P Connect Failed for student:", studentId); }
 }
 
 // 5. Setup Jalur Data (Sisi Penerima)
 function setupDataConnection(conn) {
-    const remotePeerId = conn.peer;
-    peerDataConns[remotePeerId] = conn;
-
+    const remotePeerId = conn.peer; peerDataConns[remotePeerId] = conn;
     conn.on('data', (data) => {
-        // SISWA -> ADMIN: Mengirim gambar
         if (data.type === 'snapshot' && data.img) {
-            const cleanedId = remotePeerId.replace(/^exam2026_/, '');
-            monitorSnapshots[cleanedId] = data.img; // Simpan di cache agar tidak hilang saat re-render
-            const imgElement = document.getElementById(`snapshot-${cleanedId}`);
-            const placeholder = document.querySelector(`#card-${cleanedId} .waiting-placeholder`);
-            
-            if (imgElement) {
-                imgElement.src = data.img;
-                imgElement.classList.remove('hidden-element');
-                if (placeholder) placeholder.classList.add('hidden-element');
-            }
+            const cleanedId = remotePeerId.replace(/^exam2026_/, ''), imgElement = document.getElementById(`snapshot-${cleanedId}`), placeholder = document.querySelector(`#card-${cleanedId} .waiting-placeholder`);
+            monitorSnapshots[cleanedId] = data.img;
+            if (imgElement) { imgElement.src = data.img; imgElement.classList.remove('hidden-element'); if (placeholder) placeholder.classList.add('hidden-element'); }
         }
-
-        // ADMIN -> SISWA: Minta Snapshot (Logika di sisi Siswa)
-        if (data.type === 'request_snapshot' && currentRole === 'student') {
-            const img = captureSnapshot();
-            if (img) conn.send({ type: 'snapshot', img: img });
-        }
-
-        // PERINTAH UNLOCK
-        if (data.type === 'command' && data.content === 'unlock' && currentRole === 'student') {
-            forceUnlockLocally();
-        }
+        if (data.type === 'request_snapshot' && currentRole === 'student') { const img = captureSnapshot(); if (img) conn.send({ type: 'snapshot', img: img }); }
+        if (data.type === 'command' && data.content === 'unlock' && currentRole === 'student') forceUnlockLocally();
     });
 }
 
 // 6. Live Stream On-Demand
 function openLiveStream(studentId) {
-    const cleanId = studentId.replace(/[^a-zA-Z0-9]/g, '');
-    const container = document.getElementById(`container-${cleanId}`);
+    const cleanId = studentId.replace(/[^a-zA-Z0-9]/g, ''), container = document.getElementById(`container-${cleanId}`), safePeerId = 'exam2026_' + cleanId;
     if (!container || !peer) return;
-
     container.insertAdjacentHTML('beforeend', `<div id="loading-${cleanId}" class="absolute inset-0 flex items-center justify-center bg-black/80 text-white text-[8px] font-black z-50">MEMBUKA KAMERA...</div>`);
-
-    const safePeerId = 'exam2026_' + cleanId;
     const call = peer.call(safePeerId, new MediaStream());
-
     call.on('stream', (remoteStream) => {
-        const loading = document.getElementById(`loading-${cleanId}`);
-        if(loading) loading.remove();
-        
-        container.innerHTML = `
-            <video id="remote-video-${cleanId}" autoplay muted playsinline class="w-full h-full object-cover z-40"></video>
-            <button onclick="stopLiveStream('${studentId}')" class="absolute bottom-1 right-1 z-50 bg-red-600 text-white text-[6px] px-2 py-1 rounded font-black shadow-lg">TUTUP VIDEO</button>
-        `;
-        const video = document.getElementById(`remote-video-${cleanId}`);
-        if (video) video.srcObject = remoteStream;
-        activeCalls[safePeerId] = call;
+        const loading = document.getElementById(`loading-${cleanId}`); if(loading) loading.remove();
+        container.innerHTML = `<video id="remote-video-${cleanId}" autoplay muted playsinline class="w-full h-full object-cover z-40"></video><button onclick="stopLiveStream('${studentId}')" class="absolute bottom-1 right-1 z-50 bg-red-600 text-white text-[6px] px-2 py-1 rounded font-black shadow-lg">TUTUP VIDEO</button>`;
+        const video = document.getElementById(`remote-video-${cleanId}`); if (video) video.srcObject = remoteStream; activeCalls[safePeerId] = call;
     });
-
-    call.on('error', (err) => {
-        alert("Gagal memanggil kamera. Siswa mungkin sudah menutup aplikasi.");
-        startMonitorFeed();
-    });
+    call.on('error', (err) => { alert("Gagal memanggil kamera. Siswa mungkin sudah menutup aplikasi."); startMonitorFeed(); });
 }
-
-function stopLiveStream(studentId) {
-    // Memuat ulang monitor grid secara otomatis akan memutus stream dan kembali ke snapshot
-    startMonitorFeed();
-}
+function stopLiveStream(studentId) { startMonitorFeed(); }
 
 // 7. Fungsi Capture Snapshot (Sisi Siswa)
 function captureSnapshot() {
-    const video = document.getElementById('self-video');
-    if (!video || video.readyState < 2) return null;
-
-    const canvas = document.createElement('canvas');
-    // Ukuran sangat kecil untuk menghemat bandwidth (300+ siswa)
-    canvas.width = 120; 
-    canvas.height = 190;
-    
-    const ctx = canvas.getContext('2d');
-    ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
-    
-    // Kualitas JPEG 0.1 (Sangat rendah tapi cukup untuk pantauan)
+    const video = document.getElementById('self-video'); if (!video || video.readyState < 2) return null;
+    const canvas = document.createElement('canvas'); canvas.width = 120; canvas.height = 190;
+    canvas.getContext('2d').drawImage(video, 0, 0, canvas.width, canvas.height);
     return canvas.toDataURL('image/jpeg', 0.1); 
 }
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 async function syncFilterOptions() {
-    const filterSelect = document.getElementById('monitor-filter-kelas');
-    // Jika pilihan sudah ada (lebih dari 1), jangan isi lagi agar tidak duplikat
-    if (filterSelect.options.length > 1) return;
-
+    const filterSelect = document.getElementById('monitor-filter-kelas'); if (filterSelect.options.length > 1) return;
     try {
-        const { data, error } = await db.from('users').select('kelas');
-        if (error) throw error;
-
-        const kelasSet = new Set();
-        data.forEach(item => { 
-            if(item.kelas) kelasSet.add(item.kelas.trim()); 
+        const { data, error } = await db.from('users').select('kelas'); if (error) throw error;
+        const kelasSet = new Set(); data.forEach(item => { if(item.kelas) kelasSet.add(item.kelas.trim()); });
+        Array.from(kelasSet).sort((a, b) => a.localeCompare(b, undefined, { numeric: true })).forEach(k => {
+            const opt = document.createElement('option'); opt.value = k; opt.textContent = k; filterSelect.appendChild(opt);
         });
-
-        // Urutkan kelas secara alfabetis/numerik
-        const sortedKelas = Array.from(kelasSet).sort((a, b) => 
-            a.localeCompare(b, undefined, { numeric: true })
-        );
-
-        sortedKelas.forEach(k => {
-            const opt = document.createElement('option');
-            opt.value = k;
-            opt.textContent = k;
-            filterSelect.appendChild(opt);
-        });
-        console.log("Filter kelas berhasil dimuat:", sortedKelas);
-    } catch (e) {
-        console.error("Gagal memuat filter kelas:", e);
-    }
+        console.log("Filter kelas berhasil dimuat:", Array.from(kelasSet));
+    } catch (e) { console.error("Gagal memuat filter kelas:", e); }
 }
-
 
 function remoteUnlockStudent(studentId) {
     if(confirm("Buka akses siswa ini?")) {

@@ -226,9 +226,39 @@
 // --- A. SETUP CONFIGURATION & SUPABASE ---
         const apiKey = "AIzaSyBrpMLLakAoM5HIL0Vax91OI0wX371Bgxc";
         const SUPABASE_URL = "https://wpdtjuwykzzctponejgl.supabase.co";
-        const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InlldWthbW14a2JhdHlsZHFidHp5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzg5OTk0OTEsImV4cCI6MjA5NDU3NTQ5MX0.RVvEVGhknsaqpsJjqom9Kawum31MkOb22aM7CHvLLgk";
+        const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inl6d2N2bXNxbW1zY3pvbm1kdGpwIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzg5OTUxNDAsImV4cCI6MjA5NDU3MTE0MH0.3gndAY3A0m66ItLJgwsDWAkkwnAI5AD3NxgMYsZsP8Q";
         const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY, { auth: { persistSession: true, autoRefreshToken: true } });
         const db = supabaseClient;
+
+        function showStartupError(message) {
+            console.error('Startup Error:', message);
+            const existing = document.getElementById('startup-error-banner');
+            if (existing) existing.remove();
+            const banner = document.createElement('div');
+            banner.id = 'startup-error-banner';
+            banner.className = 'fixed inset-x-0 top-0 bg-red-600 text-white text-sm font-bold p-4 text-center z-[9999]';
+            banner.innerHTML = message.replace(/\n/g, '<br>');
+            document.body.prepend(banner);
+            document.getElementById('loading-overlay').classList.add('hidden-element');
+            document.getElementById('login-page').classList.remove('hidden-element');
+        }
+
+        const isLocalFileOrigin = window.location.protocol === 'file:' || window.location.origin === 'null';
+
+        async function checkSupabaseConnection() {
+            if (isLocalFileOrigin) {
+                showStartupError('Aplikasi harus dijalankan melalui HTTP/HTTPS, bukan file:// atau origin null.\nJalankan server lokal dengan `python3 -m http.server` atau `npx serve` di folder proyek.');
+                return false;
+            }
+            try {
+                const { data, error } = await db.from('settings').select('id').limit(1);
+                if (error) throw error;
+                return true;
+            } catch (err) {
+                showStartupError('Koneksi Supabase gagal. Cek konfigurasi supabase dan origin CORS.\n' + (err.message || err));
+                return false;
+            }
+        }
 
         async function upsertSettingsItem(settingId, data) {
             let payload = { id: settingId, ...data };
@@ -446,7 +476,9 @@
 	window.onload = async () => {
 		if ('serviceWorker' in navigator) {navigator.serviceWorker.getRegistrations().then(function(registrations) {
 		for(let registration of registrations) {registration.unregister(); }}); }
-	try { document.getElementById('loading-overlay').classList.add('hidden-element');
+	try {
+            if (!await checkSupabaseConnection()) return;
+            document.getElementById('loading-overlay').classList.add('hidden-element');
 
         // 1. CEK SESSION LOGIN
         let sessionData = null;
@@ -1626,7 +1658,13 @@ document.body.style.webkitTouchCallout = "none";
 document.body.style.webkitUserSelect = "none";
 document.body.style.userSelect = "none";
 
+window.addEventListener('error', (event) => {
+    showStartupError('Kesalahan aplikasi terdeteksi: ' + (event.message || 'Unknown error'));
+});
 
+window.addEventListener('unhandledrejection', (event) => {
+    showStartupError('Kesalahan promise tidak tertangani: ' + (event.reason?.message || event.reason || 'Unknown promise error'));
+});
 
     </script>
 </body>

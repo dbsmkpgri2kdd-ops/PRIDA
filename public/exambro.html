@@ -736,36 +736,27 @@ async function saveAndSyncSheet() {
         });
 
         if (userRows.length > 0) {
-            let deleteResult = await db.from('users').delete().neq('id', '');
-            if (deleteResult.error && deleteResult.error.code === '42703') {
-                deleteResult = await db.from('users').delete();
-            }
-            if (deleteResult.error) throw deleteResult.error;
-            const insertResult = await db.from('users').insert(userRows);
-            if (insertResult.error) throw insertResult.error;
+            // --- PERBAIKAN DI SINI ---
+            // Kita gunakan filter yang valid untuk UUID (menghapus yang ID-nya tidak null)
+            // Atau filter kolom 'nis' yang bertipe TEXT
+            const { error: deleteError } = await db.from('users').delete().neq('nis', 'KOSONG_DATA_TEMP_123'); 
+            
+            if (deleteError) throw deleteError;
+
+            const { error: insertError } = await db.from('users').insert(userRows);
+            if (insertError) throw insertError;
         }
 
         alert(`Berhasil! ${userRows.length} data siswa disinkronkan.`);
         loadKelas();
     } catch (e) {
+        console.error(e);
         alert("Gagal Sinkron: " + e.message);
     } finally {
         btn.disabled = false;
         btnText.textContent = "SIMPAN & SINKRON";
     }
 }
-
-// 3. Update Fungsi Tampilan Tabel (Hapus tombol Edit/Hapus)
-function syncAdminStudentData() {
-    publicData.collection('users').orderBy('kelas', 'asc').onSnapshot(s => {
-        const list = document.getElementById('admin-student-list');
-        if (!list) return; list.innerHTML = "";
-        s.forEach(d => {const u = d.data();
-            list.innerHTML += `<tr class="hover:bg-slate-50 transition-colors"><td class="px-8 py-5 font-bold text-sm text-slate-800">${u.nis}</td><td class="px-8 py-5 text-sm text-slate-600">${u.nama}</td><td class="px-8 py-5 text-[10px] font-black uppercase text-slate-400">${u.kelas}</td><td class="px-8 py-5 text-xs font-mono text-slate-300">${u.pwd}</td></tr>`;
-        });
-    });
-}
-
        
 async function saveExam() {
     const id = document.getElementById('edit-exam-id').value;

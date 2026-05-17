@@ -608,82 +608,94 @@ async function finishExam() {
 }
 
 function confirmFinishExam() { if(confirm("Apakah anda yakin telah menyelesaikan semua soal dan ingin keluar?")) finishExam(); }
+
+// --- 1. PERBAIKAN CLIPBOARD (Agar saran keyboard bersih) ---
 async function clearClipboard() {
-    try { await navigator.clipboard.writeText("Akses dilarang"); } catch (err) {
-        try { const input = document.createElement("input"); input.value = " "; document.body.appendChild(input); input.select(); document.execCommand("copy"); document.body.removeChild(input); } catch (copyError) { console.warn('Clear clipboard failed:', copyError); }
+    try { 
+        await navigator.clipboard.writeText(" "); 
+    } catch (err) {
+        try { 
+            const input = document.createElement("input"); 
+            input.value = " "; 
+            document.body.appendChild(input); 
+            input.select(); 
+            document.execCommand("copy"); 
+            document.body.removeChild(input); 
+        } catch (e) {}
     }
 }
 
-// --- G. SECURITY VIOLATION & LOCKDOWN (REVISED FOR MOBILE) ---
+// --- 2. PERBAIKAN LOCKDOWN (Silent Back & Iframe-Safe Focus) ---
 let isSecuritySetup = false, blurTimer = null; 
 function enableHardLockdown() {
     if (isSecuritySetup) return;
-    // Proteksi Klik Kanan & Seleksi Teks
-    document.oncontextmenu = (e) => { e.preventDefault(); return false; }; 
-    document.body.style.webkitUserSelect = "none"; 
-    document.body.style.userSelect = "none"; 
-    document.body.style.webkitTouchCallout = "none"; 
-
-    // 1. PERBAIKAN TOMBOL KEMBALI (SILENT MODE)
-    // Menambahkan entri ke history agar tombol back tidak berfungsi
+    
+    // Tombol Kembali: SENYAP (Silent)
     history.pushState(null, null, location.href);
-    window.onpopstate = function() {history.pushState(null, null, location.href);
-        // Cukup diam, tidak ada alert() dan tidak ada reportViolation()
+    window.onpopstate = function() {
+        history.pushState(null, null, location.href);
     };
 
-    // Shortcut Keyboard Terlarang
+    document.oncontextmenu = (e) => { e.preventDefault(); return false; }; 
+    document.body.style.webkitUserSelect = "none";
+
     window.onkeydown = (e) => {
         if (!isExamActive) return;
-        const forbiddenKeys = [122, 123, 91, 92], 
-              isControlAction = e.ctrlKey && ['u','s','p','c','v'].includes(e.key.toLowerCase()), 
-              isAltAction = e.altKey && (e.key === 'Tab' || e.key === 'F4');
-        if (forbiddenKeys.includes(e.keyCode) || isControlAction || isAltAction) { 
-            e.preventDefault(); reportViolation("Shortcut Terlarang"); return false; }
+        const forbiddenKeys = [122, 123, 91, 92];
+        const isControlAction = e.ctrlKey && ['u','s','p','c','v'].includes(e.key.toLowerCase());
+        if (forbiddenKeys.includes(e.keyCode) || isControlAction) { 
+            e.preventDefault(); reportViolation("Shortcut Terlarang"); return false; 
+        }
     };
 
-    // Deteksi Jika Benar-benar Pindah Aplikasi (Minimize/Pindah Tab)
-    document.addEventListener('visibilitychange', () => {
-        if (isExamActive && document.visibilityState === 'hidden') { 
-            blurTimer = setTimeout(() => {reportViolation("Keluar dari Aplikasi"); }, 2500); 
-        } else if (blurTimer) {clearTimeout(blurTimer); blurTimer = null; }
-    });
-
-    // 2. PERBAIKAN BLUR (AGAR BISA MENGETIK)
+    // Deteksi Fokus: JANGAN lapor jika fokus ke Iframe (Mengetik)
     window.onblur = () => { 
         if (!isExamActive) return; 
-        // Menggunakan jeda waktu singkat untuk mengecek ke mana fokus berpindah
         setTimeout(() => {
-            // Jika fokus berpindah ke IFRAME (tempat soal) atau INPUT, jangan lapor pelanggaran
+            // Cek jika siswa sedang di area input soal (iframe)
             if (document.activeElement && 
                (document.activeElement.tagName === 'IFRAME' || 
                 document.activeElement.tagName === 'INPUT' || 
                 document.activeElement.tagName === 'TEXTAREA')) {
                 if (blurTimer) { clearTimeout(blurTimer); blurTimer = null; }
-                return; }
-            // Jika fokus hilang bukan karena input (misal buka notifikasi/panel hp)
-            blurTimer = setTimeout(() => {reportViolation("Kehilangan Fokus Layar"); }, 3500); }, 300);
+                return; 
+            }
+            blurTimer = setTimeout(() => { reportViolation("Kehilangan Fokus Layar"); }, 3000); 
+        }, 500);
     };
-    window.onfocus = () => {if (blurTimer) { clearTimeout(blurTimer); blurTimer = null; } };
+
+    window.onfocus = () => { if (blurTimer) { clearTimeout(blurTimer); blurTimer = null; } };
     isSecuritySetup = true;
 }
 
+// --- 3. PERBAIKAN PELAPORAN (Jeda 4 detik agar tidak double hitung) ---
 function reportViolation(reason = "Aktivitas Mencurigakan") {
-    if (!isExamActive) return; const now = Date.now(); 
-    // Mencegah double hitungan dalam waktu singkat (4 detik)
-    if (now - lastViolationTime < 4000) return; lastViolationTime = now; violationCount++;
-    // Update tampilan counter pelanggaran di layar siswa
-    const vCountEl = document.getElementById('violation-count'), vBadgeEl = document.getElementById('violation-badge');
-    if(vCountEl) vCountEl.textContent = violationCount; if(vBadgeEl) vBadgeEl.classList.remove('hidden-element');
-    // Suara Peringatan
-    const alarm = document.getElementById('alarm-sound'); if(alarm) alarm.play().catch(() => {});
-    // Efek Getar Visual
+    if (!isExamActive) return; 
+    const now = Date.now(); 
+    if (now - lastViolationTime < 4000) return; 
+    
+    lastViolationTime = now; 
+    violationCount++;
+
+    const vCountEl = document.getElementById('violation-count'), 
+          vBadgeEl = document.getElementById('violation-badge');
+    
+    if(vCountEl) vCountEl.textContent = violationCount; 
+    if(vBadgeEl) vBadgeEl.classList.remove('hidden-element');
+
+    const alarm = document.getElementById('alarm-sound'); 
+    if(alarm) alarm.play().catch(() => {});
+
     document.body.classList.add('violation-shake'); 
     setTimeout(() => document.body.classList.remove('violation-shake'), 500);
-    // Kirim data pelanggaran ke Database Admin secara Real-time
-    if (user && user.id) {db.from('live').update({ v: violationCount, lastStatus: 'Peringatan: ' + reason.toUpperCase() }).eq('id', user.id); }
-    // Jika sudah 5 kali melanggar, kunci layar otomatis
-    if (violationCount >= 5) {triggerLock(); }
+
+    if (user && user.id) { 
+        db.from('live').update({ v: violationCount, lastStatus: reason.toUpperCase() }).eq('id', user.id); 
+    }
+    if (violationCount >= 5) triggerLock();
 }
+
+
 async function triggerLock() { 
         if (isExamActive) { document.getElementById('lock-screen').classList.remove('hidden-element');
             if (user && user.id) { try { await publicData.collection('live').doc(user.id).update({ isLocked: true, v: violationCount, lastStatus: 'TERKUNCI - BUTUH PIN' }); } catch (e) { console.error("Gagal lapor status kunci"); } }
@@ -879,27 +891,23 @@ async function generateAISoal() {
     } catch(e) { alert("Gagal."); } finally { btn.classList.remove('hidden-element'); loader.classList.add('hidden-element'); }
 }
 
-// --- J. LOGIKA PROTEKSI & KEAMANAN TERPADU (HP OPTIMIZED - FINAL) ---
-window.onbeforeunload = function() { if (isExamActive) return "Ujian sedang berlangsung! Anda akan dicatat melakukan pelanggaran jika keluar."; };
-
-let blurTimeout;
-window.addEventListener('blur', () => { if(isExamActive) { blurTimeout = setTimeout(() => { reportViolation(); }, 1000); } });
+// --- J. PENGATURAN AKHIR (PENGGANTI SECTION J LAMA) ---
+window.onbeforeunload = function() { if (isExamActive) return "Sedang Ujian!"; };
 document.addEventListener('fullscreenchange', () => {
-    if (isExamActive && !document.fullscreenElement) { reportViolation(); alert("Peringatan! Ujian wajib dalam mode Fullscreen."); setTimeout(() => { document.documentElement.requestFullscreen().catch(() => {}); }, 1000); }
-});
+    if (isExamActive && !document.fullscreenElement) { reportViolation("Keluar Fullscreen"); 
+    setTimeout(() => { document.documentElement.requestFullscreen().catch(() => {}); }, 1000); }});
 
 window.addEventListener('resize', () => {
-    if (!isExamActive) return;
-    if (document.activeElement.tagName === 'INPUT' || document.activeElement.tagName === 'TEXTAREA') return;
-    const widthDiff = Math.abs(window.innerWidth - initialWidth), heightDiff = Math.abs(window.innerHeight - initialHeight);
-    if (widthDiff > 50) {reportViolation("Resize Layar (Split Screen?)"); initialWidth = window.innerWidth; }
-    if (heightDiff > (initialHeight * 0.3) && !document.fullscreenElement) {reportViolation("Keluar Mode Fullscreen");}
-});
+    if (!isExamActive) return;const widthDiff = Math.abs(window.innerWidth - initialWidth);
+    if (widthDiff > 100) {reportViolation("Layar Terbagi / Split Screen");initialWidth = window.innerWidth;}});
 
-document.oncontextmenu = function(e) { e.preventDefault(); e.stopPropagation(); return false; };
-document.body.style.webkitTouchCallout = "none"; document.body.style.webkitUserSelect = "none"; document.body.style.userSelect = "none";
-window.addEventListener('error', (event) => { showStartupError('Kesalahan aplikasi terdeteksi: ' + (event.message || 'Unknown error')); });
-window.addEventListener('unhandledrejection', (event) => { showStartupError('Kesalahan promise tidak tertangani: ' + (event.reason?.message || event.reason || 'Unknown promise error')); });
+// Menangani Error Aplikasi (Agar Dashboard tetap stabil)
+window.addEventListener('error', (event) => {console.warn('System Note:', event.message); });
+window.addEventListener('unhandledrejection', (event) => {console.warn('Promise Note:', event.reason); });
+
+// Proteksi Tambahan Global
+document.oncontextmenu = () => false;
+document.body.style.webkitTouchCallout = "none";
 
 </script>
 </body>

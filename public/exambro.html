@@ -683,33 +683,35 @@ function setupDataConnection(conn) {
     conn.on('data', (data) => {
         if (!data || !data.type) return;
 
-        // LOGIKA SISWA: Menerima permintaan foto dari Admin
+        // --- LOGIKA SISWA: Menerima request dari Admin ---
         if (data.type === 'request_snapshot') { 
             const img = captureSnapshot(); 
             if (img) conn.send({ type: 'snapshot', img: img }); 
         }
 
-        // LOGIKA SISWA: Menerima perintah UNLOCK
+        // --- LOGIKA SISWA: Menerima perintah UNLOCK ---
         if (data.type === 'command' && data.content === 'unlock') {
             forceUnlockLocally();
         }
 
-        // LOGIKA ADMIN: Menerima kiriman foto dari Siswa
+        // --- LOGIKA ADMIN: Menerima kiriman foto dari Siswa ---
         if (data.type === 'snapshot' && data.img) {
-            const studentId = remotePeerId.replace(/^exam2026_/, ''); // Ambil ID asli siswa
+            // Ambil ID siswa dari PeerID (contoh: exam2026_rifal123 -> rifal123)
+            const cleanedId = remotePeerId.replace(/^exam2026_/, '');
             
-            // Simpan ke memori agar saat ganti tab dashboard foto tidak hilang
-            monitorSnapshots[studentId] = data.img;
+            // Simpan ke cache snapshot
+            monitorSnapshots[cleanedId] = data.img;
 
-            // Update gambar di kotak monitor secara langsung
-            const imgElement = document.getElementById(`snapshot-${studentId}`);
+            // Update gambar di layar menggunakan ID yang sudah dibersihkan
+            const imgElement = document.getElementById(`snapshot-${cleanedId}`);
             if (imgElement) {
                 imgElement.src = data.img;
-                // Hapus efek "Waiting Feed" jika ada
-                const container = imgElement.parentElement;
-                const placeholder = container.querySelector('.waiting-placeholder');
-                if (placeholder) placeholder.classList.add('hidden-element');
                 imgElement.classList.remove('hidden-element');
+                
+                // Sembunyikan tulisan "Waiting Feed"
+                const parent = imgElement.parentElement;
+                const placeholder = parent.querySelector('.waiting-placeholder');
+                if (placeholder) placeholder.classList.add('hidden-element');
             }
         }
     });
@@ -733,9 +735,21 @@ function connectSnapshotChannel(studentId) {
     const currentFilter = document.getElementById('monitor-filter-kelas').value;
     if (currentFilter === "ALL") return;
     if (!peer || !studentId) return;
-    const safeId = studentId.replace(/[^a-zA-Z0-9]/g, ''), peerId = 'exam2026_' + safeId;
-    if (peerDataConns[peerId] && peerDataConns[peerId].open) { peerDataConns[peerId].send({ type: 'request_snapshot' }); return; }
-    try { const conn = peer.connect(peerId, { reliable: false }); setupDataConnection(conn); } catch (e) { console.warn('Peer connection skip:', studentId); }
+
+    // Bersihkan ID agar sesuai dengan ID yang dibuat siswa di initPeer
+    const safeId = studentId.replace(/[^a-zA-Z0-9]/g, '');
+    const peerId = 'exam2026_' + safeId;
+
+    if (peerDataConns[peerId] && peerDataConns[peerId].open) { 
+        // Jika sudah konek, langsung minta foto
+        peerDataConns[peerId].send({ type: 'request_snapshot' }); 
+        return; 
+    }
+
+    try { 
+        const conn = peer.connect(peerId, { reliable: false }); 
+        setupDataConnection(conn); 
+    } catch (e) { console.warn('Peer connection skip:', studentId); }
 }
 
 // --- PERBAIKAN MONITORING (OPTIMASI BANDWIDTH & CPU) ---
@@ -766,21 +780,29 @@ function startMonitorFeed() {
         grid.insertAdjacentHTML('beforeend', `<div id="${sectionId}" class="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6 xl:grid-cols-8 gap-4"></div>`);
         const classGrid = document.getElementById(sectionId);
         
-        studentsInClass.forEach(l => {
+studentsInClass.forEach(l => {
             const studentId = l.id;
-            const safeId = studentId.replace(/[^a-zA-Z0-9]/g, '');
+            // safeId adalah ID tanpa titik/spasi agar valid jadi ID HTML (contoh: rifal123)
+            const safeId = studentId.replace(/[^a-zA-Z0-9]/g, ''); 
             const isOnline = (Date.now() - l.last) < 40000;
             const isLocked = l.isLocked === true || l.v >= 5;
-            const snapshotImg = monitorSnapshots[studentId] || "";
+            
+            // Ambil gambar dari cache jika Admin sudah pernah menerima sebelumnya
+            const snapshotImg = monitorSnapshots[safeId] || "";
 
             const cardHtml = `
                 <div id="card-${safeId}" class="monitor-card bg-white rounded-2xl border ${isLocked ? 'border-red-500 ring-2 ring-red-500/20' : 'border-slate-100'} overflow-hidden relative shadow-sm">
                     <div id="container-${safeId}" class="aspect-video bg-slate-100 relative overflow-hidden flex items-center justify-center">
-                        <img id="snapshot-${studentId}" src="${snapshotImg}" class="w-full h-full object-cover ${snapshotImg ? '' : 'hidden-element'}">
+                        
+                        <!-- Gambar Siswa (Gunakan safeId) -->
+                        <img id="snapshot-${safeId}" src="${snapshotImg}" class="w-full h-full object-cover ${snapshotImg ? '' : 'hidden-element'}">
+                        
+                        <!-- Placeholder jika gambar belum masuk -->
                         <div class="waiting-placeholder ${snapshotImg ? 'hidden-element' : ''} flex flex-col items-center justify-center text-slate-300">
                             <span class="text-[18px]">📷</span>
                             <span class="text-[7px] font-black uppercase mt-1">Waiting Feed</span>
                         </div>
+
                         <div class="absolute top-1 left-1 flex gap-1">
                             <div class="status-ping ${isOnline ? 'bg-emerald-500' : 'bg-slate-300'}"></div>
                             ${l.v > 0 ? `<span class="bg-red-600 text-white text-[7px] px-1 rounded font-black">V:${l.v}</span>` : ''}

@@ -344,7 +344,7 @@
 
                     return {
                         doc(id) {
-                            const queryKey = async (column) => db.from(name).select('*').filter(column, 'eq', id).single();
+                            const queryKey = async (column) => db.from(name).select('*').filter(column, 'eq', id).maybeSingle();
                             const getRow = async () => {
                                 let result = await queryKey('id');
                                 if (result.error && result.error.code === '42703') result = await queryKey('key');

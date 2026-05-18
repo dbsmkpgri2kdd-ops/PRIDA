@@ -642,7 +642,7 @@ async function startExamEngine(url, mapel, dur, isCameraRequired) {
     if (isCameraRequired !== false) {
         try {
             const stream = await navigator.mediaDevices.getUserMedia({ 
-                video: { width: { ideal: 160 }, height: { ideal: 120 }, frameRate: { max: 10 } } 
+                video: { width: { ideal: 120 }, height: { ideal: 90 }, frameRate: { max: 10 } } 
             });
             window.localStream = stream; 
             selfVideo.srcObject = stream; 
@@ -863,7 +863,7 @@ function updateMonitorCard(p) {
                     </div>
                     <div class="flex gap-1">
                         <button onclick="startLiveStream('${p.userId}')" id="btn-live-${safeId}" class="flex-1 bg-blue-600 text-white text-[9px] font-bold py-1.5 rounded-lg">LIVE</button>
-                        <button onclick="remoteUnlockStudent('${p.originalId}')" class="px-2 bg-slate-100 text-slate-400 text-[9px] rounded-lg">🔓</button>
+                        <button onclick="remoteUnlockStudent('${p.originalId}')" class="flex-1 bg-blue-600 text-white text-[9px] font-bold py-1.5 rounded-lg">UNLOCK</button>
                     </div>
                 </div>
             </div>`;
@@ -934,11 +934,11 @@ function captureSnapshot() {
 
     try {
         const canvas = document.createElement('canvas'); 
-        canvas.width = 120; // Resolusi rendah untuk hemat kuota
-        canvas.height = 90;
+        canvas.width = 160; // Resolusi rendah untuk hemat kuota
+        canvas.height = 120;
         const ctx = canvas.getContext('2d');
         ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
-        return canvas.toDataURL('image/jpeg', 0.1); // Kompresi tinggi (0.1)
+        return canvas.toDataURL('image/jpeg', 0.2); // Kompresi tinggi (0.1)
     } catch (e) {
         return null;
     }
@@ -1001,8 +1001,29 @@ function forceUnlockLocally() {
 
 async function clearMonitorData() {
     if(!confirm("Bersihkan data live di database?")) return; 
-    await db.from('live').delete().neq('id', '0');
-    location.reload();
+    try {
+        // 1. Hapus data di database Supabase (kecuali id '0' jika ada)
+        const { error } = await db.from('live').delete().neq('id', '0');
+        if (error) throw error;
+        // 2. JANGAN GUNAKAN location.reload()
+        // Kita bersihkan tampilan grid secara manual
+        const innerGrid = document.getElementById('monitor-grid-inner');
+        if (innerGrid) {
+            innerGrid.innerHTML = ""; // Menghapus semua kartu siswa di layar
+        }
+
+        // 3. Reset angka penghitung online
+        const onlineCount = document.getElementById('online-count');
+        if (onlineCount) {
+            onlineCount.textContent = "0 Siswa Terdeteksi";
+        }
+
+        alert("Database dan Feed berhasil dibersihkan!");
+
+    } catch (e) {
+        console.error("Gagal membersihkan feed:", e);
+        alert("Gagal membersihkan data: " + e.message);
+    }
 }
 
 function startCleanupService() { setInterval(async () => { try { const fiveMinutesAgo = Date.now() - (5 * 60 * 1000); await cleanupLiveRows(fiveMinutesAgo); } catch (e) { console.error("Cleanup error:", e); } }, 60000); }

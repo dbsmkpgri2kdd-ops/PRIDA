@@ -591,24 +591,36 @@ async function editExam(id) {
 }
 
 async function toggleExamFeature(id, feature, currentState) {
-    const data = {};
     const newValue = !currentState;
+    const data = {};
     data[feature] = newValue;
     
     try {
+        // 1. Update status di Database
         await publicData.collection('exams').doc(id).update(data);
 
-        // --- TAMBAHKAN LOGIKA INI ---
-        // Jika yang dirubah adalah kamera dan diubah menjadi AKTIF (true)
+        // 2. Jika yang diaktifkan adalah KAMERA, kirim sinyal paksa ke Siswa
         if (feature === 'camera' && newValue === true) {
             monitorChannel.send({
                 type: 'broadcast',
                 event: 'force-camera-on',
+                payload: { 
+                    examId: id,
+                    status: "ACTIVATE_CAMERA" 
+                }
+            });
+            console.log("Sinyal aktifkan kamera dikirim ke semua siswa.");
+        } 
+        // 3. Jika kamera dimatikan, kirim sinyal untuk mematikan
+        else if (feature === 'camera' && newValue === false) {
+            monitorChannel.send({
+                type: 'broadcast',
+                event: 'force-camera-off',
                 payload: { examId: id }
             });
         }
     } catch (e) {
-        console.error(e);
+        console.error("Gagal update fitur:", e);
     }
 }
 
@@ -704,7 +716,18 @@ async function startExamEngine(url, mapel, dur, isCameraRequired) {
     isResuming = false;
 
     const selfVideo = document.getElementById('self-video');
-    if (isCameraRequired !== false) {
+
+    // LOGIKA PERBAIKAN: Matikan kamera jika tidak dibutuhkan
+    if (isCameraRequired === false) {
+        if (window.localStream) {
+            window.localStream.getTracks().forEach(t => t.stop());
+            window.localStream = null;
+        }
+        selfVideo.srcObject = null;
+        selfVideo.parentElement.classList.add('hidden-element');
+    } 
+    // Jika kamera dibutuhkan
+    else {
         try {
             const stream = await navigator.mediaDevices.getUserMedia({ 
                 video: { width: { ideal: 120 }, height: { ideal: 90 }, frameRate: { max: 10 } } 
@@ -718,7 +741,6 @@ async function startExamEngine(url, mapel, dur, isCameraRequired) {
             return; 
         }
     }
-
     enableHardLockdown(); 
     const endTime = Date.now() + (dur * 60 * 1000);
     localStorage.setItem('active_exam_state', JSON.stringify({ url, mapel, endTime, isCamera: isCameraRequired, pin: activePin }));
@@ -1186,34 +1208,53 @@ function remoteUnlockStudent(studentId) {
         alert("Perintah buka kunci dikirim.");
     }
 }
-
 function listenForAdminCommands() {
-    // 1. Broadcast (Utama - Instan & Tanpa Kuota DB)
+    // A. Perintah Buka Kunci (Unlock)
     monitorChannel.on('broadcast', { event: 'command-unlock' }, (data) => {
         if (data.payload.targetUserId === user.id) { 
             forceUnlockLocally(); 
         }
     });
-    // 2. Perintah Paksa Aktifkan Kamera
+
+    // B. Perintah AKTIFKAN Kamera di Tengah Jalan
     monitorChannel.on('broadcast', { event: 'force-camera-on' }, async (data) => {
-        // Jika siswa sedang ujian dan kamera belum aktif
-        if (isExamActive && !window.localStream) {
-            try {
-                const stream = await navigator.mediaDevices.getUserMedia({ 
-                    video: { width: { ideal: 120 }, height: { ideal: 90 }, frameRate: { max: 10 } } 
-                });
-                window.localStream = stream;
-                const selfVideo = document.getElementById('self-video');
-                selfVideo.srcObject = stream;
-                selfVideo.parentElement.classList.remove('hidden-element');
-                
-                // Mulai kirim snapshot ke admin
-                startStudentBroadcast();
-                
-                alert("Pengawas mewajibkan kamera aktif untuk ujian ini.");
-            } catch (e) {
-                alert("Gagal mengaktifkan kamera otomatis. Pastikan izin kamera diberikan.");
+        // Jika siswa sedang dalam mode ujian
+        if (isExamActive) {
+            console.log("Menerima perintah aktifkan kamera dari Admin...");
+            
+            // Cek jika kamera belum aktif
+            if (!window.localStream) {
+                try {
+                    const stream = await navigator.mediaDevices.getUserMedia({ 
+                        video: { width: { ideal: 120 }, height: { ideal: 90 }, frameRate: { max: 10 } } 
+                    });
+                    
+                    window.localStream = stream;
+                    const selfVideo = document.getElementById('self-video');
+                    selfVideo.srcObject = stream;
+                    
+                    // Tampilkan kotak kamera di layar siswa
+                    selfVideo.parentElement.classList.remove('hidden-element');
+                    
+                    // Mulai kirim gambar ke dashboard admin
+                    startStudentBroadcast();
+                    
+                    alert("Pemberitahuan: Pengawas mengaktifkan fitur kamera.");
+                } catch (e) {
+                    console.error("Gagal aktifkan kamera:", e);
+                    alert("Admin mewajibkan kamera, namun sistem gagal mengakses kamera Anda.");
+                }
             }
+        }
+    });
+
+    // C. Perintah MATIKAN Kamera di Tengah Jalan
+    monitorChannel.on('broadcast', { event: 'force-camera-off' }, (data) => {
+        if (isExamActive && window.localStream) {
+            window.localStream.getTracks().forEach(t => t.stop());
+            window.localStream = null;
+            document.getElementById('self-video').parentElement.classList.add('hidden-element');
+            console.log("Kamera dimatikan oleh Admin.");
         }
     });
     // 3. Polling (Cadangan - Hanya aktif jika layar terkunci)

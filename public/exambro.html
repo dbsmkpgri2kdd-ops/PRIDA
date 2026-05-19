@@ -749,6 +749,14 @@ function enableHardLockdown() {
             blurTimer = setTimeout(() => { reportViolation("Kehilangan Fokus Layar"); }, 3000); 
         }, 500);
     };
+    // 2. DETEKSI SPLIT SCREEN (Sering digunakan di Android)
+    window.addEventListener('resize', () => {
+        if (!isExamActive) return;
+        // Di HP, jika layar tiba-tiba berubah ukurannya secara drastis, 
+        // itu indikasi siswa membuka keyboard atau Split Screen.
+        // Kita beri toleransi sedikit, tapi jika terlalu kecil maka kunci.
+        if (window.innerHeight < (initialHeight * 0.7)) {reportViolation("Deteksi Layar Kecil / Split Screen");}
+    });
     window.onfocus = () => { if (blurTimer) { clearTimeout(blurTimer); blurTimer = null; } }; isSecuritySetup = true;
 }
 
@@ -778,8 +786,24 @@ function reportViolation(reason = "Aktivitas Mencurigakan") {
     // Bunyikan Alarm
     const snd = document.getElementById('alarm-sound'); if(snd) snd.play().catch(e => {})
     // 2. Notifikasi Visual Lokal (Tetap Instan)
-    const toast = document.createElement('div'); toast.className = "fixed top-10 left-1/2 -translate-x-1/2 bg-red-600 text-white px-6 py-3 rounded-2xl z-[10001] font-black shadow-2xl animate-bounce text-center min-w-[300px]";
-    toast.innerHTML = `<div class="text-[10px] opacity-80">PERINGATAN SISTEM</div><div>${reason.toUpperCase()}</div>`; document.body.appendChild(toast); setTimeout(() => toast.remove(), 3000);
+    const oldToast = document.querySelector('.violation-toast');
+    if (oldToast) oldToast.remove();
+    const toast = document.createElement('div');
+    toast.className = "violation-toast fixed top-10 left-1/2 -translate-x-1/2 w-[90%] max-w-[400px] bg-red-600 text-white p-5 rounded-[2rem] z-[10001] shadow-2xl flex flex-col items-center justify-center text-center border-2 border-white/20 scale-up-center";
+    
+    toast.innerHTML = `
+        <div style="font-[800] text-[10px] opacity-80 tracking-[0.2em] mb-1">PERINGATAN SISTEM</div>
+        <div style="font-[900] text-[14px] leading-tight mb-2">${reason.toUpperCase()}</div>
+        <div style="background:rgba(0,0,0,0.2); padding:4px 12px; border-radius:10px; font-size:11px; font-weight:700;">Pelanggaran ke: ${violationCount} / 5 </div>
+    `;
+    document.body.appendChild(toast); document.body.classList.add('violation-shake');
+    setTimeout(() => {
+        toast.style.opacity = '0';
+        toast.style.transform = 'translate(-50%, -20px) scale(0.9)';
+        toast.style.transition = 'all 0.5s ease';
+        document.body.classList.remove('violation-shake');
+        setTimeout(() => toast.remove(), 500);
+    }, 3500);
     // 3. Update UI Badge
     const vBadge = document.getElementById('violation-badge'); if(vBadge) { vBadge.classList.remove('hidden-element'); document.getElementById('violation-count').textContent = violationCount; }
     // 4. Update Database secara ASYNC (Tidak Menunggu) Hanya lapor jika krusial
@@ -1027,80 +1051,55 @@ setInterval(() => {
 }, 30000); // Jalankan pembersihan setiap 30 detik
 
 // --- I. LOGIKA AI GEMINI ---
+// Perbaikan fungsi generateAISoal
 async function generateAISoal() {
     const topic = document.getElementById('ai-topic').value;
-    const count = document.getElementById('ai-count').value || 1;
-    
-    if (!topic) return alert("Isi topik!");
-    
+    const count = document.getElementById('ai-count').value;
     const btn = document.getElementById('ai-btn');
     const loader = document.getElementById('ai-loading');
+
+    if (!topic) return alert("Isi topik!");
     
     btn.classList.add('hidden-element');
     loader.classList.remove('hidden-element');
-    
+
     try {
-        // Berikan instruksi skema JSON yang sangat spesifik dan ketat dalam bahasa Inggris di prompt agar AI tidak keliru membuat key propertinya
-        const prompt = `Generate ${count} multiple choice questions about "${topic}" in Indonesian. 
-        Return ONLY a JSON Array with this exact structure: 
-        [
-          {
-            "question": "Teks pertanyaan di sini"
-          }
-        ]
-        Do not include options, answers, or any markdown formatting outside of JSON.`;
-        
-        const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`, { 
-            method: 'POST', 
-            headers: {'Content-Type': 'application/json'}, 
-            body: JSON.stringify({
-                contents: [{parts: [{text: prompt}]}], 
-                generationConfig: { responseMimeType: "application/json" } 
-            }) 
+        const prompt = `Buatkan ${count} soal pilihan ganda tentang ${topic} dalam Bahasa Indonesia. 
+        Berikan output HANYA dalam format JSON array seperti ini: 
+        [{"question": "isi soal", "options": ["A", "B", "C", "D"], "answer": "A"}]`;
+
+        const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`, {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({ contents: [{ parts: [{ text: prompt }] }] })
         });
-        
+
         const result = await res.json();
+        let rawText = result.candidates[0].content.parts[0].text;
+
+        // PEMBERSIHAN FORMAT JSON (Regex untuk menghapus ```json ... ```)
+        const jsonMatch = rawText.match(/\[[\s\S]*\]/); 
+        if (!jsonMatch) throw new Error("Format JSON tidak ditemukan oleh AI");
         
-        // Cek validasi apakah respons API Gemini sesuai struktur dasarnya
-        if (!result.candidates || !result.candidates.content || !result.candidates.content.parts) {
-            throw new Error("Respons API Gemini tidak valid");
-        }
-        
-        let text = result.candidates.content.parts.text.trim();
-        
-        // Parsing data string JSON langsung secara aman
-        const qs = JSON.parse(text);
-        
-        // Pastikan hasil parsing adalah sebuah array
-        if (!Array.isArray(qs)) {
-            throw new Error("Hasil JSON bukan berupa Array");
-        }
-        
-        // Map data dengan fallback/cadangan jika key "question" hilang atau berganti nama secara tidak sengaja oleh AI
-        const rows = qs.map(q => {
-            const questionText = q.question || q.soal || q.pertanyaan;
-            if (!questionText) throw new Error("Format soal di dalam objek JSON tidak ditemukan");
-            
-            return { 
-                question: questionText, 
-                topic: topic, 
-                timestamp: Date.now() 
-            };
-        });
-        
-        // Simpan ke database Supabase Anda (db)
-        const { error } = await db.from('ai_bank').insert(rows);
-        if (error) throw error; 
-        
-        showNotify("Soal AI berhasil dibuat!", "success");
+        const cleanJson = JSON.parse(jsonMatch[0]);
+
+        // Simpan ke Supabase
+        const rows = cleanJson.map(q => ({
+            question: q.question,
+            topic: topic,
+            data: q // simpan full object
+        }));
+
+        await db.from('ai_bank').insert(rows);
+        showNotify("Soal AI Berhasil Dibuat!", "success");
         closeModal('modal-ai');
-        
-    } catch(e) { 
-        console.error("Detail Error AI:", e); // Membantu Anda melihat error asli di Console Log F12
-        showNotify("Gagal membuat soal AI: " + e.message, "error"); 
-    } finally { 
-        btn.classList.remove('hidden-element'); 
-        loader.classList.add('hidden-element'); 
+
+    } catch (e) {
+        console.error(e);
+        alert("AI Error: " + e.message);
+    } finally {
+        btn.classList.remove('hidden-element');
+        loader.classList.add('hidden-element');
     }
 }
 

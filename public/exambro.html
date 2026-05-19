@@ -616,11 +616,11 @@ function startManualExam() {
 
 async function startExam(id, correctToken) {
     const tokenInput = document.getElementById(`tk-${id}`).value.toUpperCase(); if (tokenInput !== correctToken) { alert("Token ujian salah! Silahkan hubungi pengawas."); return; }
-    const doc = await publicData.collection('exams').doc(id).get(); if (doc.exists) { const x = doc.data(); activePin = x.pin || specialSettings.pin; startExamEngine(x.link, x.mapel, x.duration, x.camera); }
+    const doc = await publicData.collection('exams').doc(id).get(); if (doc.exists) { const x = doc.data(); activePin = x.pin || specialSettings.pin; startExamEngine(x.link, x.mapel, x.duration, x.camera, id); }
 }
 
 // --- F. THE EXAM ENGINE ---
-async function startExamEngine(url, mapel, dur, isCameraRequired) {
+async function startExamEngine(url, mapel, dur, isCameraRequired, examId) {
     await clearClipboard(); isExamActive = true; violationCount = 0; initialWidth = window.innerWidth; initialHeight = window.innerHeight; isResuming = false;
     const selfVideo = document.getElementById('self-video');
     // LOGIKA PERBAIKAN: Matikan kamera jika tidak dibutuhkan
@@ -634,7 +634,7 @@ async function startExamEngine(url, mapel, dur, isCameraRequired) {
         } catch (e) { alert("⚠️ Ujian ini wajib kamera!"); return; }
     }
     enableHardLockdown(); const endTime = Date.now() + (dur * 60 * 1000);
-    localStorage.setItem('active_exam_state', JSON.stringify({ url, mapel, endTime, isCamera: isCameraRequired, pin: activePin, examId: examId  }));
+    localStorage.setItem('active_exam_state', JSON.stringify({url, mapel, endTime, isCamera: isCameraRequired, pin: activePin, examId: examId }));
     document.getElementById('view-mapel').textContent = mapel;
     document.getElementById('exam-frame-container').innerHTML = `<iframe src="${url}" allow="camera; microphone; display-capture" sandbox="allow-forms allow-scripts allow-same-origin allow-popups allow-modals allow-top-navigation" class="w-full h-full border-none"></iframe>`;
     document.getElementById('exam-viewer').classList.remove('hidden-element');
@@ -714,6 +714,8 @@ function initAdminPeer() {
 function reportViolation(reason = "Aktivitas Mencurigakan") {
     if (!isExamActive || Date.now() - lastViolationTime < 5000) return; // 1. Cooldown ditingkatkan ke 5 detik (menghindari spam write ke DB)
     lastViolationTime = Date.now(); violationCount++;
+    // Bunyikan Alarm
+    const snd = document.getElementById('alarm-sound'); if(snd) snd.play().catch(e => {})
     // 2. Notifikasi Visual Lokal (Tetap Instan)
     const toast = document.createElement('div'); toast.className = "fixed top-10 left-1/2 -translate-x-1/2 bg-red-600 text-white px-6 py-3 rounded-2xl z-[10001] font-black shadow-2xl animate-bounce text-center min-w-[300px]";
     toast.innerHTML = `<div class="text-[10px] opacity-80">PERINGATAN SISTEM</div><div>${reason.toUpperCase()}</div>`; document.body.appendChild(toast); setTimeout(() => toast.remove(), 3000);

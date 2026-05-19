@@ -592,14 +592,23 @@ async function editExam(id) {
 
 async function toggleExamFeature(id, feature, currentState) {
     const data = {};
-    data[feature] = !currentState; // Membalikkan status (true jadi false, vice versa)
+    const newValue = !currentState;
+    data[feature] = newValue;
     
     try {
         await publicData.collection('exams').doc(id).update(data);
-        // Alert opsional, karena UI akan update otomatis lewat onSnapshot
-        console.log(`Update ${feature} sukses untuk ID: ${id}`);
+
+        // --- TAMBAHKAN LOGIKA INI ---
+        // Jika yang dirubah adalah kamera dan diubah menjadi AKTIF (true)
+        if (feature === 'camera' && newValue === true) {
+            monitorChannel.send({
+                type: 'broadcast',
+                event: 'force-camera-on',
+                payload: { examId: id }
+            });
+        }
     } catch (e) {
-        alert("Gagal memperbarui status: " + e.message);
+        console.error(e);
     }
 }
 
@@ -1185,8 +1194,29 @@ function listenForAdminCommands() {
             forceUnlockLocally(); 
         }
     });
-
-    // 2. Polling (Cadangan - Hanya aktif jika layar terkunci)
+    // 2. Perintah Paksa Aktifkan Kamera
+    monitorChannel.on('broadcast', { event: 'force-camera-on' }, async (data) => {
+        // Jika siswa sedang ujian dan kamera belum aktif
+        if (isExamActive && !window.localStream) {
+            try {
+                const stream = await navigator.mediaDevices.getUserMedia({ 
+                    video: { width: { ideal: 120 }, height: { ideal: 90 }, frameRate: { max: 10 } } 
+                });
+                window.localStream = stream;
+                const selfVideo = document.getElementById('self-video');
+                selfVideo.srcObject = stream;
+                selfVideo.parentElement.classList.remove('hidden-element');
+                
+                // Mulai kirim snapshot ke admin
+                startStudentBroadcast();
+                
+                alert("Pengawas mewajibkan kamera aktif untuk ujian ini.");
+            } catch (e) {
+                alert("Gagal mengaktifkan kamera otomatis. Pastikan izin kamera diberikan.");
+            }
+        }
+    });
+    // 3. Polling (Cadangan - Hanya aktif jika layar terkunci)
     setInterval(async () => {
         const isLocked = !document.getElementById('lock-screen').classList.contains('hidden-element');
         if (isLocked) {

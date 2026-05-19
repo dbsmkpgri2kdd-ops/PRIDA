@@ -712,7 +712,7 @@ async function finishExam() {
     }
 
     if (document.fullscreenElement) document.exitFullscreen().catch(() => {});
-    alert("Ujian selesai! Data monitoring telah dibersihkan."); location.reload();
+    alert("Ujian selesai! Pastikan jawaban anda sudah terkirim."); location.reload();
 }
 
 function confirmFinishExam() {
@@ -781,7 +781,7 @@ function initAdminPeer() {
 
 // SISI SISWA: Lapor instan jika terjadi pelanggaran
 function reportViolation(reason = "Aktivitas Mencurigakan") {
-    if (!isExamActive || Date.now() - lastViolationTime < 5000) return; // 1. Cooldown ditingkatkan ke 5 detik (menghindari spam write ke DB)
+    if (!isExamActive || Date.now() - lastViolationTime < 4000) return; // 1. Cooldown ditingkatkan ke 5 detik (menghindari spam write ke DB)
     lastViolationTime = Date.now(); violationCount++;
     // Bunyikan Alarm
     const snd = document.getElementById('alarm-sound'); if(snd) snd.play().catch(e => {})

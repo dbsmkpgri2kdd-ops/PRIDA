@@ -314,6 +314,7 @@ const publicData = createCollectionWrapper(db);
 const appId = 'exambro-system-2026';
 
 // --- 2. GLOBAL STATE ---
+let isMonitoringEnabled = true
 let user = null;
 let isExamActive = false;
 let isResuming = false;
@@ -356,7 +357,7 @@ window.onload = async () => {
 // --- B. AUTHENTICATION & ROLE MANAGEMENT ---
 async function handleLogin() {
     const pwdInput = document.getElementById('user-pwd'), pwd = pwdInput.value, userIdInput = document.getElementById('user-id'), selectNamaInput = document.getElementById('select-nama'), loginBtn = document.querySelector('button[onclick="handleLogin()"]');
-    if (!pwd) { alert("Password wajib diisi!"); return; }
+    if (!pwd) {showNotify("Password wajib diisi!","error"); return; }
     loginBtn.disabled = true; loginBtn.innerHTML = "Memverifikasi...";
     try {
         if (currentRole === 'admin') {
@@ -364,7 +365,7 @@ async function handleLogin() {
                 user = { id: 'admin', nama: 'Administrator' }; currentRole = 'admin'; setRole('admin'); 
                 localStorage.setItem('exambro_session', JSON.stringify({ role: 'admin', user, time: Date.now() })); 
                 showPage('admin-page'); syncAdminData(); initAdminPeer(); startMonitorFeed();
-            } else { alert("Username atau Password Admin Salah!"); }
+            } else { showNotify("Username Admin atau Password Salah!", "error"); }
         } else {
             const userId = selectNamaInput.value; if (!userId) { alert("Silahkan pilih nama Anda!"); loginBtn.disabled = false; loginBtn.innerHTML = "MASUK SISTEM"; return; }
             const selectedText = selectNamaInput.options[selectNamaInput.selectedIndex].text, doc = await publicData.collection('users').doc(userId).get();
@@ -433,8 +434,17 @@ function showPage(id) {
 }
 
 function switchTab(t) {
-    ['exam','bank','student','monitor'].forEach(id => { document.getElementById('section-'+id).classList.add('hidden-element'); document.getElementById('tab-btn-'+id).classList.remove('sidebar-active'); document.getElementById('tab-btn-'+id).classList.add('text-slate-400'); });
-    document.getElementById('section-'+t).classList.remove('hidden-element'); document.getElementById('tab-btn-'+t).classList.add('sidebar-active'); document.getElementById('tab-btn-'+t).classList.remove('text-slate-400');
+    ['exam','bank','student','monitor'].forEach(id => { 
+        document.getElementById('section-'+id).classList.add('hidden-element'); 
+        document.getElementById('tab-btn-'+id).classList.remove('sidebar-active'); document.getElementById('tab-btn-'+id).classList.add('text-slate-400'); 
+    });
+    document.getElementById('section-'+t).classList.remove('hidden-element'); 
+    document.getElementById('tab-btn-'+t).classList.add('sidebar-active'); document.getElementById('tab-btn-'+t).classList.remove('text-slate-400');
+
+    // LOGIKA PENGHEMAT DATA:
+    if (t !== 'monitor') {
+        if (adminMonitorInterval) { clearInterval(adminMonitorInterval); adminMonitorInterval = null; console.log("Monitoring diakhiri."); }
+    } else { startMonitorFeed(); }
 }
 
 function switchStudentView(view) {
@@ -522,16 +532,26 @@ async function editExam(id) {
 async function toggleExamFeature(id, feature, currentState) {
     const newValue = !currentState, data = {}; data[feature] = newValue;
     try {
-        // 1. Update status di Database
         await publicData.collection('exams').doc(id).update(data);
-        // 2. Jika yang diaktifkan adalah KAMERA, kirim sinyal paksa ke Siswa
-        if (feature === 'camera' && newValue === true) {
-            monitorChannel.send({ type: 'broadcast', event: 'force-camera-on', payload: { examId: id, status: "ACTIVATE_CAMERA" } });
-            console.log("Sinyal aktifkan kamera dikirim ke semua siswa.");
+
+        // Jika yang diubah adalah status AKTIF UJIAN
+        if (feature === 'active' && newValue === false) {
+            monitorChannel.send({ type: 'broadcast', event: 'force-stop-exam', payload: { examId: id } });
         } 
-        // 3. Jika kamera dimatikan, kirim sinyal untuk mematikan
-        else if (feature === 'camera' && newValue === false) {
-            monitorChannel.send({ type: 'broadcast', event: 'force-camera-off', payload: { examId: id } });
+
+        // Jika yang diubah adalah WAJIB KAMERA
+        if (feature === 'camera') {
+            if (newValue === true) {
+                monitorChannel.send({ type: 'broadcast', event: 'force-camera-on', payload: { examId: id } });
+            } else {
+                // Sisi Admin: Langsung bersihkan grid monitoring sendiri
+                const innerGrid = document.getElementById('monitor-grid-inner');
+                if (innerGrid) innerGrid.innerHTML = ""; 
+                document.getElementById('online-count').textContent = "0 Siswa Terpantau";
+                
+                // Kirim sinyal ke siswa untuk mematikan kamera & monitoring
+                monitorChannel.send({ type: 'broadcast', event: 'force-camera-off', payload: { examId: id } });
+            }
         }
     } catch (e) { console.error("Gagal update fitur:", e); }
 }
@@ -614,7 +634,7 @@ async function startExamEngine(url, mapel, dur, isCameraRequired) {
         } catch (e) { alert("⚠️ Ujian ini wajib kamera!"); return; }
     }
     enableHardLockdown(); const endTime = Date.now() + (dur * 60 * 1000);
-    localStorage.setItem('active_exam_state', JSON.stringify({ url, mapel, endTime, isCamera: isCameraRequired, pin: activePin }));
+    localStorage.setItem('active_exam_state', JSON.stringify({ url, mapel, endTime, isCamera: isCameraRequired, pin: activePin, examId: examId  }));
     document.getElementById('view-mapel').textContent = mapel;
     document.getElementById('exam-frame-container').innerHTML = `<iframe src="${url}" allow="camera; microphone; display-capture" sandbox="allow-forms allow-scripts allow-same-origin allow-popups allow-modals allow-top-navigation" class="w-full h-full border-none"></iframe>`;
     document.getElementById('exam-viewer').classList.remove('hidden-element');
@@ -728,12 +748,18 @@ async function startStudentBroadcast() {
     initPeerConnection(); // Pastikan PeerJS aktif
     const classChannel = db.channel(`monitor-${user.kelas.replace(/\s+/g, '-')}`); classChannel.subscribe();
     // Fungsi Pengirim Gambar yang dioptimasi
-    window.sendSnapshot = (reason = "ROUTINE") => {
-        const img = captureSnapshot(); // Tetap menggunakan 160x120
-        if (isExamActive && window.localStream && img) {
-            classChannel.send({ type: 'broadcast', event: 'snapshot-push', payload: { userId: user.id.replace(/[^a-zA-Z0-9]/g, ''), originalId: user.id, img: img, v: violationCount, nama: user.nama, isLocked: !document.getElementById('lock-screen').classList.contains('hidden-element'), status: reason } });
-        }
-    };
+	window.sendSnapshot = (reason = "ROUTINE") => {
+    // JIKA MONITORING DIMATIKAN, BERHENTI KIRIM DATA KE ADMIN
+	if (!isMonitoringEnabled) return; 
+	const img = captureSnapshot();
+	if (isExamActive && window.localStream && img) {
+        classChannel.send({ 
+            type: 'broadcast', 
+            event: 'snapshot-push', 
+            payload: { userId: user.id.replace(/[^a-zA-Z0-9]/g, ''), originalId: user.id, img: img, v: violationCount, nama: user.nama, 
+                isLocked: !document.getElementById('lock-screen').classList.contains('hidden-element'), status: reason 
+            } });}};
+
     // MENDENGARKAN SINYAL DARI ADMIN (Strict Filtering)
     monitorChannel.on('broadcast', { event: 'request-snapshot' }, (data) => { if (data.payload.targetClass === user.kelas) window.sendSnapshot("ADMIN_REQUEST"); }); // HANYA membalas jika targetClass dari admin sama dengan kelas siswa ini
 }
@@ -751,14 +777,32 @@ let adminMonitorInterval = null;
 function startMonitorFeed() {
     const filterKelas = document.getElementById('monitor-filter-kelas').value, grid = document.getElementById('monitor-grid');
     if (adminMonitorInterval) clearInterval(adminMonitorInterval);
-    if (filterKelas === "ALL" || !filterKelas) { // Jika pilih "SEMUA KELAS", matikan interval untuk hemat database
+    
+    if (filterKelas === "ALL" || !filterKelas) {
         grid.innerHTML = `<div class="col-span-full text-center p-20 bg-white rounded-[3rem] border-2 border-dashed border-slate-200"><p class="text-slate-400 font-bold text-sm">Pilih satu kelas spesifik untuk memantau visual.</p></div>`; return;
     }
+
     grid.innerHTML = '<div id="monitor-grid-inner" class="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4"></div>';
-    const sendPing = () => monitorChannel.send({ type: 'broadcast', event: 'request-snapshot', payload: { targetClass: filterKelas } }); // Broadcast permintaan snapshot HANYA ke kelas terpilih
-    sendPing(); adminMonitorInterval = setInterval(sendPing, 15000); // Kirim segera saat ganti filter & ulangi tiap 10 detik
+    
+    const sendPing = () => monitorChannel.send({ type: 'broadcast', event: 'request-snapshot', payload: { targetClass: filterKelas } });
+    sendPing(); adminMonitorInterval = setInterval(sendPing, 15000);
+
     if (currentClassChannel) currentClassChannel.unsubscribe();
-    currentClassChannel = db.channel(`monitor-${filterKelas.replace(/\s+/g, '-')}`); currentClassChannel.on('broadcast', { event: 'snapshot-push' }, (data) => updateMonitorCard(data.payload)).subscribe(); // Berlangganan channel kelas spesifik untuk menerima gambar
+    currentClassChannel = db.channel(`monitor-${filterKelas.replace(/\s+/g, '-')}`);
+    
+    // Listen pengeriman gambar
+    currentClassChannel.on('broadcast', { event: 'snapshot-push' }, (data) => updateMonitorCard(data.payload));
+
+    // LISTENER BARU: Hapus kartu jika siswa mematikan monitoring
+    currentClassChannel.on('broadcast', { event: 'remove-card' }, (data) => {
+        const card = document.getElementById(`card-${data.payload.userId}`);
+        if (card) {
+            card.remove(); const innerGrid = document.getElementById('monitor-grid-inner');
+            if (innerGrid) document.getElementById('online-count').textContent = `${innerGrid.children.length} Siswa Terpantau`;
+        }
+    });
+
+    currentClassChannel.subscribe();
 }
 
 function updateMonitorCard(p) {
@@ -794,7 +838,7 @@ function startLiveStream(safeId) {
     if (!window.activeCalls) window.activeCalls = {};
     window.activeCalls[safeId] = call; currentlyWatching = safeId; // Tandai siswa ini sedang ditonton
     call.on('stream', remoteStream => { videoEl.srcObject = remoteStream; videoEl.classList.remove('hidden'); imgEl.classList.add('hidden'); btn.textContent = "STOP"; btn.classList.replace('bg-blue-600', 'bg-red-600'); });
-    call.on('error', (err) => { alert("Gagal menyambung. Siswa mungkin offline."); stopActiveStream(safeId); });
+    call.on('error', (err) => { showNotify("Gagal menyambung. Siswa mungkin offline.","info"); stopActiveStream(safeId); });
 }
 
 // Fungsi pembantu untuk mematikan stream secara bersih
@@ -818,29 +862,58 @@ async function syncFilterOptions() {
 function remoteUnlockStudent(studentId) {
     if(confirm("Buka akses siswa ini?")) {
         monitorChannel.send({ type: 'broadcast', event: 'command-unlock', payload: { targetUserId: studentId } }); // Kirim perintah unlock via broadcast agar instan
-        db.from('live').update({ command: 'unlock', isLocked: false, v: 0 }).eq('id', studentId); alert("Perintah buka kunci dikirim."); // Backup via database
+        db.from('live').update({ command: 'unlock', isLocked: false, v: 0 }).eq('id', studentId); showNotify("Perintah buka kunci dikirim.","info"); // Backup via database
     }
 }
 
 function listenForAdminCommands() {
     // A. Perintah Buka Kunci (Unlock)
     monitorChannel.on('broadcast', { event: 'command-unlock' }, (data) => { if (data.payload.targetUserId === user.id) forceUnlockLocally(); });
-    // B. Perintah AKTIFKAN Kamera di Tengah Jalan
+    // B. Perintah AKTIFKAN Kamera & Monitoring
     monitorChannel.on('broadcast', { event: 'force-camera-on' }, async (data) => {
-        if (isExamActive && !window.localStream) { // Jika siswa sedang dalam mode ujian & Cek jika kamera belum aktif
-            console.log("Menerima perintah aktifkan kamera dari Admin...");
+        if (isExamActive) {
+            isMonitoringEnabled = true; 
             try {
                 const stream = await navigator.mediaDevices.getUserMedia({ video: { width: { ideal: 120 }, height: { ideal: 90 }, frameRate: { max: 10 } } });
-                window.localStream = stream; const selfVideo = document.getElementById('self-video'); selfVideo.srcObject = stream;
-                selfVideo.parentElement.classList.remove('hidden-element'); startStudentBroadcast(); // Tampilkan kotak kamera di layar siswa & Mulai kirim gambar ke dashboard admin
-                alert("Pemberitahuan: Pengawas mengaktifkan fitur kamera.");
-            } catch (e) { console.error("Gagal aktifkan kamera:", e); alert("Admin mewajibkan kamera, namun sistem gagal mengakses kamera Anda."); }
+                window.localStream = stream; 
+                const selfVideo = document.getElementById('self-video'); 
+                selfVideo.srcObject = stream;
+                selfVideo.parentElement.classList.remove('hidden-element'); // TAMPILKAN UI KAMERA
+                startStudentBroadcast(); 
+                console.log("Monitoring diaktifkan oleh Admin.");
+            } catch (e) { console.error("Gagal akses kamera:", e); }
         }
     });
-    // C. Perintah MATIKAN Kamera di Tengah Jalan
+
+    // C. Perintah MATIKAN Kamera & Monitoring (TOTAL)
     monitorChannel.on('broadcast', { event: 'force-camera-off' }, (data) => {
-        if (isExamActive && window.localStream) { window.localStream.getTracks().forEach(t => t.stop()); window.localStream = null; document.getElementById('self-video').parentElement.classList.add('hidden-element'); console.log("Kamera dimatikan oleh Admin."); }
+        if (isExamActive) {
+            isMonitoringEnabled = false; // STOP KIRIM SNAPSHOT
+            if (window.localStream) { 
+                window.localStream.getTracks().forEach(t => t.stop()); 
+                window.localStream = null; 
+            }
+            document.getElementById('self-video').parentElement.classList.add('hidden-element'); // SEMBUNYIKAN UI KAMERA
+            
+            // Beritahu Admin untuk menghapus kartu siswa ini dari grid
+            monitorChannel.send({ 
+                type: 'broadcast', 
+                event: 'remove-card', 
+                payload: { userId: user.id.replace(/[^a-zA-Z0-9]/g, '') } 
+            });
+            console.log("Monitoring dimatikan total oleh Admin.");
+        }
     });
+
+    // D. TAMBAHAN: Perintah Berhenti Paksa
+    monitorChannel.on('broadcast', { event: 'force-stop-exam' }, (data) => {
+        const activeState = JSON.parse(localStorage.getItem('active_exam_state'));
+        
+        // Cek apakah siswa sedang ujian DAN ID ujiannya cocok dengan yang dimatikan admin
+        if (isExamActive && activeState && activeState.examId === data.payload.examId) {
+            showNotify("Ujian di akhiri oleh pengawas","info");
+            finishExam();} });
+
     // 3. Polling (Cadangan - Hanya aktif jika layar terkunci)
     setInterval(async () => {
         if (!document.getElementById('lock-screen').classList.contains('hidden-element')) {
@@ -855,7 +928,7 @@ function listenForAdminCommands() {
 function forceUnlockLocally() {
     document.getElementById('lock-screen').classList.add('hidden-element'); document.getElementById('unlock-pwd').value = ""; violationCount = 0;
     document.getElementById('violation-count').textContent = "0"; document.getElementById('violation-badge').classList.add('hidden-element');
-    alert("Akses dibuka oleh pengawas."); document.documentElement.requestFullscreen().catch(() => {});
+    showNotify("Akses dibuka oleh pengawas.","info"); document.documentElement.requestFullscreen().catch(() => {});
 }
 
 async function clearMonitorData() {
@@ -901,7 +974,7 @@ async function generateAISoal() {
         const startBracket = text.indexOf('['), endBracket = text.lastIndexOf(']') + 1, cleanJson = text.substring(startBracket, endBracket), qs = JSON.parse(cleanJson);
         const rows = qs.map(q => ({ question: q.question, topic: topic, timestamp: Date.now() })), { error } = await db.from('ai_bank').insert(rows);
         if (error) throw error; alert("Berhasil!"); closeModal('modal-ai');
-    } catch(e) { alert("Gagal."); } finally { btn.classList.remove('hidden-element'); loader.classList.add('hidden-element'); }
+    } catch(e) { showNotify("Gagal.","eerror"); } finally { btn.classList.remove('hidden-element'); loader.classList.add('hidden-element'); }
 }
 
 // --- J. PENGATURAN AKHIR ---
@@ -920,6 +993,40 @@ window.addEventListener('unhandledrejection', (event) => { console.warn('Promise
 
 document.oncontextmenu = () => false;
 document.body.style.webkitTouchCallout = "none";
+
+function showNotify(msg, type = 'info') {
+    const modal = document.getElementById('custom-alert'), title = document.getElementById('alert-title'), message = document.getElementById('alert-message'), icon = document.getElementById('alert-icon');
+    message.textContent = msg;
+    if (type === 'error') {
+        icon.className = "w-16 h-16 bg-red-100 text-red-600 rounded-full flex items-center justify-center mx-auto mb-4 font-bold text-2xl"; title.textContent = "Peringatan";
+    } else if (type === 'success') {
+        icon.className = "w-16 h-16 bg-emerald-100 text-emerald-600 rounded-full flex items-center justify-center mx-auto mb-4 font-bold text-2xl"; title.textContent = "Berhasil";
+    } else {
+        icon.className = "w-16 h-16 bg-blue-100 text-blue-600 rounded-full flex items-center justify-center mx-auto mb-4 font-bold text-2xl"; title.textContent = "Informasi";
+    }
+    modal.classList.remove('hidden-element');
+}
+
+function closeNotify() { document.getElementById('custom-alert').classList.add('hidden-element'); }
 </script>
+
+
+<!-- CUSTOM NOTIFICATION MODAL (Pengganti Alert) -->
+<div id="custom-alert" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-[10000] flex items-center justify-center p-4 hidden-element"><div class="bg-white w-full max-w-sm rounded-[2.5rem] p-8 text-center shadow-2xl scale-up-center"><div id="alert-icon" class="w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4 font-bold text-2xl">!</div><h3 id="alert-title" class="text-xl font-black mb-2 text-slate-900 uppercase tracking-tight">Notifikasi</h3><p id="alert-message" class="text-slate-500 mb-6 text-sm leading-relaxed"></p><button onclick="closeNotify()" class="w-full bg-slate-900 text-white py-4 rounded-xl font-bold hover:bg-slate-800 transition-all shadow-lg active:scale-95">MENGERTI</button></div></div>
+
+<style>.scale-up-center{animation:scale-up-center .2s cubic-bezier(.39,.575,.565,1) both}@keyframes scale-up-center{0%{transform:scale(.5)}100%{transform:scale(1)}}</style>
+
+<script>
+// Fungsi pembantu opsional untuk memanggil & menutup modal alert kustom secara instan
+function showNotify(msg, title="Notifikasi", type="info") {
+    const el = document.getElementById('custom-alert'), ico = document.getElementById('alert-icon');
+    document.getElementById('alert-title').textContent = title; document.getElementById('alert-message').textContent = msg;
+    ico.className = `w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4 font-bold text-2xl ${type==='error'?'bg-red-100 text-red-600':type==='success'?'bg-emerald-100 text-emerald-600':'bg-blue-100 text-blue-600'}`;
+    ico.textContent = type === 'error' ? '✕' : type === 'success' ? '✓' : '!'; el.classList.remove('hidden-element');
+}
+function closeNotify() { document.getElementById('custom-alert').classList.add('hidden-element'); }
+</script>
+
+
 </body>
 </html>

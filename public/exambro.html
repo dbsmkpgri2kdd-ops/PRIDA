@@ -32,6 +32,7 @@
 	.status-ping::after {content: '';position: absolute;inset: 0;border-radius: 50%;animation: ping 1.5s cubic-bezier(0, 0, 0.2, 1) infinite;background-color: inherit;}
 	@keyframes ping {75%, 100% { transform: scale(2.5); opacity: 0; }}
 	#select-nama {white-space: normal; height: auto; word-wrap: break-word; }
+	.scale-up-center{animation:scale-up-center .2s cubic-bezier(.39,.575,.565,1) both}@keyframes scale-up-center{0%{transform:scale(.5)}100%{transform:scale(1)}}
     </style>
 </head>
 
@@ -39,6 +40,8 @@
 
     <!-- AUDIO NOTIFICATION -->
     <audio id="alarm-sound" src="https://assets.mixkit.co/active_storage/sfx/951/951-preview.mp3" preload="auto"></audio>
+    <!-- SATU-SATUNYA MODAL NOTIFIKASI -->
+    <div id="custom-alert" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-[10000] flex items-center justify-center p-4 hidden-element"><div class="bg-white w-full max-w-sm rounded-[2.5rem] p-8 text-center shadow-2xl scale-up-center"><div id="alert-icon" class="w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4 font-bold text-2xl">!</div><h3 id="alert-title" class="text-xl font-black mb-2 text-slate-900 uppercase">Notifikasi</h3><p id="alert-message" class="text-slate-500 mb-6 text-sm leading-relaxed"></p><button onclick="closeNotify()" class="w-full bg-blue-600 text-white py-4 rounded-xl font-bold hover:bg-blue-700 transition-all active:scale-95">MENGERTI</button></div></div>
 
     <!-- LOCK SCREEN (HIGH Z-INDEX) -->
     <div id="lock-screen" class="fixed inset-0 bg-slate-900/98 z-[9999] flex flex-col items-center justify-center p-6 hidden-element">
@@ -241,6 +244,8 @@ const SUPABASE_URL = "https://yeukammxkbatyldqbtzy.supabase.co";
 const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InlldWthbW14a2JhdHlsZHFidHp5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzg5OTk0OTEsImV4cCI6MjA5NDU3NTQ5MX0.RVvEVGhknsaqpsJjqom9Kawum31MkOb22aM7CHvLLgk";
 const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY, { auth: { persistSession: true, autoRefreshToken: true } });
 const db = supabaseClient;
+const publicData = createCollectionWrapper(db);
+const appId = 'exambro-system-2026';
 
 // Inisialisasi Channel Broadcast Global
 const monitorChannel = db.channel('exam-monitoring', {
@@ -279,39 +284,69 @@ async function cleanupLiveRows(createdBefore) {
 function createCollectionWrapper(db) {
     const mapOp = (q, field, op, value) => {
         switch (op) {
-            case '==': return q.eq(field, value); case '<': return q.lt(field, value); case '<=': return q.lte(field, value);
-            case '>': return q.gt(field, value); case '>=': return q.gte(field, value); default: return q.eq(field, value);
+            case '==': return q.eq(field, value); 
+            case '<': return q.lt(field, value); 
+            case '<=': return q.lte(field, value);
+            case '>': return q.gt(field, value); 
+            case '>=': return q.gte(field, value); 
+            default: return q.eq(field, value);
         }
     };
-    return {collection(name) {const state = { name, filters: [], order: null };
-            const buildQuery = () => {let query = db.from(name).select('*'); state.filters.forEach(f => { query = mapOp(query, f.field, f.op, f.value); }); if (state.order) query = query.order(state.order.field, { ascending: state.order.dir === 'asc' }); return query; };
-            const createDocSnapshot = (row) => ({ id: row.id, data: () => { const { id: _id, ...rest } = row; return rest; }, exists: row != null, ref: {update: async (data) => {const { error } = await db.from(name).update(data).eq('id', row.id); if (error) throw error; }, delete: async () => {const { error } = await db.from(name).delete().eq('id', row.id); if (error) throw error; } } });
+    
+    return {
+        collection(name) {
+            const state = { name, filters: [], order: null };
+            const buildQuery = () => {
+                let query = db.from(name).select('*'); 
+                state.filters.forEach(f => { query = mapOp(query, f.field, f.op, f.value); }); 
+                if (state.order) query = query.order(state.order.field, { ascending: state.order.dir === 'asc' }); 
+                return query; 
+            };
+            const createDocSnapshot = (row) => ({ 
+                id: row.id, 
+                data: () => { const { id: _id, ...rest } = row; return rest; }, 
+                exists: row != null, 
+                ref: {
+                    update: async (data) => { const { error } = await db.from(name).update(data).eq('id', row.id); if (error) throw error; }, 
+                    delete: async () => { const { error } = await db.from(name).delete().eq('id', row.id); if (error) throw error; } 
+                } 
+            });
             const normalizeRows = (rows) => (rows || []).map(row => createDocSnapshot(row));
-            return {doc(id) {
+            
+            return {
+                doc(id) {
                     const queryKey = async (column) => db.from(name).select('*').filter(column, 'eq', id).maybeSingle();
-                    const getRow = async () => {let result = await queryKey('id'); if (result.error && result.error.code === '42703') result = await queryKey('key'); return result; };
+                    const getRow = async () => { let result = await queryKey('id'); if (result.error && result.error.code === '42703') result = await queryKey('key'); return result; };
                     const updateRow = async (data) => { let result = await db.from(name).update(data).eq('id', id); if (result.error && result.error.code === '42703') result = await db.from(name).update(data).eq('key', id); return result; };
                     const deleteRow = async () => { let result = await db.from(name).delete().eq('id', id); if (result.error && result.error.code === '42703') result = await db.from(name).delete().eq('key', id); return result; };
                     const upsertRow = async (data) => { let payload = { ...data, id }; let result = await db.from(name).upsert(payload, { onConflict: 'id' }); if (result.error && result.error.code === '42703') { payload = { ...data, key: id }; result = await db.from(name).upsert(payload, { onConflict: 'key' }); } return result; };
+                    
                     return {
                         async get() { const { data, error } = await getRow(); if (error && error.code !== 'PGRST116') throw error; return { exists: !!data, data: () => { const { id: _id, ...rest } = data || {}; return rest; }, id }; },
                         async set(data) { const { error } = await upsertRow(data); if (error) throw error; },
                         async update(data) { const { error } = await updateRow(data); if (error) throw error; },
                         async delete() { const { error } = await deleteRow(); if (error) throw error; },
-                        onSnapshot(callback) { let lastPayload = null; const poll = async () => { const { data, error } = await getRow(); if (error && error.code !== 'PGRST116') { console.error(error); return; } const payload = data || null; if (JSON.stringify(payload) !== JSON.stringify(lastPayload)) { lastPayload = payload; callback({ exists: !!payload, data: () => { const { id: _id, ...rest } = payload || {}; return rest; }, ref: { update: async (updateData) => { const { error } = await updateRow(updateData); if (error) throw error; }, delete: async () => { const { error } = await deleteRow(); if (error) throw error; } } }); } }; poll(); const interval = setInterval(poll, 3000); return { unsubscribe: () => clearInterval(interval) }; }
+                        onSnapshot(callback) { 
+                            let lastPayload = null; 
+                            const poll = async () => { const { data, error } = await getRow(); if (error && error.code !== 'PGRST116') { console.error(error); return; } const payload = data || null; if (JSON.stringify(payload) !== JSON.stringify(lastPayload)) { lastPayload = payload; callback({ exists: !!payload, data: () => { const { id: _id, ...rest } = payload || {}; return rest; }, ref: { update: async (updateData) => { const { error } = await updateRow(updateData); if (error) throw error; }, delete: async () => { const { error } = await deleteRow(); if (error) throw error; } } }); } }; 
+                            poll(); const interval = setInterval(poll, 3000); return { unsubscribe: () => clearInterval(interval) }; 
+                        }
                     };
                 },
                 async get() { const { data, error } = await buildQuery(); if (error) throw error; return { forEach: (fn) => { (data || []).forEach(row => fn(createDocSnapshot(row))); }, size: (data || []).length, docs: normalizeRows(data) }; },
                 async add(data) { const { data: inserted, error } = await db.from(name).insert([data]).select().single(); if (error) throw error; return { id: inserted.id, data: () => inserted, exists: true }; },
                 orderBy(field, dir) { state.order = { field, dir }; return this; },
                 where(field, op, value) { state.filters.push({ field, op, value }); return this; },
-                onSnapshot(callback) { let lastPayload = null; const poll = async () => { const { data, error } = await buildQuery(); if (error) { console.error(error); return; } const payload = data || []; if (JSON.stringify(payload) !== JSON.stringify(lastPayload)) { lastPayload = payload; callback({ size: payload.length, forEach: (fn) => payload.forEach(row => fn(createDocSnapshot(row))), docs: normalizeRows(payload) }); } }; poll(); const interval = setInterval(poll, 3000); return { unsubscribe: () => clearInterval(interval) }; }
+                onSnapshot(callback) { 
+                    let lastPayload = null; 
+                    const poll = async () => { const { data, error } = await buildQuery(); if (error) { console.error(error); return; } const payload = data || []; if (JSON.stringify(payload) !== JSON.stringify(lastPayload)) { lastPayload = payload; callback({ size: payload.length, forEach: (fn) => payload.forEach(row => fn(createDocSnapshot(row))), docs: normalizeRows(payload) }); } }; 
+                    poll(); const interval = setInterval(poll, 3000); return { unsubscribe: () => clearInterval(interval) }; 
+                }
             };
-        }}
+        }
+    }; // Pembungkus utama ditutup dengan benar di sini
 }
 
-const publicData = createCollectionWrapper(db);
-const appId = 'exambro-system-2026';
 
 // --- 2. GLOBAL STATE ---
 let isMonitoringEnabled = true
@@ -367,7 +402,7 @@ async function handleLogin() {
                 showPage('admin-page'); syncAdminData(); initAdminPeer(); startMonitorFeed();
             } else { showNotify("Username Admin atau Password Salah!", "error"); }
         } else {
-            const userId = selectNamaInput.value; if (!userId) { alert("Silahkan pilih nama Anda!"); loginBtn.disabled = false; loginBtn.innerHTML = "MASUK SISTEM"; return; }
+            const userId = selectNamaInput.value; if (!userId) { showNotify("Silahkan pilih nama Anda!", "error"); loginBtn.disabled = false; loginBtn.innerHTML = "MASUK SISTEM"; return; }
             const selectedText = selectNamaInput.options[selectNamaInput.selectedIndex].text, doc = await publicData.collection('users').doc(userId).get();
             if (doc.exists) { 
                 const userData = doc.data();
@@ -375,8 +410,8 @@ async function handleLogin() {
                     user = { id: doc.id, nama: selectedText, kelas: userData.kelas, nis: userData.nis }; currentRole = 'student'; setRole('student'); 
                     localStorage.setItem('exambro_session', JSON.stringify({ role: 'student', user: user, time: Date.now() })); 
                     document.getElementById('display-std-name').textContent = user.nama; showPage('student-page'); syncStudentData(); listenForAdminCommands();
-                } else { alert("Password Siswa Salah!"); }
-            } else { alert("Data tidak ditemukan!"); }
+                } else { showNotify("Password Siswa Salah!", "error");; }
+            } else { showNotify("Data tidak ditemukan!", "error"); }
         }
     } catch (error) { console.error(error); alert("Gangguan Koneksi: " + error.message); }
     finally { loginBtn.disabled = false; loginBtn.innerHTML = "MASUK SISTEM"; }
@@ -493,7 +528,7 @@ function syncAdminData() {
 }
 
 async function saveAndSyncSheet() {
-    const urlInput = document.getElementById('sheet-url').value.trim(); if (!urlInput) return alert("Masukkan link Google Sheet!");
+    const urlInput = document.getElementById('sheet-url').value.trim(); if (!urlInput) return showNotify("Masukkan link Google Sheet!", "error");
     const btn = document.getElementById('btn-sync-sheet'), btnText = document.getElementById('sync-text'); btn.disabled = true; btnText.textContent = "SINKRONISASI...";
     try {
         await upsertSettingsItem('sheet_config', { url: urlInput, lastSync: Date.now() }); let exportUrl = urlInput;
@@ -511,9 +546,10 @@ async function saveAndSyncSheet() {
 
 async function saveExam() {
     const id = document.getElementById('edit-exam-id').value, nodes = document.querySelectorAll('input[name="target-kelas"]:checked'), selectedClasses = Array.from(nodes).map(node => node.value).join(', ');
-    if (!selectedClasses) return alert("Pilih minimal satu kelas!"); if (!document.getElementById('ex-mapel').value) return alert("Isi Nama Mapel!");
+    if (!selectedClasses) { showNotify("Pilih kelas!", "error"); return; }
+    if (!document.getElementById('ex-mapel').value) { showNotify("Isi Nama Mapel!", "error"); return; }
     const data = { mapel: document.getElementById('ex-mapel').value, kelas: selectedClasses, date: document.getElementById('ex-date').value, duration: document.getElementById('ex-duration').value, token: document.getElementById('ex-token').value.toUpperCase(), pin: document.getElementById('ex-pin').value, link: document.getElementById('ex-link').value, active: document.getElementById('ex-active').checked, camera: document.getElementById('ex-camera').checked };
-    try { if(id) { await publicData.collection('exams').doc(id).update(data); } else { await publicData.collection('exams').add(data); } alert("Paket Berhasil Disimpan!"); closeModal('modal-exam'); } catch (e) { alert("Gagal menyimpan ke Cloud: " + e.message); }
+    try { if(id) { await publicData.collection('exams').doc(id).update(data); } else { await publicData.collection('exams').add(data); } showNotify("Paket Berhasil Disimpan!", "success"); closeModal('modal-exam'); } catch (e) { alert("Gagal menyimpan ke Cloud: " + e.message); }
 }
 
 async function copyExam(id) {
@@ -615,7 +651,7 @@ function startManualExam() {
 }
 
 async function startExam(id, correctToken) {
-    const tokenInput = document.getElementById(`tk-${id}`).value.toUpperCase(); if (tokenInput !== correctToken) { alert("Token ujian salah! Silahkan hubungi pengawas."); return; }
+    const tokenInput = document.getElementById(`tk-${id}`).value.toUpperCase(); if (tokenInput !== correctToken) { showNotify("Token salah! Silahkan hubungi pengawas.", "error"); return; }
     const doc = await publicData.collection('exams').doc(id).get(); if (doc.exists) { const x = doc.data(); activePin = x.pin || specialSettings.pin; startExamEngine(x.link, x.mapel, x.duration, x.camera, id); }
 }
 
@@ -650,11 +686,33 @@ async function startExamEngine(url, mapel, dur, isCameraRequired, examId) {
 }
 
 async function finishExam() {
-    isExamActive = false; if (monitorInterval) clearInterval(monitorInterval), monitorInterval = null; if (studentSnapshotInterval) clearInterval(studentSnapshotInterval), studentSnapshotInterval = null;
-    localStorage.removeItem('active_exam_state'); if (window.localStream) { window.localStream.getTracks().forEach(t => t.stop()); window.localStream = null; }
-    if (user?.id) { try { await publicData.collection('live').doc(user.id).delete(); } catch (e) { console.log("Gagal hapus live"); } }
+    isExamActive = false;
+    // 1. Hentikan semua interval
+    if (window.examTimerInterval) clearInterval(window.examTimerInterval);
+    if (monitorInterval) clearInterval(monitorInterval);
+    if (studentSnapshotInterval) clearInterval(studentSnapshotInterval);
+
+    // 2. Matikan Kamera secara total
+    if (window.localStream) {
+        window.localStream.getTracks().forEach(track => { track.stop(); track.enabled = false; });
+        window.localStream = null;
+    }
+
+    // 3. Putuskan koneksi PeerJS
+    if (myPeer) { myPeer.destroy(); myPeer = null; }
+
+    // 4. Hapus data di database & LocalStorage
+    localStorage.removeItem('active_exam_state');
+    if (user?.id) {
+        try {
+            await db.from('live').delete().eq('id', user.id);
+            // Kirim sinyal terakhir ke admin bahwa kita offline
+            monitorChannel.send({ type: 'broadcast', event: 'remove-card', payload: { userId: user.id.replace(/[^a-zA-Z0-9]/g, '') } });
+        } catch (e) { console.warn("Cleanup DB failed"); }
+    }
+
     if (document.fullscreenElement) document.exitFullscreen().catch(() => {});
-    alert("Ujian selesai! Pastikan jawaban sudah dikirim."); location.reload();
+    alert("Ujian selesai! Data monitoring telah dibersihkan."); location.reload();
 }
 
 function confirmFinishExam() {
@@ -663,7 +721,7 @@ function confirmFinishExam() {
     if (inputPin === activePin) {
         if (confirm("PIN Benar. Apakah Anda yakin ingin mengakhiri ujian sekarang?")) finishExam();
     } else {
-        alert("PIN SALAH! Ujian tidak dapat diakhiri tanpa izin pengawas.");
+        showNotify("PIN SALAH! Ujian tidak dapat diakhiri tanpa izin pengawas.", "error");
         // Laporkan ke admin jika ada percobaan mematikan ujian secara paksa
         reportViolation("Mencoba Keluar Ujian (PIN Salah)");
     }
@@ -695,12 +753,15 @@ function enableHardLockdown() {
 }
 
 function initPeerConnection() {
-    if (myPeer) return; // Jangan buat double connection
-    myPeer = new Peer(user.id.replace(/[^a-zA-Z0-9]/g, ''), { host: '0.peerjs.com', port: 443, secure: true, debug: 1, config: { 'iceServers': [{ urls: 'stun:stun.l.google.com:19302' }, { urls: 'stun:stun1.l.google.com:19302' }] } });
-    myPeer.on('open', (id) => console.log('PeerJS Connected with ID:', id));
-    myPeer.on('call', call => call.answer(window.localStream)); // Otomatis jawab panggilan dari admin dengan stream lokal
-    myPeer.on('disconnected', () => { console.warn('PeerJS disconnected, attempting to reconnect...'); myPeer.reconnect(); });
-    myPeer.on('error', (err) => { console.error('PeerJS Error:', err.type); if (err.type === 'peer-unavailable') return; myPeer.destroy(); myPeer = null; setTimeout(initPeerConnection, 5000); }); // Jika error fatal, hancurkan dan buat ulang setelah 5 detik
+    if (myPeer && !myPeer.destroyed) return;
+    const safePeerId = user.id.replace(/[^a-zA-Z0-9]/g, '') + Math.random().toString(36).substr(2, 4);
+    myPeer = new Peer(safePeerId, { host: '0.peerjs.com', port: 443, secure: true, debug: 1 });
+    myPeer.on('open', (id) => {
+        console.log('PeerJS Aktif ID:', id);
+        db.from('live').update({ peer_id: id }).eq('id', user.id);
+    });
+    myPeer.on('call', call => { if (window.localStream) call.answer(window.localStream); });
+    myPeer.on('error', (err) => {if (err.type === 'id-taken') setTimeout(initPeerConnection, 2000); console.error('PeerJS Error:', err); });
 }
 
 function initAdminPeer() {
@@ -742,7 +803,7 @@ async function unlockApp() {
             monitorChannel.send({ type: 'broadcast', event: 'snapshot-push', payload: { userId: user.id, v: 0, isLocked: false, status: 'AKTIF' } }); // Kirim broadcast agar dashboard admin langsung update tanpa tunggu snapshot
         } 
         setTimeout(() => document.documentElement.requestFullscreen().catch(() => {}), 500);
-    } else { alert("PIN Pengawas Salah!"); }
+    } else { showNotify("PIN Pengawas Salah!", "error"); }
 }
 
 // --- H. MONITORING (SUPABASE BROADCAST REPLACEMENT) ---
@@ -967,16 +1028,80 @@ setInterval(() => {
 
 // --- I. LOGIKA AI GEMINI ---
 async function generateAISoal() {
-    const topic = document.getElementById('ai-topic').value, count = document.getElementById('ai-count').value || 1; if (!topic) return alert("Isi topik!");
-    const btn = document.getElementById('ai-btn'), loader = document.getElementById('ai-loading'); btn.classList.add('hidden-element'); loader.classList.remove('hidden-element');
+    const topic = document.getElementById('ai-topic').value;
+    const count = document.getElementById('ai-count').value || 1;
+    
+    if (!topic) return alert("Isi topik!");
+    
+    const btn = document.getElementById('ai-btn');
+    const loader = document.getElementById('ai-loading');
+    
+    btn.classList.add('hidden-element');
+    loader.classList.remove('hidden-element');
+    
     try {
-        const prompt = `Buatkan ${count} soal pilihan ganda tentang ${topic}. Berikan HANYA format JSON Array: [{"question": "..."}]. Tanpa teks lain.`;
-        const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`, { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({contents: [{parts: [{text: prompt}]}], generationConfig: { responseMimeType: "application/json" } }) });
-        const result = await res.json(); let text = result.candidates[0].content.parts[0].text;
-        const startBracket = text.indexOf('['), endBracket = text.lastIndexOf(']') + 1, cleanJson = text.substring(startBracket, endBracket), qs = JSON.parse(cleanJson);
-        const rows = qs.map(q => ({ question: q.question, topic: topic, timestamp: Date.now() })), { error } = await db.from('ai_bank').insert(rows);
-        if (error) throw error; alert("Berhasil!"); closeModal('modal-ai');
-    } catch(e) { showNotify("Gagal.","eerror"); } finally { btn.classList.remove('hidden-element'); loader.classList.add('hidden-element'); }
+        // Berikan instruksi skema JSON yang sangat spesifik dan ketat dalam bahasa Inggris di prompt agar AI tidak keliru membuat key propertinya
+        const prompt = `Generate ${count} multiple choice questions about "${topic}" in Indonesian. 
+        Return ONLY a JSON Array with this exact structure: 
+        [
+          {
+            "question": "Teks pertanyaan di sini"
+          }
+        ]
+        Do not include options, answers, or any markdown formatting outside of JSON.`;
+        
+        const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`, { 
+            method: 'POST', 
+            headers: {'Content-Type': 'application/json'}, 
+            body: JSON.stringify({
+                contents: [{parts: [{text: prompt}]}], 
+                generationConfig: { responseMimeType: "application/json" } 
+            }) 
+        });
+        
+        const result = await res.json();
+        
+        // Cek validasi apakah respons API Gemini sesuai struktur dasarnya
+        if (!result.candidates || !result.candidates.content || !result.candidates.content.parts) {
+            throw new Error("Respons API Gemini tidak valid");
+        }
+        
+        let text = result.candidates.content.parts.text.trim();
+        
+        // Parsing data string JSON langsung secara aman
+        const qs = JSON.parse(text);
+        
+        // Pastikan hasil parsing adalah sebuah array
+        if (!Array.isArray(qs)) {
+            throw new Error("Hasil JSON bukan berupa Array");
+        }
+        
+        // Map data dengan fallback/cadangan jika key "question" hilang atau berganti nama secara tidak sengaja oleh AI
+        const rows = qs.map(q => {
+            const questionText = q.question || q.soal || q.pertanyaan;
+            if (!questionText) throw new Error("Format soal di dalam objek JSON tidak ditemukan");
+            
+            return { 
+                question: questionText, 
+                topic: topic, 
+                timestamp: Date.now() 
+            };
+        });
+        
+        // Simpan ke database Supabase Anda (db)
+        const { error } = await db.from('ai_bank').insert(rows);
+        if (error) throw error; 
+        
+        showNotify("Soal AI berhasil dibuat!", "success");
+        closeModal('modal-ai');
+        
+    } catch(e) { 
+        console.error("Detail Error AI:", e); // Membantu Anda melihat error asli di Console Log F12
+        showNotify("Gagal membuat soal AI: " + e.message, "error"); 
+    } finally { 
+        btn.classList.remove('hidden-element'); 
+        loader.classList.add('hidden-element'); 
+    }
 }
 
 // --- J. PENGATURAN AKHIR ---
@@ -996,39 +1121,19 @@ window.addEventListener('unhandledrejection', (event) => { console.warn('Promise
 document.oncontextmenu = () => false;
 document.body.style.webkitTouchCallout = "none";
 
+// FUNGSI NOTIFIKASI TUNGGAL
 function showNotify(msg, type = 'info') {
-    const modal = document.getElementById('custom-alert'), title = document.getElementById('alert-title'), message = document.getElementById('alert-message'), icon = document.getElementById('alert-icon');
-    message.textContent = msg;
-    if (type === 'error') {
-        icon.className = "w-16 h-16 bg-red-100 text-red-600 rounded-full flex items-center justify-center mx-auto mb-4 font-bold text-2xl"; title.textContent = "Peringatan";
-    } else if (type === 'success') {
-        icon.className = "w-16 h-16 bg-emerald-100 text-emerald-600 rounded-full flex items-center justify-center mx-auto mb-4 font-bold text-2xl"; title.textContent = "Berhasil";
-    } else {
-        icon.className = "w-16 h-16 bg-blue-100 text-blue-600 rounded-full flex items-center justify-center mx-auto mb-4 font-bold text-2xl"; title.textContent = "Informasi";
-    }
+    const modal = document.getElementById('custom-alert'), titleEl = document.getElementById('alert-title'), messageEl = document.getElementById('alert-message'), iconEl = document.getElementById('alert-icon');
+    let judul = "Informasi", icon = "!", warna = "bg-blue-100 text-blue-600";
+    if (type === 'error') { judul = "Peringatan"; icon = "✕"; warna = "bg-red-100 text-red-600"; } 
+    else if (type === 'success') { judul = "Berhasil"; icon = "✓"; warna = "bg-emerald-100 text-emerald-600"; }
+    titleEl.textContent = judul; messageEl.textContent = msg; iconEl.textContent = icon;
+    iconEl.className = `w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4 font-bold text-2xl ${warna}`;
     modal.classList.remove('hidden-element');
 }
 
-function closeNotify() { document.getElementById('custom-alert').classList.add('hidden-element'); }
+    function closeNotify() { document.getElementById('custom-alert').classList.add('hidden-element'); }
+
 </script>
-
-
-<!-- CUSTOM NOTIFICATION MODAL (Pengganti Alert) -->
-<div id="custom-alert" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-[10000] flex items-center justify-center p-4 hidden-element"><div class="bg-white w-full max-w-sm rounded-[2.5rem] p-8 text-center shadow-2xl scale-up-center"><div id="alert-icon" class="w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4 font-bold text-2xl">!</div><h3 id="alert-title" class="text-xl font-black mb-2 text-slate-900 uppercase tracking-tight">Notifikasi</h3><p id="alert-message" class="text-slate-500 mb-6 text-sm leading-relaxed"></p><button onclick="closeNotify()" class="w-full bg-slate-900 text-white py-4 rounded-xl font-bold hover:bg-slate-800 transition-all shadow-lg active:scale-95">MENGERTI</button></div></div>
-
-<style>.scale-up-center{animation:scale-up-center .2s cubic-bezier(.39,.575,.565,1) both}@keyframes scale-up-center{0%{transform:scale(.5)}100%{transform:scale(1)}}</style>
-
-<script>
-// Fungsi pembantu opsional untuk memanggil & menutup modal alert kustom secara instan
-function showNotify(msg, title="Notifikasi", type="info") {
-    const el = document.getElementById('custom-alert'), ico = document.getElementById('alert-icon');
-    document.getElementById('alert-title').textContent = title; document.getElementById('alert-message').textContent = msg;
-    ico.className = `w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4 font-bold text-2xl ${type==='error'?'bg-red-100 text-red-600':type==='success'?'bg-emerald-100 text-emerald-600':'bg-blue-100 text-blue-600'}`;
-    ico.textContent = type === 'error' ? '✕' : type === 'success' ? '✓' : '!'; el.classList.remove('hidden-element');
-}
-function closeNotify() { document.getElementById('custom-alert').classList.add('hidden-element'); }
-</script>
-
-
 </body>
 </html>

@@ -758,8 +758,17 @@ function initPeerConnection() {
 
     const safeId = user.id.replace(/[^a-zA-Z0-9]/g, '');
     myPeer = new Peer(safeId, {
-        debug: 1 // Hanya tampilkan error penting
-    });
+    host: '0.peerjs.com',
+    port: 443,
+    secure: true,
+    debug: 1,
+    config: {
+ 	       'iceServers': [
+	            { urls: 'stun:stun.l.google.com:19302' },
+	            { urls: 'stun:stun1.l.google.com:19302' }
+	        ]
+	    }
+	});
 
     myPeer.on('open', (id) => {
         console.log('PeerJS Connected with ID:', id);
@@ -788,8 +797,13 @@ function initPeerConnection() {
 
 function initAdminPeer() {
     if (adminPeer) return;
-    // Admin menggunakan ID random atau 'admin-dashboard'
-    adminPeer = new Peer('admin-prida-' + Math.random().toString(36).substr(2, 5));
+    // Tambahkan konfigurasi yang sama dengan sisi siswa agar koneksi aman (SSL)
+    adminPeer = new Peer('admin-prida-' + Math.random().toString(36).substr(2, 5), {
+        host: '0.peerjs.com',
+        port: 443,
+        secure: true,
+        debug: 1
+    });
     
     adminPeer.on('open', (id) => {
         console.log('Admin Peer Connection Open: ' + id);
@@ -798,7 +812,7 @@ function initAdminPeer() {
     adminPeer.on('error', (err) => {
         console.error('Admin Peer Error:', err);
         adminPeer = null;
-        setTimeout(initAdminPeer, 5000); // Coba lagi jika gagal
+        setTimeout(initAdminPeer, 5000); 
     });
 }
 

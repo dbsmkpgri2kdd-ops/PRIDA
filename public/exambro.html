@@ -106,16 +106,29 @@
                 </div>
                 <div class="bg-amber-50 border-2 border-amber-200 p-8 rounded-[2.5rem] mb-10 shadow-sm">
                     <h3 class="font-black text-amber-900 text-lg mb-6 flex items-center">⚙️ Konfigurasi Akses Cepat</h3>
-                        <div class="grid grid-cols-1 md:grid-cols-4 gap-6">
-		        <div class="space-y-2"><label class="text-[10px] font-black text-amber-600 uppercase">PIN Pengawas Utama</label><input type="text" id="special-pin" class="w-full bg-white p-4 rounded-2xl border-2 border-amber-100 font-black text-amber-700 outline-none" value="1234"></div>
-		        <div class="space-y-2"><label class="text-[10px] font-black text-amber-600 uppercase">Default Durasi (Menit)</label><input type="number" id="special-duration" class="w-full bg-white p-4 rounded-2xl border-2 border-amber-100 font-bold text-amber-700 outline-none" value="60"></div>
-	        <div class="space-y-2">
-	            <label class="text-[10px] font-black text-amber-600 uppercase">Fitur Tombol</label>
-	            <div class="flex items-center space-x-3 p-4 bg-white rounded-2xl border-2 border-amber-100 h-[58px]"><input type="checkbox" id="show-finish-btn" checked class="w-5 h-5 accent-amber-600"><span class="text-[9px] font-black text-amber-800 uppercase leading-none">Tampilkan Tombol Selesai</span></div>
+		<div class="grid grid-cols-1 md:grid-cols-4 gap-6">
+	    <div class="space-y-2">
+	        <label class="text-[10px] font-black text-amber-600 uppercase">PIN Pengawas Utama</label>
+	        <input type="text" id="special-pin" class="w-full bg-white p-4 rounded-2xl border-2 border-amber-100 font-black text-amber-700 outline-none" value="1234">
+	    </div>
+	    <div class="space-y-2">
+	        <label class="text-[10px] font-black text-amber-600 uppercase">Default Durasi (Menit)</label>
+	        <input type="number" id="special-duration" class="w-full bg-white p-4 rounded-2xl border-2 border-amber-100 font-bold text-amber-700 outline-none" value="60">
+	    </div>
+	    <!-- KOLOM BARU MASAL -->
+	    <div class="space-y-2">
+	        <label class="text-[10px] font-black text-amber-600 uppercase">Tombol Selesai Siswa</label>
+	        <div class="flex space-x-2">
+	            <button onclick="updateGlobalFinishBtn(true)" class="flex-1 bg-emerald-500 text-white py-4 rounded-2xl font-black text-[10px] hover:bg-emerald-600 transition-all">TAMPILKAN</button>
+	            <button onclick="updateGlobalFinishBtn(false)" class="flex-1 bg-red-500 text-white py-4 rounded-2xl font-black text-[10px] hover:bg-red-600 transition-all">SEMBUNYIKAN</button>
 	        </div>
-        	<div class="flex items-end"><button onclick="saveSpecialSettings()" class="w-full bg-amber-600 text-white py-4 rounded-2xl font-black hover:bg-amber-700 shadow-lg shadow-amber-200 transition-all">SIMPAN</button></div>
+	    </div>
+	    <div class="flex items-end">
+	        <button onclick="saveSpecialSettings()" class="w-full bg-amber-600 text-white py-4 rounded-2xl font-black hover:bg-amber-700 shadow-lg shadow-amber-200 transition-all">SIMPAN PIN/DURASI</button>
 	    </div>
 	</div>
+                <div id="admin-exam-list" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4"></div>
+            </div>
 
 	<!-- SECTION STUDENT -->
 	<div id="section-student" class="hidden-element">
@@ -607,47 +620,28 @@ function syncAdminStudentData() {
     });
 }
 
-// --- PERBAIKAN FUNGSI SYNC & SAVE SETTINGS ---
-
-async function syncSpecialSettings() { 
+async function updateGlobalFinishBtn(show) {
     try {
-        const d = await publicData.collection('settings').doc('special_methods').get(); 
-        if(d.exists) {
-            specialSettings = d.data(); 
-            // Update Checkbox di sisi Admin jika elemennya ada
-            const btnToggle = document.getElementById('show-finish-btn');
-            if(btnToggle) btnToggle.checked = specialSettings.showFinishBtn !== false; 
+        // 1. Simpan status global ke settings agar siswa yang baru masuk/refresh tetap sinkron
+        await upsertSettingsItem('global_config', { allow_finish: show, updatedAt: Date.now() });
 
-            // Update tombol selesai di sisi siswa saat awal muat
-            const finishBtn = document.getElementById('btn-finish-exam');
-            if (finishBtn) {
-                if (specialSettings.showFinishBtn === false) finishBtn.classList.add('hidden-element');
-                else finishBtn.classList.remove('hidden-element');
-            }
-        }
+        // 2. Broadcast secara masal ke semua siswa yang sedang online
+        monitorChannel.send({
+            type: 'broadcast',
+            event: 'global-finish-control',
+            payload: { show: show }
+        });
+
+        showNotify(show ? "Tombol Selesai diaktifkan untuk SEMUA siswa" : "Tombol Selesai disembunyikan untuk SEMUA siswa", "success");
     } catch (e) {
-        console.error("Gagal sinkronisasi setting:", e);
+        console.error("Gagal update masal:", e);
+        alert("Gagal mengirim perintah masal");
     }
 }
 
-async function saveSpecialSettings() { 
-    // Definisikan variabel showFinish dari nilai checkbox
-    const showFinish = document.getElementById('show-finish-btn').checked;
-    const pin = document.getElementById('special-pin').value;
-    const duration = parseInt(document.getElementById('special-duration').value);
+async function syncSpecialSettings() { const d = await publicData.collection('settings').doc('special_methods').get(); if(d.exists) specialSettings = d.data(); }
+async function saveSpecialSettings() { await upsertSettingsItem('special_methods', { pin: document.getElementById('special-pin').value, duration: parseInt(document.getElementById('special-duration').value), updatedAt: Date.now() }); alert("Konfigurasi Akses Cepat Diperbarui!"); }
 
-    try {
-        await upsertSettingsItem('special_methods', { 
-            pin: pin, 
-            duration: duration, 
-            showFinishBtn: showFinish, // Sekarang variabel sudah terdefinisi
-            updatedAt: Date.now() 
-        }); 
-        alert("Konfigurasi Akses Cepat Diperbarui!"); 
-    } catch (e) {
-        alert("Gagal menyimpan: " + e.message);
-    }
-}
 // --- E. STUDENT SERVICE (EXAM ACCESS) ---
 async function syncStudentData() {
     const list = document.getElementById('student-exam-list'); list.innerHTML = "<p class='text-center text-xs p-4'>Memuat jadwal...</p>";
@@ -715,6 +709,12 @@ async function startExamEngine(url, mapel, dur, isCameraRequired, examId) {
     document.getElementById('view-mapel').textContent = mapel;
     document.getElementById('exam-frame-container').innerHTML = `<iframe src="${url}" allow="camera; microphone; display-capture" sandbox="allow-forms allow-scripts allow-same-origin allow-popups allow-modals allow-top-navigation" class="w-full h-full border-none"></iframe>`;
     document.getElementById('exam-viewer').classList.remove('hidden-element');
+	
+   // Cek setting global sebelum menampilkan tombol
+    const { data: globalSet } = await db.from('settings').select('*').eq('id', 'global_config').maybeSingle();
+    const btnFinish = document.getElementById('btn-finish-exam');
+    if (globalSet && globalSet.allow_finish === false) {
+    btnFinish.classList.add('hidden-element');} else {btnFinish.classList.remove('hidden-element'); }
 
     // Timer Logic
     let timeRemaining = dur * 60;
@@ -1042,17 +1042,13 @@ function listenForAdminCommands() {
             showNotify("Ujian di akhiri oleh pengawas","info");
             finishExam();} });
 
-	// Listener untuk memantau perubahan tombol selesai secara real-time
-	publicData.collection('settings').doc('special_methods').onSnapshot(doc => {
-	    if (doc.exists) {
-	        const settings = doc.data();
-	        const finishBtn = document.getElementById('btn-finish-exam');
-	        if (finishBtn) {
-	            if (settings.showFinishBtn === false) {finishBtn.classList.add('hidden-element');
-	            } else {finishBtn.classList.remove('hidden-element'); }
-	        }
-	    }
-	});
+    monitorChannel.on('broadcast', { event: 'global-finish-control' }, (data) => {
+        if (isExamActive) {
+            const btnFinish = document.getElementById('btn-finish-exam');
+            if (data.payload.show) {btnFinish.classList.remove('hidden-element');
+            } else {btnFinish.classList.add('hidden-element'); }
+        }
+    });
 
     // 3. Polling (Cadangan - Hanya aktif jika layar terkunci)
     setInterval(async () => {

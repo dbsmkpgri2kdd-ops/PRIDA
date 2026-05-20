@@ -607,13 +607,47 @@ function syncAdminStudentData() {
     });
 }
 
-async function syncSpecialSettings() { const d = await publicData.collection('settings').doc('special_methods').get(); if(d.exists) specialSettings = d.data(); 
-	const btnToggle = document.getElementById('show-finish-btn');
-        if(btnToggle) btnToggle.checked = specialSettings.showFinishBtn !== false; }
+// --- PERBAIKAN FUNGSI SYNC & SAVE SETTINGS ---
+
+async function syncSpecialSettings() { 
+    try {
+        const d = await publicData.collection('settings').doc('special_methods').get(); 
+        if(d.exists) {
+            specialSettings = d.data(); 
+            // Update Checkbox di sisi Admin jika elemennya ada
+            const btnToggle = document.getElementById('show-finish-btn');
+            if(btnToggle) btnToggle.checked = specialSettings.showFinishBtn !== false; 
+
+            // Update tombol selesai di sisi siswa saat awal muat
+            const finishBtn = document.getElementById('btn-finish-exam');
+            if (finishBtn) {
+                if (specialSettings.showFinishBtn === false) finishBtn.classList.add('hidden-element');
+                else finishBtn.classList.remove('hidden-element');
+            }
+        }
+    } catch (e) {
+        console.error("Gagal sinkronisasi setting:", e);
+    }
 }
 
-async function saveSpecialSettings() { await upsertSettingsItem('special_methods', { pin: document.getElementById('special-pin').value, duration: parseInt(document.getElementById('special-duration').value), showFinishBtn: showFinish, updatedAt: Date.now() }); alert("Konfigurasi Akses Cepat Diperbarui!"); }
+async function saveSpecialSettings() { 
+    // Definisikan variabel showFinish dari nilai checkbox
+    const showFinish = document.getElementById('show-finish-btn').checked;
+    const pin = document.getElementById('special-pin').value;
+    const duration = parseInt(document.getElementById('special-duration').value);
 
+    try {
+        await upsertSettingsItem('special_methods', { 
+            pin: pin, 
+            duration: duration, 
+            showFinishBtn: showFinish, // Sekarang variabel sudah terdefinisi
+            updatedAt: Date.now() 
+        }); 
+        alert("Konfigurasi Akses Cepat Diperbarui!"); 
+    } catch (e) {
+        alert("Gagal menyimpan: " + e.message);
+    }
+}
 // --- E. STUDENT SERVICE (EXAM ACCESS) ---
 async function syncStudentData() {
     const list = document.getElementById('student-exam-list'); list.innerHTML = "<p class='text-center text-xs p-4'>Memuat jadwal...</p>";

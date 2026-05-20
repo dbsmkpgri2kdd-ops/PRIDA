@@ -944,7 +944,12 @@ function updateMonitorCard(p) {
     const innerGrid = document.getElementById('monitor-grid-inner'); if (!innerGrid) return;
     const safeId = p.userId; let card = document.getElementById(`card-${safeId}`); const timeStr = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
     if (!card) { // Tambahkan class 'monitor-card-item' dan data-last-seen
-        innerGrid.insertAdjacentHTML('beforeend', `<div id="card-${safeId}" data-last-seen="${Date.now()}" class="monitor-card-item bg-white rounded-2xl border border-slate-200 overflow-hidden shadow-sm transition-all ${p.isLocked ? 'ring-2 ring-red-500' : ''}"><div class="aspect-video bg-black relative"><img id="snapshot-${safeId}" src="${p.img}" class="w-full h-full object-cover"><video id="video-${safeId}" class="w-full h-full object-cover hidden" autoplay playsinline></video><div id="lock-icon-${safeId}" class="absolute inset-0 bg-red-600/60 flex items-center justify-center ${p.isLocked ? '' : 'hidden'}"><span class="text-white font-black text-[10px]">TERKUNCI</span></div><div class="absolute bottom-1 right-1 bg-black/50 px-1.5 rounded text-[8px] text-white font-mono" id="time-${safeId}">${timeStr}</div></div><div class="p-3"><div class="flex justify-between items-start mb-2"><div class="w-2/3"><p class="text-[10px] font-bold truncate text-slate-700">${p.nama}</p><p class="text-[7px] text-slate-400 uppercase font-black" id="status-text-${safeId}">${p.isLocked ? 'Locked' : 'Active'}</p></div><span id="v-badge-${safeId}" class="text-[9px] font-black ${p.v > 0 ? 'text-red-600 animate-bounce' : 'text-slate-400'}">⚠️ ${p.v}</span></div><div class="flex gap-1"><button onclick="startLiveStream('${p.userId}')" id="btn-live-${safeId}" class="flex-1 bg-blue-600 text-white text-[9px] font-bold py-1.5 rounded-lg">LIVE</button><button onclick="remoteUnlockStudent('${p.originalId}')" class="flex-1 bg-slate-100 text-slate-600 text-[9px] font-bold py-1.5 rounded-lg hover:bg-blue-600 hover:text-white transition-all">UNLOCK</button></div></div></div>`);
+        innerGrid.insertAdjacentHTML('beforeend', `<div id="card-${safeId}" data-last-seen="${Date.now()}" class="monitor-card-item bg-white rounded-2xl border border-slate-200 overflow-hidden shadow-sm transition-all ${p.isLocked ? 'ring-2 ring-red-500' : ''}"><div class="aspect-video bg-black relative"><img id="snapshot-${safeId}" src="${p.img}" class="w-full h-full object-cover"><video id="video-${safeId}" class="w-full h-full object-cover hidden" autoplay playsinline></video><div id="lock-icon-${safeId}" class="absolute inset-0 bg-red-600/60 flex items-center justify-center ${p.isLocked ? '' : 'hidden'}"><span class="text-white font-black text-[10px]">TERKUNCI</span></div><div class="absolute bottom-1 right-1 bg-black/50 px-1.5 rounded text-[8px] text-white font-mono" id="time-${safeId}">${timeStr}</div></div><div class="p-3"><div class="flex justify-between items-start mb-2"><div class="w-2/3"><p class="text-[10px] font-bold truncate text-slate-700">${p.nama}</p>
+	<div class="flex items-center gap-2">
+		<p class="text-[7px] text-slate-400 uppercase font-black leading-none" id="status-text-${safeId}">${p.isLocked ? 'Locked' : 'Active'}</p>
+                <button onclick="remoteFinishStudent('${p.originalId}', '${p.nama}')" title="Hentikan Ujian Siswa Ini" class="text-[6px] font-bold bg-red-50 text-red-500 px-1 rounded border border-red-100 hover:bg-red-500 hover:text-white transition-all">FINISH</button></div>
+         </div><span id="v-badge-${safeId}" class="text-[9px] font-black ${p.v > 0 ? 'text-red-600 animate-bounce' : 'text-slate-400'}">⚠️ ${p.v}</span></div>
+	<div class="flex gap-1"><button onclick="startLiveStream('${p.userId}')" id="btn-live-${safeId}" class="flex-1 bg-blue-600 text-white text-[9px] font-bold py-1.5 rounded-lg">LIVE</button><button onclick="remoteUnlockStudent('${p.originalId}')" class="flex-1 bg-slate-100 text-slate-600 text-[9px] font-bold py-1.5 rounded-lg hover:bg-blue-600 hover:text-white transition-all">UNLOCK</button></div></div></div>`);
     } else {
         card.dataset.lastSeen = Date.now(); document.getElementById(`snapshot-${safeId}`).src = p.img; document.getElementById(`time-${safeId}`).textContent = timeStr;
         document.getElementById(`v-badge-${safeId}`).textContent = `⚠️ ${p.v}`; document.getElementById(`v-badge-${safeId}`).className = `text-[9px] font-black ${p.v > 0 ? 'text-red-600 animate-bounce' : 'text-slate-400'}`;
@@ -994,26 +999,18 @@ async function syncFilterOptions() {
     } catch (e) { console.error("Gagal memuat filter kelas:", e); }
 }
 
-function remoteUnlockStudent(studentId) {
-    if(confirm("Buka akses siswa ini?")) {
-        monitorChannel.send({ type: 'broadcast', event: 'command-unlock', payload: { targetUserId: studentId } }); // Kirim perintah unlock via broadcast agar instan
-        db.from('live').update({ command: 'unlock', isLocked: false, v: 0 }).eq('id', studentId); showNotify("Perintah buka kunci dikirim.","info"); // Backup via database
-    }
-}
+
 
 function listenForAdminCommands() {
     // A. Perintah Buka Kunci (Unlock)
     monitorChannel.on('broadcast', { event: 'command-unlock' }, (data) => { if (data.payload.targetUserId === user.id) forceUnlockLocally(); });
     // B. Perintah AKTIFKAN Kamera & Monitoring
     monitorChannel.on('broadcast', { event: 'force-camera-on' }, async (data) => {
-        if (isExamActive) {
-            isMonitoringEnabled = true; 
-            try {
-                const stream = await navigator.mediaDevices.getUserMedia({ video: { width: { ideal: 120 }, height: { ideal: 90 }, frameRate: { max: 10 } } });
+        if (isExamActive) {isMonitoringEnabled = true; 
+            try {const stream = await navigator.mediaDevices.getUserMedia({ video: { width: { ideal: 120 }, height: { ideal: 90 }, frameRate: { max: 10 } } });
                 window.localStream = stream; 
                 const selfVideo = document.getElementById('self-video'); 
-                selfVideo.srcObject = stream;
-                selfVideo.parentElement.classList.remove('hidden-element'); // TAMPILKAN UI KAMERA
+                selfVideo.srcObject = stream; selfVideo.parentElement.classList.remove('hidden-element'); // TAMPILKAN UI KAMERA
                 startStudentBroadcast(); 
                 console.log("Monitoring diaktifkan oleh Admin.");
             } catch (e) { console.error("Gagal akses kamera:", e); }
@@ -1024,40 +1021,48 @@ function listenForAdminCommands() {
     monitorChannel.on('broadcast', { event: 'force-camera-off' }, (data) => {
         if (isExamActive) {
             isMonitoringEnabled = false; // STOP KIRIM SNAPSHOT
-            if (window.localStream) { 
-                window.localStream.getTracks().forEach(t => t.stop()); 
-                window.localStream = null; 
-            }
+            if (window.localStream) { window.localStream.getTracks().forEach(t => t.stop()); window.localStream = null; }
             document.getElementById('self-video').parentElement.classList.add('hidden-element'); // SEMBUNYIKAN UI KAMERA
-            
             // Beritahu Admin untuk menghapus kartu siswa ini dari grid
-            monitorChannel.send({ 
-                type: 'broadcast', 
-                event: 'remove-card', 
-                payload: { userId: user.id.replace(/[^a-zA-Z0-9]/g, '') } 
-            });
-            console.log("Monitoring dimatikan total oleh Admin.");
-        }
-    });
+            monitorChannel.send({ type: 'broadcast', event: 'remove-card', payload: { userId: user.id.replace(/[^a-zA-Z0-9]/g, '') } });
+            console.log("Monitoring dimatikan total oleh Admin."); } });
 
     // D. TAMBAHAN: Perintah Berhenti Paksa
     monitorChannel.on('broadcast', { event: 'force-stop-exam' }, (data) => {
-        const activeState = JSON.parse(localStorage.getItem('active_exam_state'));
-        
-        // Cek apakah siswa sedang ujian DAN ID ujiannya cocok dengan yang dimatikan admin
+        const activeState = JSON.parse(localStorage.getItem('active_exam_state')); 
+       // Cek apakah siswa sedang ujian DAN ID ujiannya cocok dengan yang dimatikan admin
         if (isExamActive && activeState && activeState.examId === data.payload.examId) {
             showNotify("Ujian di akhiri oleh pengawas","info");
             finishExam();} });
 
+    // E. Tambahkan Perintah Berhenti Paksa individul
+    monitorChannel.on('broadcast', { event: 'force-stop-individual' }, (data) => {
+       if (data.payload.targetUserId === user.id) {
+        // Jika ID cocok, hentikan ujian tanpa konfirmasi PIN
+           isExamActive = false;
+        showNotify("Ujian Anda telah diakhiri secara remote oleh Pengawas.", "info");
+        // Beri jeda 2 detik agar siswa sempat membaca notifikasi sebelum halaman reload
+        setTimeout(() => {finishExam();}, 2000); }});
+
     // 3. Polling (Cadangan - Hanya aktif jika layar terkunci)
     setInterval(async () => {
         if (!document.getElementById('lock-screen').classList.contains('hidden-element')) {
-            try {
-                const { data } = await db.from('live').select('command').eq('id', user.id).maybeSingle();
+            try {const { data } = await db.from('live').select('command').eq('id', user.id).maybeSingle();
                 if (data && data.command === 'unlock') { forceUnlockLocally(); await db.from('live').update({ command: null }).eq('id', user.id); }
             } catch (e) {}
         }
     }, 20000); // Cek setiap 20 detik saja sebagai backup
+}
+
+// Fungsi Admin untuk mengakhiri ujian siswa secara individu
+function remoteFinishStudent(studentId, studentName) {
+    if(confirm(`⚠️ PAKSA AKHIRI UJIAN untuk ${studentName}?\nSiswa akan langsung diarahkan ke halaman utama dan kamera dimatikan.`)) {
+        // Kirim broadcast khusus ke ID siswa tersebut
+        monitorChannel.send({ type: 'broadcast', event: 'force-stop-individual', payload: { targetUserId: studentId } });
+        // Opsional: Update status di database agar sinkron
+        db.from('live').update({ lastStatus: 'DIHENTIKAN ADMIN', isLocked: false }).eq('id', studentId);
+        showNotify(`Perintah Force Finish dikirim ke ${studentName}`, "info");
+    }
 }
 
 function forceUnlockLocally() {
@@ -1065,6 +1070,14 @@ function forceUnlockLocally() {
     document.getElementById('violation-count').textContent = "0"; document.getElementById('violation-badge').classList.add('hidden-element');
     showNotify("Akses dibuka oleh pengawas.","info"); document.documentElement.requestFullscreen().catch(() => {});
 }
+
+function remoteUnlockStudent(studentId) {
+    if(confirm("Buka akses siswa ini?")) {
+        monitorChannel.send({ type: 'broadcast', event: 'command-unlock', payload: { targetUserId: studentId } }); // Kirim perintah unlock via broadcast agar instan
+        db.from('live').update({ command: 'unlock', isLocked: false, v: 0 }).eq('id', studentId); showNotify("Perintah buka kunci dikirim.","info"); // Backup via database
+    }
+}
+
 
 async function clearMonitorData() {
     if(!confirm("Bersihkan data live di database?")) return; 

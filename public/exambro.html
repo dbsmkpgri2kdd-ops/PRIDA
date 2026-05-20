@@ -710,7 +710,7 @@ async function startExamEngine(url, mapel, dur, isCameraRequired, examId) {
 
         // A. Cek apakah pengerjaan sudah berjalan 30 menit (1800 detik)
         let secondsElapsed = Math.floor((currentTime - startTime) / 1000);
-        if (secondsElapsed >= 30) {
+        if (secondsElapsed >= 1800) {
             if (finishBtn) finishBtn.classList.remove('hidden-element');
         }
 

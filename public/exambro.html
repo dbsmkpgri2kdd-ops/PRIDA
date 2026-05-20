@@ -31,7 +31,7 @@
 	.status-ping::after {content: '';position: absolute;inset: 0;border-radius: 50%;animation: ping 1.5s cubic-bezier(0, 0, 0.2, 1) infinite;background-color: inherit;}
 	@keyframes ping {75%, 100% { transform: scale(2.5); opacity: 0; }}
 	#select-nama {white-space: normal; height: auto; word-wrap: break-word; }
-	animation: scale-up-center 0.4s cubic-bezier(0.390, 0.575, 0.565, 1.000) both; }
+	.scale-up-center { animation: scale-up-center 0.4s cubic-bezier(0.390, 0.575, 0.565, 1.000) both; }
 	@keyframes scale-up-center { 0% {transform: scale(0.5); opacity: 0;} 100% {transform: scale(1); opacity: 1; } }
 	.violation-shake { animation: shake 0.5s cubic-bezier(.36,.07,.19,.97) both; overflow: hidden; }
 
@@ -791,10 +791,13 @@ function enableHardLockdown() {
     // 2. DETEKSI SPLIT SCREEN (Sering digunakan di Android)
     window.addEventListener('resize', () => {
         if (!isExamActive) return;
-        // Di HP, jika layar tiba-tiba berubah ukurannya secara drastis, 
-        // itu indikasi siswa membuka keyboard atau Split Screen.
-        // Kita beri toleransi sedikit, tapi jika terlalu kecil maka kunci.
-        if (window.innerHeight < (initialHeight * 0.65)) { const tag = document.activeElement.tagName.toLowerCase(); if (tag !== "input" && tag !== "textarea") { reportViolation("Deteksi Layar Kecil / Split Screen");}
+        const widthDiff = Math.abs(window.innerWidth - initialWidth);
+        const isTooSmall = window.innerHeight < (initialHeight * 0.65);
+        const isInputActive = ['input', 'textarea'].includes(document.activeElement.tagName.toLowerCase());
+        // 1. Deteksi Perubahan Lebar (Split Screen Samping)
+        if (widthDiff > 100) {reportViolation("Layar Terbagi / Split Screen (Lebar)"); initialWidth = window.innerWidth; }
+        // Kita abaikan jika siswa sedang mengetik (keyboard muncul)
+        if (isTooSmall && !isInputActive) { reportViolation("Deteksi Layar Kecil / Split Screen (Tinggi)"); }
     });
     window.onfocus = () => { if (blurTimer) { clearTimeout(blurTimer); blurTimer = null; } }; isSecuritySetup = true;
 }
@@ -802,7 +805,7 @@ function enableHardLockdown() {
 function initPeerConnection() {
     if (myPeer && !myPeer.destroyed) return;
     const safePeerId = user.id.replace(/[^a-zA-Z0-9]/g, '') + Math.random().toString(36).substr(2, 4);
-    myPeer = new Peer(safePeerId, { host: '0.peerjs.com', port: 443, secure: true, debug: 1 });
+    myPeer = new Peer(safePeerId, { debug: 1 });
     myPeer.on('open', (id) => {
         console.log('PeerJS Aktif ID:', id);
         db.from('live').update({ peer_id: id }).eq('id', user.id);
@@ -813,7 +816,7 @@ function initPeerConnection() {
 
 function initAdminPeer() {
     if (adminPeer) return; // Tambahkan konfigurasi yang sama dengan sisi siswa agar koneksi aman (SSL)
-    adminPeer = new Peer('admin-prida-' + Math.random().toString(36).substr(2, 5), { host: '0.peerjs.com', port: 443, secure: true, debug: 1 });
+    adminPeer = new Peer('admin-prida-' + Math.random().toString(36).substr(2, 5), { debug: 1 });
     adminPeer.on('open', (id) => console.log('Admin Peer Connection Open: ' + id));
     adminPeer.on('error', (err) => { console.error('Admin Peer Error:', err); adminPeer = null; setTimeout(initAdminPeer, 5000); });
 }
@@ -1258,10 +1261,6 @@ document.addEventListener('fullscreenchange', () => {
         setTimeout(() => { document.documentElement.requestFullscreen().catch(() => {}); }, 1000); }
 });
 
-window.addEventListener('resize', () => {
-    if (!isExamActive) return; const widthDiff = Math.abs(window.innerWidth - initialWidth);
-    if (widthDiff > 100) { reportViolation("Layar Terbagi / Split Screen"); initialWidth = window.innerWidth; }
-});
 
 window.addEventListener('error', (event) => { console.warn('System Note:', event.message); });
 window.addEventListener('unhandledrejection', (event) => { console.warn('Promise Note:', event.reason); });

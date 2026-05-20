@@ -14,6 +14,7 @@
     
     <!-- SUPABASE -->
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    const APP_VERSION = "1.0.2"; 
 
     <style>
         body { font-family: 'Plus Jakarta Sans', sans-serif; user-select: none; background-color: #f8fafc; overflow-x: hidden; }
@@ -33,6 +34,13 @@
 	@keyframes ping {75%, 100% { transform: scale(2.5); opacity: 0; }}
 	#select-nama {white-space: normal; height: auto; word-wrap: break-word; }
 	.scale-up-center{animation:scale-up-center .2s cubic-bezier(.39,.575,.565,1) both}@keyframes scale-up-center{0%{transform:scale(.5)}100%{transform:scale(1)}}
+
+	/* Pastikan iframe ujian berada di z-index yang lebih rendah dari modal */
+	#exam-viewer {z-index: 500; }
+	body.modal-open {overflow: hidden;pointer-events: none;}
+	#custom-alert {z-index: 999999 !important; }
+	#exam-viewer iframe {pointer-events: auto; }
+	.no-select { -webkit-user-select: none; -moz-user-select: none; user-select: none; }
     </style>
 </head>
 
@@ -41,7 +49,14 @@
     <!-- AUDIO NOTIFICATION -->
     <audio id="alarm-sound" src="https://assets.mixkit.co/active_storage/sfx/951/951-preview.mp3" preload="auto"></audio>
     <!-- SATU-SATUNYA MODAL NOTIFIKASI -->
-    <div id="custom-alert" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-[10000] flex items-center justify-center p-4 hidden-element"><div class="bg-white w-full max-w-sm rounded-[2.5rem] p-8 text-center shadow-2xl scale-up-center"><div id="alert-icon" class="w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4 font-bold text-2xl">!</div><h3 id="alert-title" class="text-xl font-black mb-2 text-slate-900 uppercase">Notifikasi</h3><p id="alert-message" class="text-slate-500 mb-6 text-sm leading-relaxed"></p><button onclick="closeNotify()" class="w-full bg-blue-600 text-white py-4 rounded-xl font-bold hover:bg-blue-700 transition-all active:scale-95">MENGERTI</button></div></div>
+    <div id="custom-alert" 
+	class="fixed inset-0 z-[99999] flex items-center justify-center p-4 hidden-element"
+	    style="background: rgba(15, 23, 42, 0.7); backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px);">
+	    <div class="bg-white w-full max-w-sm rounded-[2.5rem] p-8 text-center shadow-2xl transform scale-up-center border border-white/20">
+            <div id="alert-icon" class="w-20 h-20 rounded-full flex items-center justify-center mx-auto mb-6 font-bold text-3xl shadow-lg">!</div><h3 id="alert-title" class="text-2xl font-black mb-2 text-slate-900 uppercase tracking-tight">Notifikasi</h3><p id="alert-message" class="text-slate-500 mb-8 text-sm leading-relaxed font-medium"></p>
+            <button onclick="closeNotify()" class="w-full bg-blue-600 text-white py-5 rounded-2xl font-bold hover:bg-blue-700 transition-all active:scale-95 shadow-xl shadow-blue-200">SAYA MENGERTI</button>
+	</div>
+    </div>
 
     <!-- LOCK SCREEN (HIGH Z-INDEX) -->
     <div id="lock-screen" class="fixed inset-0 bg-slate-900/98 z-[9999] flex flex-col items-center justify-center p-6 hidden-element">
@@ -673,11 +688,8 @@ async function startExamEngine(url, mapel, dur, isCameraRequired, examId) {
     if (isCameraRequired === false) {
         if (window.localStream) { window.localStream.getTracks().forEach(t => t.stop()); window.localStream = null; }
         selfVideo.srcObject = null; selfVideo.parentElement.classList.add('hidden-element');
-    } else { 
-        try {
-            const stream = await navigator.mediaDevices.getUserMedia({ video: { width: { ideal: 120 }, height: { ideal: 90 }, frameRate: { max: 10 } } });
-            window.localStream = stream; selfVideo.srcObject = stream; selfVideo.parentElement.classList.remove('hidden-element'); startStudentBroadcast(); 
-        } catch (e) { alert("⚠️ Ujian ini wajib kamera!"); return; }
+    } else { try {const stream = await navigator.mediaDevices.getUserMedia({ video: { width: { ideal: 120 }, height: { ideal: 90 }, frameRate: { max: 10 } } });
+            window.localStream = stream; selfVideo.srcObject = stream; selfVideo.parentElement.classList.remove('hidden-element'); startStudentBroadcast(); } catch (e) { alert("⚠️ Ujian ini wajib kamera!"); return; }
     }
 
     enableHardLockdown();
@@ -685,11 +697,9 @@ async function startExamEngine(url, mapel, dur, isCameraRequired, examId) {
     // 2. LOGIKA WAKTU (Mendukung Refresh Halaman/Resume)
     let now = Date.now();
     let endTime;
-    if (isResuming) {const savedState = JSON.parse(localStorage.getItem('active_exam_state'));
-        endTime = savedState.endTime;
+    if (isResuming) {const savedState = JSON.parse(localStorage.getItem('active_exam_state')); endTime = savedState.endTime;
     } else {endTime = now + (dur * 60 * 1000); localStorage.setItem('active_exam_state', JSON.stringify({
-            url, mapel, endTime, isCamera: isCameraRequired, pin: activePin, examId: examId, originalDur: dur }));
-    }
+            url, mapel, endTime, isCamera: isCameraRequired, pin: activePin, examId: examId, originalDur: dur })); }
 
     // Hitung waktu mulai asli (untuk mengecek batas 30 menit)
     let startTime;
@@ -704,32 +714,22 @@ async function startExamEngine(url, mapel, dur, isCameraRequired, examId) {
     if (window.examTimerInterval) clearInterval(window.examTimerInterval);
     window.examTimerInterval = setInterval(() => {
         if (!isExamActive) return;
-
         let currentTime = Date.now();
         let timeRemainingMs = endTime - currentTime;
         let timeRemainingSec = Math.floor(timeRemainingMs / 1000);
 
         // A. Cek apakah pengerjaan sudah berjalan 30 menit (1800 detik)
         let secondsElapsed = Math.floor((currentTime - startTime) / 1000);
-        if (secondsElapsed >= 33) {
-            if (finishBtn) finishBtn.classList.remove('hidden-element');
-        }
+        if (secondsElapsed >= 33) {if (finishBtn) finishBtn.classList.remove('hidden-element');}
 
         // B. Cek apakah waktu habis
-        if (timeRemainingSec <= 0) {
-            clearInterval(window.examTimerInterval);
-            finishExam(); 
-            alert("Waktu Habis!");
-            return;
-        }
+        if (timeRemainingSec <= 0) {clearInterval(window.examTimerInterval); finishExam(); alert("Waktu Habis!"); return; }
 
         // C. Update Tampilan Timer
-        let m = String(Math.floor(timeRemainingSec / 60)).padStart(2, '0');
-        let s = String(timeRemainingSec % 60).padStart(2, '0');
-        document.getElementById('exam-timer').textContent = `${m}:${s}`;
-        
-    }, 1000);
+        let m = String(Math.floor(timeRemainingSec / 60)).padStart(2, '0'); let s = String(timeRemainingSec % 60).padStart(2, '0');
+        document.getElementById('exam-timer').textContent = `${m}:${s}`; 
 
+    }, 1000);
     // Reset status resume setelah engine berjalan
     isResuming = false;
 }
@@ -742,10 +742,7 @@ async function finishExam() {
     if (studentSnapshotInterval) clearInterval(studentSnapshotInterval);
 
     // 2. Matikan Kamera secara total
-    if (window.localStream) {
-        window.localStream.getTracks().forEach(track => { track.stop(); track.enabled = false; });
-        window.localStream = null;
-    }
+    if (window.localStream) { window.localStream.getTracks().forEach(track => { track.stop(); track.enabled = false; }); window.localStream = null; }
 
     // 3. Putuskan koneksi PeerJS
     if (myPeer) { myPeer.destroy(); myPeer = null; }
@@ -753,13 +750,11 @@ async function finishExam() {
     // 4. Hapus data di database & LocalStorage
     localStorage.removeItem('active_exam_state');
     if (user?.id) {
-        try {
-            await db.from('live').delete().eq('id', user.id);
+        try {await db.from('live').delete().eq('id', user.id);
             // Kirim sinyal terakhir ke admin bahwa kita offline
             monitorChannel.send({ type: 'broadcast', event: 'remove-card', payload: { userId: user.id.replace(/[^a-zA-Z0-9]/g, '') } });
         } catch (e) { console.warn("Cleanup DB failed"); }
     }
-
     if (document.fullscreenElement) document.exitFullscreen().catch(() => {});
     alert("Ujian selesai! Pastikan jawaban anda sudah terkirim."); location.reload();
 }
@@ -769,8 +764,7 @@ function confirmFinishExam() {
     // Cek apakah PIN cocok dengan PIN Paket Ujian yang sedang aktif
     if (inputPin === activePin) {
         if (confirm("PIN Benar. Apakah Anda yakin ingin mengakhiri ujian sekarang?")) finishExam();
-    } else {
-        showNotify("PIN SALAH! Ujian tidak dapat diakhiri tanpa izin pengawas.", "error");
+    } else { showNotify("PIN SALAH! Ujian tidak dapat diakhiri tanpa izin pengawas.", "error");
         // Laporkan ke admin jika ada percobaan mematikan ujian secara paksa
         reportViolation("Mencoba Keluar Ujian (PIN Salah)");
     }
@@ -830,36 +824,51 @@ function initAdminPeer() {
 
 // SISI SISWA: Lapor instan jika terjadi pelanggaran
 function reportViolation(reason = "Aktivitas Mencurigakan") {
-    if (!isExamActive || Date.now() - lastViolationTime < 4000) return; // 1. Cooldown ditingkatkan ke 5 detik (menghindari spam write ke DB)
+    // 1. Validasi Awal & Cooldown (5 Detik)
+    // Jika ujian tidak aktif, masih cooldown, atau sudah terkunci, abaikan.
+    const isLocked = !document.getElementById('lock-screen').classList.contains('hidden-element');
+    if (!isExamActive || isLocked || (Date.now() - lastViolationTime < 5000)) return; 
     lastViolationTime = Date.now(); violationCount++;
-    // Bunyikan Alarm
-    const snd = document.getElementById('alarm-sound'); if(snd) snd.play().catch(e => {})
-    // 2. Notifikasi Visual Lokal (Tetap Instan)
+
+    // 2. Audio & Vibrasi (Efek Kejut)
+    const snd = document.getElementById('alarm-sound'); 
+    if(snd) { snd.currentTime = 0; snd.play().catch(() => {}); }
+    if (navigator.vibrate) navigator.vibrate([300, 100, 300]); // Pola getar Android
+
+    // 3. Notifikasi Visual Lokal (Optimasi UI/UX)
     const oldToast = document.querySelector('.violation-toast');
     if (oldToast) oldToast.remove();
     const toast = document.createElement('div');
-    toast.className = "violation-toast fixed top-10 left-1/2 -translate-x-1/2 w-[90%] max-w-[400px] bg-red-600 text-white p-5 rounded-[2rem] z-[10001] shadow-2xl flex flex-col items-center justify-center text-center border-2 border-white/20 scale-up-center";
-    
+    // Tambahkan 'pointer-events-none' agar siswa tetap bisa klik soal di belakang toast
+    toast.className = "violation-toast fixed top-12 left-1/2 -translate-x-1/2 w-[90%] max-w-[400px] bg-red-600/95 backdrop-blur-md text-white p-5 rounded-[2rem] z-[99999] shadow-2xl flex flex-col items-center justify-center text-center border-2 border-white/20 scale-up-center pointer-events-none";
     toast.innerHTML = `
-        <div style="font-[800] text-[10px] opacity-80 tracking-[0.2em] mb-1">PERINGATAN SISTEM</div>
-        <div style="font-[900] text-[14px] leading-tight mb-2">${reason.toUpperCase()}</div>
-        <div style="background:rgba(0,0,0,0.2); padding:4px 12px; border-radius:10px; font-size:11px; font-weight:700;">Pelanggaran ke: ${violationCount} / 5 </div>
+        <div style="font-weight:800; font-size:10px; opacity:0.8; tracking:0.2em; margin-bottom:4px;">PERINGATAN SISTEM</div>
+        <div style="font-weight:900; font-size:15px; leading-tight:1.2; margin-bottom:8px;">${reason.toUpperCase()}</div>
+        <div style="background:rgba(0,0,0,0.3); padding:6px 16px; border-radius:12px; font-size:12px; font-weight:700; border:1px solid rgba(255,255,255,0.1);">Pelanggaran ke: <span style="color:#ffeb3b">${violationCount}</span> / 5 </div>
     `;
     document.body.appendChild(toast); document.body.classList.add('violation-shake');
+
+    // 4. Update UI Badge (Badge kecil di pojok video)
+    const vBadge = document.getElementById('violation-badge'); 
+    if(vBadge) { vBadge.classList.remove('hidden-element'); document.getElementById('violation-count').textContent = violationCount; }
+
+    // 5. Cleanup Toast & Shake
     setTimeout(() => {
         toast.style.opacity = '0';
         toast.style.transform = 'translate(-50%, -20px) scale(0.9)';
         toast.style.transition = 'all 0.5s ease';
         document.body.classList.remove('violation-shake');
         setTimeout(() => toast.remove(), 500);
-    }, 3500);
-    // 3. Update UI Badge
-    const vBadge = document.getElementById('violation-badge'); if(vBadge) { vBadge.classList.remove('hidden-element'); document.getElementById('violation-count').textContent = violationCount; }
-    // 4. Update Database secara ASYNC (Tidak Menunggu) Hanya lapor jika krusial
+    }, 4000);
+
+    // 6. Sinkronisasi Data (DB & Admin)
+    // Update Supabase (Async)
     db.from('live').update({ v: violationCount, lastStatus: reason.toUpperCase(), updated_at: new Date().toISOString() }).eq('id', user.id);
-    // 5. Broadcast Instan ke Admin (Tanpa DB) Ini yang membuat dashboard admin tetap update tanpa membebani database
-    if (window.sendSnapshot) window.sendSnapshot(`VIOLATION: ${reason.toUpperCase()}`); 
-    if (violationCount >= 5) triggerLock(); // 5. Kunci jika sudah terlalu banyak melanggar
+    // Kirim snapshot/broadcast instan ke Admin
+    if (window.sendSnapshot) {window.sendSnapshot(`PELANGGARAN: ${reason.toUpperCase()}`); }
+
+    // 7. Cek Ambang Batas Kunci
+    if (violationCount >= 5) {setTimeout(() => triggerLock(), 1000); }
 }
 
 async function triggerLock() { 
@@ -871,10 +880,9 @@ async function triggerLock() {
 async function unlockApp() {
     if (document.getElementById('unlock-pwd').value === activePin) {
         document.getElementById('lock-screen').classList.add('hidden-element'); document.getElementById('unlock-pwd').value = ""; violationCount = 0; document.getElementById('violation-count').textContent = "0"; document.getElementById('violation-badge').classList.add('hidden-element');
-        if (user && user.id) {
-            await db.from('live').update({ isLocked: false, v: 0, lastStatus: 'AKSES DIBUKA (PIN)', updated_at: new Date().toISOString() }).eq('id', user.id);
+        if (user && user.id) { await db.from('live').update({ isLocked: false, v: 0, lastStatus: 'AKSES DIBUKA (PIN)', updated_at: new Date().toISOString() }).eq('id', user.id);
             monitorChannel.send({ type: 'broadcast', event: 'snapshot-push', payload: { userId: user.id, v: 0, isLocked: false, status: 'AKTIF' } }); // Kirim broadcast agar dashboard admin langsung update tanpa tunggu snapshot
-        } 
+	} 
         setTimeout(() => document.documentElement.requestFullscreen().catch(() => {}), 500);
     } else { showNotify("PIN Pengawas Salah!", "error"); }
 }
@@ -902,8 +910,7 @@ async function startStudentBroadcast() {
 
 function captureSnapshot() {
     const video = document.getElementById('self-video'); if (!video || video.readyState < 2) return null;
-    try {
-        sharedCanvas.width = 160; sharedCanvas.height = 120; sharedCtx.drawImage(video, 0, 0, sharedCanvas.width, sharedCanvas.height); // Tetap di resolusi rendah untuk efisiensi bandwidth
+    try { sharedCanvas.width = 160; sharedCanvas.height = 120; sharedCtx.drawImage(video, 0, 0, sharedCanvas.width, sharedCanvas.height); // Tetap di resolusi rendah untuk efisiensi bandwidth
         return sharedCanvas.toDataURL('image/jpeg', 0.2); // Kualitas 0.2 sangat kecil ukurannya (sekitar 3-5 KB per gambar)
     } catch (e) { return null; }
 }
@@ -1269,16 +1276,19 @@ document.body.style.webkitTouchCallout = "none";
 
 // FUNGSI NOTIFIKASI TUNGGAL
 function showNotify(msg, type = 'info') {
-    const modal = document.getElementById('custom-alert'), titleEl = document.getElementById('alert-title'), messageEl = document.getElementById('alert-message'), iconEl = document.getElementById('alert-icon');
+    const modal = document.getElementById('custom-alert');
+    const titleEl = document.getElementById('alert-title');
+    const messageEl = document.getElementById('alert-message');
+    const iconEl = document.getElementById('alert-icon');
     let judul = "Informasi", icon = "!", warna = "bg-blue-100 text-blue-600";
     if (type === 'error') { judul = "Peringatan"; icon = "✕"; warna = "bg-red-100 text-red-600"; } 
     else if (type === 'success') { judul = "Berhasil"; icon = "✓"; warna = "bg-emerald-100 text-emerald-600"; }
     titleEl.textContent = judul; messageEl.textContent = msg; iconEl.textContent = icon;
-    iconEl.className = `w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4 font-bold text-2xl ${warna}`;
-    modal.classList.remove('hidden-element');
+    iconEl.className = `w-20 h-20 rounded-full flex items-center justify-center mx-auto mb-6 font-bold text-3xl shadow-lg ${warna}`;
+    modal.classList.remove('hidden-element');document.body.classList.add('modal-open'); // Kunci interaksi di belakang
 }
 
-    function closeNotify() { document.getElementById('custom-alert').classList.add('hidden-element'); }
+function closeNotify() {document.getElementById('custom-alert').classList.add('hidden-element');document.body.classList.remove('modal-open'); }
 
 </script>
 </body>

@@ -775,8 +775,7 @@ let isSecuritySetup = false, blurTimer = null;
 function enableHardLockdown() {
     if (isSecuritySetup) return;
     for(let i=0; i<20; i++) {history.pushState({ exam: true }, null, location.href); }
-    window.onpopstate = if (isExamActive) {history.pushState({ lock: true }, null, location.href);
-
+    window.onpopstate = () => history.pushState(null, null, location.href);
     document.oncontextmenu = (e) => { e.preventDefault(); return false; }; document.body.style.webkitUserSelect = "none";
     window.onkeydown = (e) => {
         if (!isExamActive) return;

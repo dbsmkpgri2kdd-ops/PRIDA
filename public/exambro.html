@@ -190,7 +190,7 @@
 	        <div class="flex flex-col"><h4 id="view-mapel" class="font-bold text-xs uppercase truncate w-32">MAPEL</h4><div id="exam-timer" class="text-blue-400 font-mono font-bold text-sm tracking-tighter">00:00:00</div></div>
 	        <div class="flex items-center space-x-3">
 	            <div class="w-16 h-20 bg-black rounded-lg border border-white/20 overflow-hidden relative shadow-inner"><video id="self-video" class="w-full h-full object-cover" autoplay muted playsinline></video><div id="violation-badge" class="absolute top-0 right-0 bg-red-600 text-[8px] px-1 font-bold hidden-element animate-pulse">! <span id="violation-count">0</span></div></div>
-	            <button onclick="confirmFinishExam()" class="bg-red-600 px-4 py-2 rounded-xl text-[10px] font-black uppercase active:bg-red-700">Selesai</button>
+	            <button id="btn-finish-exam" onclick="confirmFinishExam()" class="bg-red-600 px-4 py-2 rounded-xl text-[10px] font-black uppercase active:bg-red-700 hidden-element">Selesai</button>
 	        </div>
 	    </header>
 	    <div id="exam-frame-container" class="flex-grow bg-slate-100 relative"><!-- Iframe akan mengisi seluruh sisa layar --></div>
@@ -381,7 +381,7 @@ window.onload = async () => {
         // 2. LOGIKA AUTO-RESUME UJIAN
         const activeExam = localStorage.getItem('active_exam_state');
         if (activeExam) {const examData = JSON.parse(activeExam); const now = Date.now();
-            if (now < examData.endTime) {isResuming = true; activePin = examData.pin; const remainingMinutes = Math.round((examData.endTime - now) / 60000); startExamEngine(examData.url, examData.mapel, remainingMinutes, examData.isCamera);
+            if (now < examData.endTime) {isResuming = true; activePin = examData.pin; const remainingMinutes = Math.round((examData.endTime - now) / 60000); startExamEngine(examData.url, examData.mapel, examData.originalDur || remainingMinutes, examData.isCamera);
             } else {localStorage.removeItem('active_exam_state');}
         }
         // 3. JALANKAN SERVICE DASAR
@@ -655,34 +655,82 @@ async function startExam(id, correctToken) {
     const doc = await publicData.collection('exams').doc(id).get(); if (doc.exists) { const x = doc.data(); activePin = x.pin || specialSettings.pin; startExamEngine(x.link, x.mapel, x.duration, x.camera, id); }
 }
 
-// --- F. THE EXAM ENGINE ---
 async function startExamEngine(url, mapel, dur, isCameraRequired, examId) {
-    await clearClipboard(); isExamActive = true; violationCount = 0; initialWidth = window.innerWidth; initialHeight = window.innerHeight; isResuming = false;
+    await clearClipboard(); 
+    isExamActive = true; 
+    violationCount = 0; 
+    initialWidth = window.innerWidth; 
+    initialHeight = window.innerHeight;
+
     const selfVideo = document.getElementById('self-video');
-    // LOGIKA PERBAIKAN: Matikan kamera jika tidak dibutuhkan
+    const finishBtn = document.getElementById('btn-finish-exam'); // Referensi tombol selesai
+
+    // 1. Sembunyikan tombol selesai saat mulai
+    if (finishBtn) finishBtn.classList.add('hidden-element');
+
+    // LOGIKA KAMERA
     if (isCameraRequired === false) {
         if (window.localStream) { window.localStream.getTracks().forEach(t => t.stop()); window.localStream = null; }
         selfVideo.srcObject = null; selfVideo.parentElement.classList.add('hidden-element');
-    } else { // Jika kamera dibutuhkan
+    } else { 
         try {
             const stream = await navigator.mediaDevices.getUserMedia({ video: { width: { ideal: 120 }, height: { ideal: 90 }, frameRate: { max: 10 } } });
             window.localStream = stream; selfVideo.srcObject = stream; selfVideo.parentElement.classList.remove('hidden-element'); startStudentBroadcast(); 
         } catch (e) { alert("⚠️ Ujian ini wajib kamera!"); return; }
     }
-    enableHardLockdown(); const endTime = Date.now() + (dur * 60 * 1000);
-    localStorage.setItem('active_exam_state', JSON.stringify({url, mapel, endTime, isCamera: isCameraRequired, pin: activePin, examId: examId }));
+
+    enableHardLockdown();
+
+    // 2. LOGIKA WAKTU (Mendukung Refresh Halaman/Resume)
+    let now = Date.now();
+    let endTime;
+    if (isResuming) {const savedState = JSON.parse(localStorage.getItem('active_exam_state'));
+        endTime = savedState.endTime;
+    } else {endTime = now + (dur * 60 * 1000); localStorage.setItem('active_exam_state', JSON.stringify({
+            url, mapel, endTime, isCamera: isCameraRequired, pin: activePin, examId: examId, originalDur: dur }));
+    }
+
+    // Hitung waktu mulai asli (untuk mengecek batas 30 menit)
+    let startTime;
+    if (isResuming) {const savedState = JSON.parse(localStorage.getItem('active_exam_state'));
+    startTime = savedState.endTime - (savedState.originalDur * 60 * 1000); } else {startTime = now; }
+
     document.getElementById('view-mapel').textContent = mapel;
     document.getElementById('exam-frame-container').innerHTML = `<iframe src="${url}" allow="camera; microphone; display-capture" sandbox="allow-forms allow-scripts allow-same-origin allow-popups allow-modals allow-top-navigation" class="w-full h-full border-none"></iframe>`;
     document.getElementById('exam-viewer').classList.remove('hidden-element');
 
-    // Timer Logic
-    let timeRemaining = dur * 60;
+    // 3. TIMER INTERVAL
     if (window.examTimerInterval) clearInterval(window.examTimerInterval);
     window.examTimerInterval = setInterval(() => {
         if (!isExamActive) return;
-        if (--timeRemaining <= 0) { finishExam(); alert("Waktu Habis!"); }
-        document.getElementById('exam-timer').textContent = `${String(Math.floor(timeRemaining / 60)).padStart(2, '0')}:${String(timeRemaining % 60).padStart(2, '0')}`;
+
+        let currentTime = Date.now();
+        let timeRemainingMs = endTime - currentTime;
+        let timeRemainingSec = Math.floor(timeRemainingMs / 1000);
+
+        // A. Cek apakah pengerjaan sudah berjalan 30 menit (1800 detik)
+        let secondsElapsed = Math.floor((currentTime - startTime) / 1000);
+        if (secondsElapsed >= 30) {
+            if (finishBtn) finishBtn.classList.remove('hidden-element');
+        }
+
+        // B. Cek apakah waktu habis
+        if (timeRemainingSec <= 0) {
+            clearInterval(window.examTimerInterval);
+            finishExam(); 
+            alert("Waktu Habis!");
+            return;
+        }
+
+        // C. Update Tampilan Timer
+        let m = String(Math.floor(timeRemainingSec / 60)).padStart(2, '0');
+        let s = String(timeRemainingSec % 60).padStart(2, '0');
+        document.getElementById('exam-timer').textContent = `${m}:${s}`;
+        
     }, 1000);
+
+    // Reset status resume setelah engine berjalan
+    isResuming = false;
 }
 
 async function finishExam() {

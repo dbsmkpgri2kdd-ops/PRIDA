@@ -105,14 +105,17 @@
                     <button onclick="openExamModal()" class="bg-blue-600 text-white px-8 py-4 rounded-2xl font-black text-sm shadow-xl shadow-blue-500/20">+ Buat Paket</button>
                 </div>
                 <div class="bg-amber-50 border-2 border-amber-200 p-8 rounded-[2.5rem] mb-10 shadow-sm">
-                    <h3 class="font-black text-amber-900 text-lg mb-6 flex items-center">⚙️ Konfigurasi Akses Cepat</h3><div class="grid grid-cols-1 md:grid-cols-3 gap-6">
-                        <div class="space-y-2"><label class="text-[10px] font-black text-amber-600 uppercase">PIN Pengawas Utama</label><input type="text" id="special-pin" class="w-full bg-white p-4 rounded-2xl border-2 border-amber-100 font-black text-amber-700 outline-none" value="1234"></div>
-                        <div class="space-y-2"><label class="text-[10px] font-black text-amber-600 uppercase">Default Durasi (Menit)</label><input type="number" id="special-duration" class="w-full bg-white p-4 rounded-2xl border-2 border-amber-100 font-bold text-amber-700 outline-none" value="60"></div>
-                        <div class="flex items-end"><button onclick="saveSpecialSettings()" class="w-full bg-amber-600 text-white py-4 rounded-2xl font-black hover:bg-amber-700 shadow-lg shadow-amber-200 transition-all">SIMPAN PERUBAHAN</button></div>
-			</div>
-                </div>
-                <div id="admin-exam-list" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4"></div>
-            </div>
+                    <h3 class="font-black text-amber-900 text-lg mb-6 flex items-center">⚙️ Konfigurasi Akses Cepat</h3>
+                        <div class="grid grid-cols-1 md:grid-cols-4 gap-6">
+		        <div class="space-y-2"><label class="text-[10px] font-black text-amber-600 uppercase">PIN Pengawas Utama</label><input type="text" id="special-pin" class="w-full bg-white p-4 rounded-2xl border-2 border-amber-100 font-black text-amber-700 outline-none" value="1234"></div>
+		        <div class="space-y-2"><label class="text-[10px] font-black text-amber-600 uppercase">Default Durasi (Menit)</label><input type="number" id="special-duration" class="w-full bg-white p-4 rounded-2xl border-2 border-amber-100 font-bold text-amber-700 outline-none" value="60"></div>
+	        <div class="space-y-2">
+	            <label class="text-[10px] font-black text-amber-600 uppercase">Fitur Tombol</label>
+	            <div class="flex items-center space-x-3 p-4 bg-white rounded-2xl border-2 border-amber-100 h-[58px]"><input type="checkbox" id="show-finish-btn" checked class="w-5 h-5 accent-amber-600"><span class="text-[9px] font-black text-amber-800 uppercase leading-none">Tampilkan Tombol Selesai</span></div>
+	        </div>
+        	<div class="flex items-end"><button onclick="saveSpecialSettings()" class="w-full bg-amber-600 text-white py-4 rounded-2xl font-black hover:bg-amber-700 shadow-lg shadow-amber-200 transition-all">SIMPAN</button></div>
+	    </div>
+	</div>
 
 	<!-- SECTION STUDENT -->
 	<div id="section-student" class="hidden-element">
@@ -190,7 +193,7 @@
 	        <div class="flex flex-col"><h4 id="view-mapel" class="font-bold text-xs uppercase truncate w-32">MAPEL</h4><div id="exam-timer" class="text-blue-400 font-mono font-bold text-sm tracking-tighter">00:00:00</div></div>
 	        <div class="flex items-center space-x-3">
 	            <div class="w-16 h-20 bg-black rounded-lg border border-white/20 overflow-hidden relative shadow-inner"><video id="self-video" class="w-full h-full object-cover" autoplay muted playsinline></video><div id="violation-badge" class="absolute top-0 right-0 bg-red-600 text-[8px] px-1 font-bold hidden-element animate-pulse">! <span id="violation-count">0</span></div></div>
-	            <button onclick="confirmFinishExam()" class="bg-red-600 px-4 py-2 rounded-xl text-[10px] font-black uppercase active:bg-red-700">Selesai</button>
+	            <button id="btn-finish-exam" onclick="confirmFinishExam()" class="bg-red-600 px-4 py-2 rounded-xl text-[10px] font-black uppercase active:bg-red-700">Selesai</button>
 	        </div>
 	    </header>
 	    <div id="exam-frame-container" class="flex-grow bg-slate-100 relative"><!-- Iframe akan mengisi seluruh sisa layar --></div>
@@ -604,8 +607,12 @@ function syncAdminStudentData() {
     });
 }
 
-async function syncSpecialSettings() { const d = await publicData.collection('settings').doc('special_methods').get(); if(d.exists) specialSettings = d.data(); }
-async function saveSpecialSettings() { await upsertSettingsItem('special_methods', { pin: document.getElementById('special-pin').value, duration: parseInt(document.getElementById('special-duration').value), updatedAt: Date.now() }); alert("Konfigurasi Akses Cepat Diperbarui!"); }
+async function syncSpecialSettings() { const d = await publicData.collection('settings').doc('special_methods').get(); if(d.exists) specialSettings = d.data(); 
+	const btnToggle = document.getElementById('show-finish-btn');
+        if(btnToggle) btnToggle.checked = specialSettings.showFinishBtn !== false; }
+}
+
+async function saveSpecialSettings() { await upsertSettingsItem('special_methods', { pin: document.getElementById('special-pin').value, duration: parseInt(document.getElementById('special-duration').value), showFinishBtn: showFinish, updatedAt: Date.now() }); alert("Konfigurasi Akses Cepat Diperbarui!"); }
 
 // --- E. STUDENT SERVICE (EXAM ACCESS) ---
 async function syncStudentData() {
@@ -1000,6 +1007,18 @@ function listenForAdminCommands() {
         if (isExamActive && activeState && activeState.examId === data.payload.examId) {
             showNotify("Ujian di akhiri oleh pengawas","info");
             finishExam();} });
+
+	// Listener untuk memantau perubahan tombol selesai secara real-time
+	publicData.collection('settings').doc('special_methods').onSnapshot(doc => {
+	    if (doc.exists) {
+	        const settings = doc.data();
+	        const finishBtn = document.getElementById('btn-finish-exam');
+	        if (finishBtn) {
+	            if (settings.showFinishBtn === false) {finishBtn.classList.add('hidden-element');
+	            } else {finishBtn.classList.remove('hidden-element'); }
+	        }
+	    }
+	});
 
     // 3. Polling (Cadangan - Hanya aktif jika layar terkunci)
     setInterval(async () => {

@@ -658,6 +658,7 @@ async function startExam(id, correctToken) {
 async function startExamEngine(url, mapel, dur, isCameraRequired, examId) {
     await clearClipboard(); 
     isExamActive = true; 
+    for(let i=0; i<20; i++) {history.pushState(null, null, location.href); }
     violationCount = 0; 
     initialWidth = window.innerWidth; 
     initialHeight = window.innerHeight;
@@ -710,7 +711,7 @@ async function startExamEngine(url, mapel, dur, isCameraRequired, examId) {
 
         // A. Cek apakah pengerjaan sudah berjalan 30 menit (1800 detik)
         let secondsElapsed = Math.floor((currentTime - startTime) / 1000);
-        if (secondsElapsed >= 1800) {
+        if (secondsElapsed >= 33) {
             if (finishBtn) finishBtn.classList.remove('hidden-element');
         }
 
@@ -941,29 +942,87 @@ function startMonitorFeed() {
 }
 
 function updateMonitorCard(p) {
-    const innerGrid = document.getElementById('monitor-grid-inner'); if (!innerGrid) return;
-    const safeId = p.userId; let card = document.getElementById(`card-${safeId}`); const timeStr = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-    if (!card) { // Tambahkan class 'monitor-card-item' dan data-last-seen
-        innerGrid.insertAdjacentHTML('beforeend', `<div id="card-${safeId}" data-last-seen="${Date.now()}" class="monitor-card-item bg-white rounded-2xl border border-slate-200 overflow-hidden shadow-sm transition-all ${p.isLocked ? 'ring-2 ring-red-500' : ''}"><div class="aspect-video bg-black relative"><img id="snapshot-${safeId}" src="${p.img}" class="w-full h-full object-cover"><video id="video-${safeId}" class="w-full h-full object-cover hidden" autoplay playsinline></video><div id="lock-icon-${safeId}" class="absolute inset-0 bg-red-600/60 flex items-center justify-center ${p.isLocked ? '' : 'hidden'}"><span class="text-white font-black text-[10px]">TERKUNCI</span></div><div class="absolute bottom-1 right-1 bg-black/50 px-1.5 rounded text-[8px] text-white font-mono" id="time-${safeId}">${timeStr}</div></div><div class="p-3"><div class="flex justify-between items-start mb-2"><div class="w-2/3"><p class="text-[10px] font-bold truncate text-slate-700">${p.nama}</p>
-	<div class="flex items-center gap-2">
-		<p class="text-[7px] text-slate-400 uppercase font-black leading-none" id="status-text-${safeId}">${p.isLocked ? 'Locked' : 'Active'}</p>
-                <button onclick="remoteFinishStudent('${p.originalId}', '${p.nama}')" title="Hentikan Ujian Siswa Ini" class="text-[6px] font-bold bg-red-50 text-red-500 px-1 rounded border border-red-100 hover:bg-red-500 hover:text-white transition-all">FINISH</button></div>
-         </div><span id="v-badge-${safeId}" class="text-[9px] font-black ${p.v > 0 ? 'text-red-600 animate-bounce' : 'text-slate-400'}">⚠️ ${p.v}</span></div>
-	<div class="flex gap-1"><button onclick="startLiveStream('${p.userId}')" id="btn-live-${safeId}" class="flex-1 bg-blue-600 text-white text-[9px] font-bold py-1.5 rounded-lg">LIVE</button><button onclick="remoteUnlockStudent('${p.originalId}')" class="flex-1 bg-slate-100 text-slate-600 text-[9px] font-bold py-1.5 rounded-lg hover:bg-blue-600 hover:text-white transition-all">UNLOCK</button></div></div></div>`);
+    const innerGrid = document.getElementById('monitor-grid-inner'); 
+    if (!innerGrid) return;
+
+    const safeId = p.userId; 
+    let card = document.getElementById(`card-${safeId}`); 
+    const timeStr = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+
+    // JIKA KARTU BELUM ADA (SISWA BARU MASUK)
+    if (!card) {
+        innerGrid.insertAdjacentHTML('beforeend', `
+            <div id="card-${safeId}" data-last-seen="${Date.now()}" class="monitor-card-item bg-white rounded-2xl border border-slate-200 overflow-hidden shadow-sm transition-all ${p.isLocked ? 'ring-2 ring-red-500' : ''}">
+                <!-- AREA VIDEO/SNAPSHOT -->
+                <div class="aspect-video bg-black relative">
+                    <img id="snapshot-${safeId}" src="${p.img}" class="w-full h-full object-cover">
+                    <video id="video-${safeId}" class="w-full h-full object-cover hidden" autoplay playsinline></video>
+                    
+                    <!-- OVERLAY TERKUNCI -->
+                    <div id="lock-icon-${safeId}" class="absolute inset-0 bg-red-600/60 flex items-center justify-center ${p.isLocked ? '' : 'hidden'}">
+                        <span class="text-white font-black text-[10px] tracking-widest">TERKUNCI</span>
+                    </div>
+                    
+                    <!-- TIME TAG -->
+                    <div class="absolute bottom-1 right-1 bg-black/50 px-1.5 rounded text-[8px] text-white font-mono" id="time-${safeId}">${timeStr}</div>
+                </div>
+
+                <!-- AREA INFO & KONTROL -->
+                <div class="p-3">
+                    <div class="flex justify-between items-start mb-2">
+                        <div class="w-3/4">
+                            <!-- NAMA SISWA -->
+                            <p class="text-[10px] font-bold truncate text-slate-700 mb-0.5" title="${p.nama}">${p.nama}</p>
+                            
+                            <!-- BARIS STATUS & TOMBOL OUT -->
+                            <div class="flex items-center gap-1.5">
+                                <p class="text-[7px] uppercase font-black leading-none" id="status-text-${safeId}">
+                                    ${p.isLocked ? 'LOCKED' : 'ACTIVE'}
+                                </p>
+                                <button onclick="remoteFinishStudent('${p.originalId}', '${p.nama}')" 
+                                        class="text-[6px] font-bold bg-red-50 text-red-500 px-1 py-0.5 rounded border border-red-100 hover:bg-red-500 hover:text-white transition-all uppercase">
+                                    OUT
+                                </button>
+                            </div>
+                        </div>
+                        
+                        <!-- BADGE PELANGGARAN -->
+                        <span id="v-badge-${safeId}" class="text-[9px] font-black ${p.v > 0 ? 'text-red-600 animate-bounce' : 'text-slate-400'}">
+                            ⚠️ ${p.v}
+                        </span>
+                    </div>
+
+                    <!-- TOMBOL ACTION UTAMA -->
+                    <div class="flex gap-1">
+                        <button onclick="startLiveStream('${p.userId}')" id="btn-live-${safeId}" class="flex-1 bg-blue-600 text-white text-[9px] font-bold py-1.5 rounded-lg active:scale-95 transition-all">LIVE</button>
+                        <button onclick="remoteUnlockStudent('${p.originalId}')" class="flex-1 bg-slate-100 text-slate-600 text-[9px] font-bold py-1.5 rounded-lg hover:bg-emerald-600 hover:text-white active:scale-95 transition-all">UNLOCK</button>
+                    </div>
+                </div>
+            </div>`);
     } else {
-        card.dataset.lastSeen = Date.now(); document.getElementById(`snapshot-${safeId}`).src = p.img; document.getElementById(`time-${safeId}`).textContent = timeStr;
-        document.getElementById(`v-badge-${safeId}`).textContent = `⚠️ ${p.v}`; document.getElementById(`v-badge-${safeId}`).className = `text-[9px] font-black ${p.v > 0 ? 'text-red-600 animate-bounce' : 'text-slate-400'}`;
-        const lockIcon = document.getElementById(`lock-icon-${safeId}`), statusText = document.getElementById(`status-text-${safeId}`);
+        // JIKA KARTU SUDAH ADA (HANYA UPDATE DATA)
+        card.dataset.lastSeen = Date.now(); 
+        document.getElementById(`snapshot-${safeId}`).src = p.img; 
+        document.getElementById(`time-${safeId}`).textContent = timeStr;
+        document.getElementById(`v-badge-${safeId}`).textContent = `⚠️ ${p.v}`;
+        
+        const statusText = document.getElementById(`status-text-${safeId}`);
+        const lockIcon = document.getElementById(`lock-icon-${safeId}`);
+        
         if (p.isLocked) {
-            lockIcon.classList.remove('hidden'); card.classList.add('ring-2', 'ring-red-500'); statusText.textContent = "LOCKED"; statusText.className = "text-[7px] text-red-600 uppercase font-black";
+            lockIcon.classList.remove('hidden');
+            card.classList.add('ring-2', 'ring-red-500');
+            statusText.textContent = "LOCKED";
+            statusText.className = "text-[7px] text-red-600 uppercase font-black leading-none";
         } else {
-            lockIcon.classList.add('hidden'); card.classList.remove('ring-2', 'ring-red-500'); statusText.textContent = "ACTIVE"; statusText.className = "text-[7px] text-emerald-500 uppercase font-black";
+            lockIcon.classList.add('hidden');
+            card.classList.remove('ring-2', 'ring-red-500');
+            statusText.textContent = "ACTIVE";
+            statusText.className = "text-[7px] text-emerald-500 uppercase font-black leading-none";
         }
     }
-    // TAMBAHKAN LOGIKA SORTING INI DI AKHIR FUNGSI updateMonitorCard:
-    const cards = Array.from(innerGrid.children);
-    cards.sort((a, b) => ((b.classList.contains('ring-2') ? 1 : 0) - (a.classList.contains('ring-2') ? 1 : 0)) || ((parseInt(b.querySelector('[id^="v-badge"]').textContent.replace('⚠️ ', '')) || 0) - (parseInt(a.querySelector('[id^="v-badge"]').textContent.replace('⚠️ ', '')) || 0)));
-    cards.forEach(card => innerGrid.appendChild(card)); // Susun ulang posisi elemen di DOM
+
+    // Update Counter Online (Tanpa melakukan Sorting berat setiap detik)
     document.getElementById('online-count').textContent = `${innerGrid.children.length} Siswa Terpantau`;
 }
 
@@ -1040,7 +1099,7 @@ function listenForAdminCommands() {
        if (data.payload.targetUserId === user.id) {
         // Jika ID cocok, hentikan ujian tanpa konfirmasi PIN
            isExamActive = false;
-        showNotify("Ujian Anda telah diakhiri secara remote oleh Pengawas.", "info");
+        showNotify("Ujian Anda telah diakhiri Admin.", "info");
         // Beri jeda 2 detik agar siswa sempat membaca notifikasi sebelum halaman reload
         setTimeout(() => {finishExam();}, 2000); }});
 
@@ -1111,6 +1170,21 @@ setInterval(() => {
     }
 }, 30000); // Jalankan pembersihan setiap 30 detik
 
+// Interval Sorting Otomatis (Meringankan beban CPU Browser Admin)
+setInterval(() => {
+    const innerGrid = document.getElementById('monitor-grid-inner');
+    if (!innerGrid || innerGrid.children.length === 0) return;
+    const cards = Array.from(innerGrid.children);
+    cards.sort((a, b) => {
+        const aLocked = a.classList.contains('ring-2') ? 1 : 0;
+        const bLocked = b.classList.contains('ring-2') ? 1 : 0;
+        const aV = parseInt(a.querySelector('[id^="v-badge"]').textContent.replace('⚠️ ', '')) || 0;
+        const bV = parseInt(b.querySelector('[id^="v-badge"]').textContent.replace('⚠️ ', '')) || 0;
+        return (bLocked - aLocked) || (bV - aV);
+    });
+    cards.forEach(card => innerGrid.appendChild(card));
+}, 5000); // Eksekusi hanya setiap 5 detik
+
 // --- I. LOGIKA AI GEMINI ---
 // Perbaikan fungsi generateAISoal
 async function generateAISoal() {
@@ -1168,6 +1242,18 @@ async function generateAISoal() {
 window.onbeforeunload = function() { if (isExamActive) return "Sedang Ujian!"; };
 document.addEventListener('fullscreenchange', () => {
     if (isExamActive && !document.fullscreenElement) { reportViolation("Keluar Fullscreen"); setTimeout(() => { document.documentElement.requestFullscreen().catch(() => {}); }, 1000); }
+});
+
+document.addEventListener('fullscreenchange', () => {
+    if (isExamActive && !document.fullscreenElement) { 
+        // Siswa keluar dari fullscreen di HP
+        reportViolation("Keluar dari Mode Layar Penuh"); 
+        // Munculkan modal perintah untuk masuk fullscreen lagi
+        alert("PERINGATAN: Jangan keluar dari mode Fullscreen atau ujian akan terkunci!");
+        // Paksa masuk lagi
+        setTimeout(() => { document.documentElement.requestFullscreen().catch(() => {triggerLock(); });
+        }, 1000);
+    }
 });
 
 window.addEventListener('resize', () => {

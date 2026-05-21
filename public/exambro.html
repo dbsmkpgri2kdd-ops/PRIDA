@@ -37,10 +37,32 @@
 
 	/* Pastikan iframe ujian berada di z-index yang lebih rendah dari modal */
 	#exam-viewer {z-index: 500; }
-	body.modal-open {overflow: hidden;pointer-events: none;}
-	#custom-alert {z-index: 999999 !important; }
+	body.modal-open {overflow: hidden; }
 	#exam-viewer iframe {pointer-events: auto; }
 	.no-select { -webkit-user-select: none; -moz-user-select: none; user-select: none; }
+/* Ganti bagian ini di dalam <style> Anda */
+#custom-alert {
+    z-index: 2147483647 !important; /* Nilai maksimal z-index */
+    pointer-events: auto !important;
+    cursor: default;
+}
+
+#custom-alert * {
+    pointer-events: auto !important; /* Pastikan semua anak elemen (tombol) bisa diklik */
+}
+
+/* Pastikan lock-screen di bawah alert tapi di atas ujian */
+#lock-screen {
+    z-index: 2000000 !important;
+}
+
+/* Pastikan pesan pelanggaran tidak menutupi tombol klik jika muncul bersamaan */
+.violation-toast {
+    z-index: 1000000 !important;
+    pointer-events: none !important; /* Wajib agar tidak menghalangi klik */
+}
+
+
     </style>
 </head>
 
@@ -49,14 +71,21 @@
     <!-- AUDIO NOTIFICATION -->
     <audio id="alarm-sound" src="https://assets.mixkit.co/active_storage/sfx/951/951-preview.mp3" preload="auto"></audio>
     <!-- SATU-SATUNYA MODAL NOTIFIKASI -->
-    <div id="custom-alert" 
-	class="fixed inset-0 z-[99999] flex items-center justify-center p-4 hidden-element"
-	    style="background: rgba(15, 23, 42, 0.7); backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px);">
-	    <div class="bg-white w-full max-w-sm rounded-[2.5rem] p-8 text-center shadow-2xl transform scale-up-center border border-white/20">
-            <div id="alert-icon" class="w-20 h-20 rounded-full flex items-center justify-center mx-auto mb-6 font-bold text-3xl shadow-lg">!</div><h3 id="alert-title" class="text-2xl font-black mb-2 text-slate-900 uppercase tracking-tight">Notifikasi</h3><p id="alert-message" class="text-slate-500 mb-8 text-sm leading-relaxed font-medium"></p>
-            <button onclick="closeNotify()" class="w-full bg-blue-600 text-white py-5 rounded-2xl font-bold hover:bg-blue-700 transition-all active:scale-95 shadow-xl shadow-blue-200">SAYA MENGERTI</button>
-	</div>
+<!-- SATU-SATUNYA MODAL NOTIFIKASI -->
+<div id="custom-alert" 
+    class="fixed inset-0 flex items-center justify-center p-4 hidden-element"
+    style="background: rgba(15, 23, 42, 0.8); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px);">
+    <div class="bg-white w-full max-w-sm rounded-[2.5rem] p-8 text-center shadow-2xl transform scale-up-center border border-slate-200">
+        <div id="alert-icon" class="w-20 h-20 rounded-full flex items-center justify-center mx-auto mb-6 font-bold text-3xl shadow-lg">!</div>
+        <h3 id="alert-title" class="text-2xl font-black mb-2 text-slate-900 uppercase tracking-tight">Notifikasi</h3>
+        <p id="alert-message" class="text-slate-500 mb-8 text-sm leading-relaxed font-medium"></p>
+        <button onclick="closeNotify()" 
+            class="w-full bg-blue-600 text-white py-5 rounded-2xl font-bold hover:bg-blue-700 transition-all active:scale-95 shadow-xl shadow-blue-200" 
+            style="cursor: pointer !important; position: relative; z-index: 2147483647;">
+            SAYA MENGERTI
+        </button>
     </div>
+</div>
 
     <!-- LOCK SCREEN (HIGH Z-INDEX) -->
     <div id="lock-screen" class="fixed inset-0 bg-slate-900/98 z-[9999] flex flex-col items-center justify-center p-6 hidden-element">
@@ -1274,12 +1303,24 @@ function showNotify(msg, type = 'info') {
     const titleEl = document.getElementById('alert-title');
     const messageEl = document.getElementById('alert-message');
     const iconEl = document.getElementById('alert-icon');
+    
     let judul = "Informasi", icon = "!", warna = "bg-blue-100 text-blue-600";
-    if (type === 'error') { judul = "Peringatan"; icon = "✕"; warna = "bg-red-100 text-red-600"; } 
-    else if (type === 'success') { judul = "Berhasil"; icon = "✓"; warna = "bg-emerald-100 text-emerald-600"; }
-    titleEl.textContent = judul; messageEl.textContent = msg; iconEl.textContent = icon;
+    if (type === 'error') { 
+        judul = "Peringatan"; icon = "✕"; warna = "bg-red-100 text-red-600"; 
+    } else if (type === 'success') { 
+        judul = "Berhasil"; icon = "✓"; warna = "bg-emerald-100 text-emerald-600"; 
+    }
+    
+    titleEl.textContent = judul; 
+    messageEl.textContent = msg; 
+    iconEl.textContent = icon;
     iconEl.className = `w-20 h-20 rounded-full flex items-center justify-center mx-auto mb-6 font-bold text-3xl shadow-lg ${warna}`;
-    modal.classList.remove('hidden-element');document.body.classList.add('modal-open'); // Kunci interaksi di belakang
+    
+    modal.classList.remove('hidden-element');
+    document.body.classList.add('modal-open');
+
+    // FORCE: Jika sedang dalam iframe, paksa fokus ke parent (window utama)
+    window.focus();
 }
 
 function closeNotify() {document.getElementById('custom-alert').classList.add('hidden-element');document.body.classList.remove('modal-open'); }

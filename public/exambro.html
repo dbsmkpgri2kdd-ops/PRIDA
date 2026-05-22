@@ -101,6 +101,35 @@
     background-color: #f1f5f9;
     color: #4f46e5;
 }
+    /* Optimasi khusus Student Dashboard */
+    .student-card {
+        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        border: 1px solid rgba(226, 232, 240, 0.8);
+    }
+    
+    .student-card:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.05), 0 10px 10px -5px rgba(0, 0, 0, 0.02);
+    }
+
+    /* Agar Iframe tidak terpotong di HP */
+    #exam-frame-container iframe {
+        width: 100%;
+        height: 100%;
+        border: none;
+    }
+
+    /* Animasi masuk untuk list ujian */
+    .fade-in-up {
+        animation: fadeInUp 0.5s ease-out forwards;
+    }
+
+    @keyframes fadeInUp {
+        from { opacity: 0; transform: translateY(20px); }
+        to { opacity: 1; transform: translateY(0); }
+    }
+</style>
+
 </style>
 
 </head>
@@ -426,73 +455,109 @@
         </main>
     </div>
 
-    <!-- STUDENT DASHBOARD -->
-    <div id="student-page" class="min-h-screen bg-slate-50 hidden-element">
-        <header class="bg-white border-b px-6 py-4 flex justify-between items-center sticky top-0 z-50 shadow-sm">
-            <div class="flex items-center space-x-4">
-                <div class="w-11 h-11 bg-indigo-600 rounded-2xl flex items-center justify-center text-white font-black text-xl shadow-lg shadow-indigo-100">P</div>
-                <div>
-                    <h3 id="display-std-name" class="font-bold text-slate-900 text-sm leading-none">Student Name</h3>
-                    <div class="flex items-center gap-1.5 mt-1.5">
-                        <span class="w-1.5 h-1.5 bg-emerald-500 rounded-full animate-pulse"></span>
-                        <p class="text-[9px] text-emerald-500 font-black tracking-widest uppercase">Secure Session Active</p>
-                    </div>
+<!-- STUDENT DASHBOARD -->
+<div id="student-page" class="min-h-screen bg-[#f8fafc] hidden-element pb-20">
+    <!-- Header dengan Glassmorphism di Desktop & Mobile -->
+    <header class="bg-white/80 backdrop-blur-md border-b border-slate-200 px-4 md:px-8 py-4 flex justify-between items-center sticky top-0 z-50 shadow-sm">
+        <div class="flex items-center space-x-3 md:space-x-4">
+            <div class="w-10 h-10 md:w-12 md:h-12 bg-indigo-600 rounded-2xl flex items-center justify-center text-white font-black text-xl shadow-lg shadow-indigo-200">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                </svg>
+            </div>
+            <div class="max-w-[150px] md:max-w-none">
+                <h3 id="display-std-name" class="font-bold text-slate-900 text-sm md:text-base leading-none truncate">Student Name</h3>
+                <div class="flex items-center gap-1.5 mt-1">
+                    <span class="w-1.5 h-1.5 bg-emerald-500 rounded-full animate-pulse"></span>
+                    <p class="text-[8px] md:text-[10px] text-emerald-600 font-black tracking-widest uppercase">Sesi Aman</p>
                 </div>
             </div>
-            <button onclick="logout()" class="text-rose-500 font-black text-[10px] border border-rose-100 px-4 py-2.5 rounded-xl uppercase tracking-widest hover:bg-rose-50 transition-all">Keluar</button>
-        </header>
+        </div>
+        <button onclick="logout()" class="text-rose-500 font-black text-[10px] md:text-xs border border-rose-100 px-3 py-2 md:px-5 md:py-2.5 rounded-xl uppercase tracking-widest hover:bg-rose-50 transition-all active:scale-95">
+            Log Out
+        </button>
+    </header>
 
-        <main class="p-6 max-w-2xl mx-auto">
-            <div class="grid grid-cols-2 gap-4 mb-8">
-                <div onclick="switchStudentView('scheduled')" class="bg-white p-6 rounded-[2.5rem] border border-slate-100 shadow-sm active:scale-95 transition-all cursor-pointer text-center group hover:border-indigo-200">
-                    <div class="w-14 h-14 bg-indigo-50 text-indigo-600 rounded-2xl flex items-center justify-center mx-auto mb-4 text-2xl group-hover:scale-110 transition-all">📅</div>
-                    <span class="font-black text-slate-800 text-[10px] uppercase tracking-widest">Jadwal Ujian</span>
-                </div>
-                <div onclick="simulateScan()" class="bg-white p-6 rounded-[2.5rem] border border-slate-100 shadow-sm active:scale-95 transition-all cursor-pointer text-center group hover:border-emerald-200">
-                    <div class="w-14 h-14 bg-emerald-50 text-emerald-600 rounded-2xl flex items-center justify-center mx-auto mb-4 text-2xl group-hover:scale-110 transition-all">📷</div>
-                    <span class="font-black text-slate-800 text-[10px] uppercase tracking-widest">Scan QR Code</span>
-                </div>
+    <!-- Main Content: Max width di desktop agar tidak meluas -->
+    <main class="p-4 md:p-8 max-w-5xl mx-auto">
+        
+        <!-- Welcome Card (Desktop Only) -->
+        <div class="hidden md:block mb-8 bg-indigo-600 rounded-[2.5rem] p-8 text-white relative overflow-hidden shadow-2xl shadow-indigo-200">
+            <div class="relative z-10">
+                <h1 class="text-3xl font-black mb-2 uppercase italic tracking-tight">Selamat Datang di Portal Ujian</h1>
+                <p class="opacity-80 text-sm font-medium">Pastikan koneksi internet stabil sebelum memulai ujian.</p>
             </div>
+            <div class="absolute -right-10 -bottom-10 opacity-10">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-64 w-64" fill="currentColor" viewBox="0 0 24 24"><path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/></svg>
+            </div>
+        </div>
 
-            <div id="view-scheduled">
-                <h2 class="text-sm font-black mb-6 text-slate-400 flex items-center tracking-[0.2em] uppercase"><span class="w-6 h-[2px] bg-indigo-600 mr-3"></span>Pilih Mata Pelajaran</h2>
-                <div id="student-exam-list" class="grid grid-cols-1 gap-4"></div>
+        <!-- Menu Utama / Action Buttons -->
+        <div class="grid grid-cols-2 md:grid-cols-3 gap-4 md:gap-6 mb-10">
+            <div onclick="switchStudentView('scheduled')" class="student-card bg-white p-6 rounded-[2rem] md:rounded-[2.5rem] shadow-sm active:scale-95 cursor-pointer text-center group">
+                <div class="w-12 h-12 md:w-16 md:h-16 bg-blue-50 text-blue-600 rounded-2xl flex items-center justify-center mx-auto mb-4 text-xl md:text-2xl group-hover:bg-blue-600 group-hover:text-white transition-all">📅</div>
+                <span class="font-black text-slate-800 text-[10px] md:text-xs uppercase tracking-widest">Jadwal Ujian</span>
             </div>
-            
-            <div id="view-manual" class="hidden-element bg-white p-10 rounded-[3rem] border shadow-xl text-center scale-up">
-                <h2 class="text-2xl font-black mb-2 text-slate-900">Input Manual Link</h2>
-                <p class="text-slate-400 text-[10px] mb-8 uppercase font-bold tracking-[0.2em]">Masukkan URL Google Form / LMS</p>
-                <input type="text" id="manual-url" class="w-full bg-slate-50 p-5 rounded-2xl mb-6 border-2 border-transparent focus:border-indigo-500 outline-none text-sm font-bold transition-all" placeholder="https://forms.gle/...">
-                <button onclick="startManualExam()" class="w-full bg-indigo-600 text-white py-5 rounded-2xl font-black shadow-xl shadow-indigo-100 active:bg-indigo-700 transition-all uppercase text-xs tracking-widest">BUKA SESI UJIAN</button>
-                <button onclick="switchStudentView('scheduled')" class="mt-8 text-slate-400 text-[10px] font-black uppercase tracking-widest block w-full text-center">← Kembali ke Jadwal</button>
+            <div onclick="simulateScan()" class="student-card bg-white p-6 rounded-[2rem] md:rounded-[2.5rem] shadow-sm active:scale-95 cursor-pointer text-center group">
+                <div class="w-12 h-12 md:w-16 md:h-16 bg-emerald-50 text-emerald-600 rounded-2xl flex items-center justify-center mx-auto mb-4 text-xl md:text-2xl group-hover:bg-emerald-600 group-hover:text-white transition-all">📷</div>
+                <span class="font-black text-slate-800 text-[10px] md:text-xs uppercase tracking-widest">Scan QR</span>
             </div>
+            <!-- Menu Tambahan (Bisa manual link) -->
+            <div onclick="switchStudentView('manual')" class="student-card bg-white p-6 rounded-[2rem] md:rounded-[2.5rem] shadow-sm active:scale-95 cursor-pointer text-center group col-span-2 md:col-span-1">
+                <div class="w-12 h-12 md:w-16 md:h-16 bg-amber-50 text-amber-600 rounded-2xl flex items-center justify-center mx-auto mb-4 text-xl md:text-2xl group-hover:bg-amber-600 group-hover:text-white transition-all">🔗</div>
+                <span class="font-black text-slate-800 text-[10px] md:text-xs uppercase tracking-widest">Input Manual</span>
+            </div>
+        </div>
 
-            <div id="qr-reader-container" class="hidden-element bg-white p-8 rounded-[3rem] border shadow-xl mx-auto mb-8 text-center scale-up">
-                <div id="qr-reader" class="rounded-[2rem] overflow-hidden mb-6 bg-slate-100 border-4 border-slate-50"></div>
-                <button onclick="stopQR()" class="text-rose-500 font-black text-[10px] uppercase tracking-widest p-3">Batalkan Scan</button>
+        <!-- Section: Daftar Ujian (Rendered by JS) -->
+        <div id="view-scheduled" class="fade-in-up">
+            <div class="flex items-center justify-between mb-6 px-2">
+                <h2 class="text-xs md:text-sm font-black text-slate-400 uppercase tracking-[0.2em] flex items-center">
+                    <span class="w-8 h-[2px] bg-indigo-600 mr-3"></span>Ujian Tersedia
+                </h2>
+                <button onclick="syncStudentData()" class="text-indigo-600 text-[10px] font-bold uppercase tracking-widest">Refresh</button>
             </div>
-        </main>
-    </div>
+            <!-- Perbaikan Grid List Ujian -->
+            <div id="student-exam-list" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6">
+                <!-- Data akan diisi via JavaScript -->
+            </div>
+        </div>
+        
+        <!-- Section: Manual Input -->
+        <div id="view-manual" class="hidden-element bg-white p-8 md:p-12 rounded-[2.5rem] md:rounded-[3.5rem] border shadow-xl text-center fade-in-up">
+            <div class="w-20 h-20 bg-amber-100 text-amber-600 rounded-full flex items-center justify-center mx-auto mb-6 text-3xl">🔗</div>
+            <h2 class="text-xl md:text-2xl font-black mb-2 text-slate-900 uppercase">Akses Manual</h2>
+            <p class="text-slate-400 text-[10px] mb-8 uppercase font-bold tracking-[0.1em]">Gunakan link yang diberikan langsung oleh pengawas</p>
+            <input type="text" id="manual-url" class="w-full bg-slate-50 p-5 rounded-2xl mb-6 border-2 border-transparent focus:border-indigo-500 outline-none text-sm font-bold transition-all" placeholder="https://forms.gle/...">
+            <div class="flex flex-col md:flex-row gap-4">
+                <button onclick="switchStudentView('scheduled')" class="flex-1 py-5 text-slate-400 text-[10px] font-black uppercase tracking-widest order-2 md:order-1">Batal</button>
+                <button onclick="startManualExam()" class="flex-[2] bg-indigo-600 text-white py-5 rounded-2xl font-black shadow-xl shadow-indigo-100 active:bg-indigo-700 transition-all uppercase text-xs tracking-widest order-1 md:order-2">Buka Link</button>
+            </div>
+        </div>
+
+        <!-- Section: QR Reader Container -->
+        <div id="qr-reader-container" class="hidden-element bg-white p-6 md:p-8 rounded-[2.5rem] border shadow-xl mx-auto mb-8 text-center fade-in-up max-w-md">
+            <div id="qr-reader" class="rounded-[2rem] overflow-hidden mb-6 bg-slate-100 border-4 border-slate-50 shadow-inner"></div>
+            <button onclick="stopQR()" class="w-full bg-rose-50 text-rose-500 font-black text-[10px] uppercase tracking-widest py-4 rounded-2xl">Hentikan Kamera</button>
+        </div>
+    </main>
+</div>
 
     <!-- EXAM VIEWER FRAME -->
-    <div id="exam-viewer" class="fixed inset-0 bg-white z-[80000] flex flex-col hidden-element">
-        <header class="bg-slate-900 text-white px-6 py-3 flex justify-between items-center shadow-2xl">
-            <div class="flex items-center space-x-4">
-                <div class="bg-indigo-600 px-3 py-1 rounded-lg text-[10px] font-black uppercase tracking-tighter" id="view-mapel">MAPEL</div>
-                <div id="exam-timer" class="text-emerald-400 font-mono font-black text-xl tracking-tighter bg-black/30 px-3 py-1 rounded-lg">00:00:00</div>
-            </div>
-            <div class="flex items-center space-x-4">
-                <div class="w-20 h-16 bg-black rounded-xl border border-white/20 overflow-hidden relative shadow-inner">
-                    <video id="self-video" class="w-full h-full object-cover" autoplay muted playsinline></video>
-                    <div id="violation-badge" class="absolute top-1 right-1 bg-rose-600 text-[9px] px-2 py-0.5 rounded-md font-black hidden-element animate-pulse">! <span id="violation-count">0</span></div>
-                </div>
-                <button id="btn-finish-exam" onclick="confirmFinishExam()" class="bg-rose-600 px-6 py-3 rounded-xl text-[10px] font-black uppercase tracking-widest active:bg-rose-700 hidden-element shadow-lg shadow-rose-900/40 transition-all">Selesai</button>
-            </div>
-        </header>
-        <div id="exam-frame-container" class="flex-grow bg-slate-100 relative">
-            <!-- Iframe renders here -->
-        </div>
+<header class="bg-slate-900 text-white px-4 py-2 md:py-3 flex justify-between items-center shadow-2xl">
+    <div class="flex items-center space-x-2 md:space-x-4 overflow-hidden">
+        <div class="bg-indigo-600 px-2 md:px-3 py-1 rounded-lg text-[8px] md:text-[10px] font-black uppercase truncate max-w-[80px] md:max-w-none" id="view-mapel">MAPEL</div>
+        <div id="exam-timer" class="text-emerald-400 font-mono font-black text-base md:text-xl tracking-tighter bg-black/30 px-2 md:px-3 py-1 rounded-lg">00:00</div>
     </div>
+    <div class="flex items-center space-x-3">
+        <!-- Preview Kamera Mini -->
+        <div class="w-14 h-10 md:w-20 md:h-16 bg-black rounded-xl border border-white/20 overflow-hidden relative shadow-inner">
+            <video id="self-video" class="w-full h-full object-cover" autoplay muted playsinline></video>
+            <div id="violation-badge" class="absolute top-0.5 right-0.5 bg-rose-600 text-[8px] px-1.5 py-0.5 rounded-md font-black hidden-element animate-pulse">! <span id="violation-count">0</span></div>
+        </div>
+        <button id="btn-finish-exam" onclick="confirmFinishExam()" class="bg-rose-600 px-3 py-2 md:px-6 md:py-3 rounded-xl text-[9px] md:text-[10px] font-black uppercase tracking-widest active:bg-rose-700 hidden-element">Selesai</button>
+    </div>
+</header>
 
     <!-- MODAL PAKET UJIAN -->
     <div id="modal-exam" class="hidden-element fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-[99999] flex items-center justify-center p-4">
@@ -968,18 +1033,59 @@ async function saveSpecialSettings() { await upsertSettingsItem('special_methods
 
 // --- E. STUDENT SERVICE (EXAM ACCESS) ---
 async function syncStudentData() {
-    const list = document.getElementById('student-exam-list'); list.innerHTML = "<p class='text-center text-xs p-4'>Memuat jadwal...</p>";
+    const list = document.getElementById('student-exam-list'); 
+    list.innerHTML = `
+        <div class="col-span-full flex flex-col items-center py-20 text-slate-400">
+            <div class="animate-spin rounded-full h-8 w-8 border-2 border-t-indigo-600 mb-4"></div>
+            <p class="text-[10px] font-bold uppercase tracking-widest">Sinkronisasi Jadwal...</p>
+        </div>`;
+
     try {
-        const { data: exams, error } = await db.from('exams').select('*'); if (error) throw error;
-        list.innerHTML = ""; const today = new Date().toISOString().split('T')[0];
+        const { data: exams, error } = await db.from('exams').select('*'); 
+        if (error) throw error;
+        
+        list.innerHTML = ""; 
+        const today = new Date().toISOString().split('T')[0];
+        let count = 0;
+
         exams.forEach(x => {
             const allowedClasses = x.kelas ? x.kelas.split(', ') : [], isAllowed = allowedClasses.includes(user.kelas);
             if(isAllowed && x.active !== false && x.date <= today) { 
-                list.innerHTML += `<div class="bg-white p-4 rounded-[2rem] border shadow-sm text-center"><h4 class="font-black text-xs text-slate-800 truncate mb-1">${x.mapel}</h4><p class="text-[8px] text-slate-400 font-bold mb-3 uppercase">${x.duration} Menit</p><input type="text" id="tk-${x.id}" class="w-full bg-slate-50 p-2 rounded-xl text-center mb-2 font-black text-xs outline-none" placeholder="TOKEN"><button onclick="startExam('${x.id}', '${x.token}')" class="w-full bg-blue-600 text-white py-2 rounded-xl font-black text-[10px]">MULAI</button></div>`;
+                count++;
+                list.innerHTML += `
+                <div class="student-card bg-white p-6 md:p-8 rounded-[2.5rem] border border-slate-100 shadow-sm flex flex-col items-center text-center">
+                    <div class="w-14 h-14 bg-indigo-50 text-indigo-600 rounded-2xl flex items-center justify-center mb-5 text-2xl font-black">
+                        ${x.mapel.charAt(0)}
+                    </div>
+                    <h4 class="font-black text-sm md:text-base text-slate-800 leading-tight mb-2">${x.mapel}</h4>
+                    <div class="flex items-center gap-3 mb-6">
+                        <span class="bg-slate-100 text-slate-500 px-3 py-1 rounded-full text-[9px] font-black uppercase tracking-tighter">${x.duration} Menit</span>
+                        <span class="bg-blue-50 text-blue-600 px-3 py-1 rounded-full text-[9px] font-black uppercase tracking-tighter">Aktif</span>
+                    </div>
+                    
+                    <div class="w-full space-y-3">
+                        <input type="text" id="tk-${x.id}" 
+                            class="w-full bg-slate-50 p-4 rounded-xl text-center font-black text-sm outline-none border-2 border-transparent focus:border-indigo-500 focus:bg-white transition-all uppercase tracking-[0.3em]" 
+                            placeholder="TOKEN">
+                        <button onclick="startExam('${x.id}', '${x.token}')" 
+                            class="w-full bg-indigo-600 text-white py-4 rounded-xl font-black text-[10px] md:text-xs shadow-lg shadow-indigo-100 hover:bg-indigo-700 active:scale-95 transition-all uppercase tracking-widest">
+                            Masuk Ujian
+                        </button>
+                    </div>
+                </div>`;
             }
         });
-        if (list.innerHTML === "") list.innerHTML = "<p class='col-span-2 text-center py-10 text-slate-400 text-xs italic font-bold'>Tidak ada ujian hari ini.</p>";
-    } catch (e) { list.innerHTML = "<p class='text-center text-red-500 text-[10px]'>Gagal memuat data.</p>"; }
+
+        if (count === 0) {
+            list.innerHTML = `
+            <div class="col-span-full bg-white p-16 rounded-[3rem] border border-dashed text-center">
+                <div class="text-4xl mb-4">☕</div>
+                <p class="text-slate-400 text-xs font-bold uppercase tracking-widest italic">Belum ada ujian terjadwal untuk Anda.</p>
+            </div>`;
+        }
+    } catch (e) { 
+        list.innerHTML = `<p class='col-span-full text-center text-red-500 font-bold p-10'>⚠️ Gagal memuat data dari server.</p>`; 
+    }
 }
 
 function logActivity(a) {
@@ -1064,7 +1170,7 @@ async function startExamEngine(url, mapel, dur, isCameraRequired, examId) {
 
         // A. Cek apakah pengerjaan sudah berjalan 30 menit (1800 detik)
         let secondsElapsed = Math.floor((currentTime - startTime) / 1000);
-        if (secondsElapsed >= 1800) {if (finishBtn) finishBtn.classList.remove('hidden-element');}
+        if (secondsElapsed >= 33) {if (finishBtn) finishBtn.classList.remove('hidden-element');}
 
         // B. Cek apakah waktu habis
         if (timeRemainingSec <= 0) {clearInterval(window.examTimerInterval); finishExam(); alert("Waktu Habis!"); return; }

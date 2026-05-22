@@ -124,12 +124,18 @@
         animation: fadeInUp 0.5s ease-out forwards;
     }
 
-    @keyframes fadeInUp {
+@keyframes fadeInUp {
         from { opacity: 0; transform: translateY(20px); }
         to { opacity: 1; transform: translateY(0); }
     }
-
-
+    
+    /* Tambahan agar teks panjang di kartu mapel tidak berantakan */
+    .line-clamp-2 {
+        display: -webkit-box;
+        -webkit-line-clamp: 2;
+        -webkit-box-orient: vertical;  
+        overflow: hidden;
+    }
 </style>
 
 </head>
@@ -1039,7 +1045,7 @@ async function saveSpecialSettings() { await upsertSettingsItem('special_methods
 // --- E. STUDENT SERVICE (EXAM ACCESS) ---
 async function syncStudentData() {
     const list = document.getElementById('student-exam-list'); 
-    list.innerHTML = `<div class="col-span-full text-center py-10 text-[10px] font-bold text-slate-400 uppercase tracking-widest">Sinkronisasi Jadwal...</div>`;
+    list.innerHTML = `<div class="col-span-full text-center py-10 text-[10px] font-bold text-slate-400 uppercase tracking-widest">Memuat Jadwal...</div>`;
 
     try {
         const { data: exams, error } = await db.from('exams').select('*'); 
@@ -1050,30 +1056,42 @@ async function syncStudentData() {
         let count = 0;
 
         exams.forEach(x => {
-            const allowedClasses = x.kelas ? x.kelas.split(', ') : [], isAllowed = allowedClasses.includes(user.kelas);
-            if(isAllowed && x.active !== false && x.date <= today) { 
+            const allowedClasses = x.kelas ? x.kelas.split(', ') : [], 
+                  isAllowed = allowedClasses.includes(user.kelas);
+            
+            // Tampilkan jika kelas cocok, aktif, dan tanggal hari ini
+            if(isAllowed && x.active !== false && x.date === today) { 
                 count++;
-
-list.innerHTML += `
-<div class="student-card bg-white p-4 md:p-6 rounded-[2rem] border border-slate-100 shadow-sm flex flex-col items-center text-center">
-    ...
-    <h4 class="font-black text-[10px] md:text-sm text-slate-800 leading-tight mb-2 h-7 overflow-hidden line-clamp-2">${x.mapel}</h4>
-    ...
-    <div class="w-full space-y-2">
-        <input type="text" id="tk-${x.id}" 
-            class="w-full bg-slate-50 p-2.5 rounded-xl text-center font-black text-[10px] outline-none border-2 border-transparent focus:border-indigo-500 uppercase tracking-widest" 
-            placeholder="TOKEN">
-        <button onclick="startExam('${x.id}', '${x.token}')" 
-            class="w-full bg-indigo-600 text-white py-3 rounded-xl font-black text-[8px] md:text-[10px] uppercase tracking-widest">
-            MULAI
-        </button>
-    </div>
-</div>`;
+                list.innerHTML += `
+                <div class="student-card bg-white p-4 md:p-6 rounded-[2rem] border border-slate-100 shadow-sm flex flex-col items-center text-center transition-all">
+                    <div class="w-10 h-10 md:w-14 md:h-14 bg-indigo-50 text-indigo-600 rounded-xl flex items-center justify-center mb-3 text-lg md:text-2xl font-black">
+                        ${x.mapel.charAt(0)}
+                    </div>
+                    <h4 class="font-black text-[11px] md:text-sm text-slate-800 leading-tight mb-2 h-8 overflow-hidden line-clamp-2 uppercase italic">${x.mapel}</h4>
+                    <div class="flex items-center gap-1 mb-4">
+                        <span class="bg-slate-100 text-slate-500 px-2 py-0.5 rounded-full text-[8px] font-black uppercase">${x.duration} Menit</span>
+                    </div>
+                    <div class="w-full space-y-2">
+                        <input type="text" id="tk-${x.id}" 
+                            class="w-full bg-slate-50 p-2.5 rounded-xl text-center font-black text-[12px] outline-none border-2 border-transparent focus:border-indigo-500 uppercase tracking-widest" 
+                            placeholder="TOKEN">
+                        <button onclick="startExam('${x.id}', '${x.token}')" 
+                            class="w-full bg-indigo-600 text-white py-3 rounded-xl font-black text-[9px] md:text-[10px] uppercase tracking-widest shadow-lg shadow-indigo-100 active:scale-95 transition-all">
+                            MULAI
+                        </button>
+                    </div>
+                </div>`;
             }
         });
 
-        if (count === 0) list.innerHTML = `<p class="col-span-full text-center py-10 text-slate-400 text-[10px] font-bold italic">Tidak ada ujian hari ini.</p>`;
-    } catch (e) { list.innerHTML = `<p class="col-span-full text-center text-red-500 text-[10px]">Gagal memuat data.</p>`; }
+        if (count === 0) {
+            list.innerHTML = `<div class="col-span-full bg-white p-10 rounded-[2.5rem] border border-dashed text-center">
+                <p class="text-slate-400 text-[10px] font-bold italic uppercase tracking-widest">Tidak ada ujian untuk kelas Anda hari ini.</p>
+            </div>`;
+        }
+    } catch (e) { 
+        list.innerHTML = `<p class="col-span-full text-center text-red-500 text-[10px]">Gagal sinkronisasi data.</p>`; 
+    }
 }
 
 function logActivity(a) {

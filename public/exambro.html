@@ -31,6 +31,20 @@
         background-color: var(--background); 
         color: #1e293b; 
     }
+	/* Tambahkan ini di dalam tag <style> */
+	.hidden-element {
+	    display: none !important;
+	}
+
+	/* Tambahkan juga animasi ini agar transisi modal lebih halus (Opsional) */
+	.scale-up {
+	    animation: scaleUp 0.3s ease-out forwards;
+	}
+
+	@keyframes scaleUp {
+	    from { opacity: 0; transform: scale(0.95); }
+	    to { opacity: 1; transform: scale(1); }
+	}
 
     /* Konsistensi Radius */
     .rounded-standard { border-radius: 1rem; }    /* 16px - Tombol/Input */
@@ -378,7 +392,7 @@
     <div class="flex justify-between items-end mb-8"><div><h2 class="text-3xl font-black text-slate-900">Database Siswa</h2><p class="text-slate-400 text-xs mt-1">Kelola data peserta ujian secara terpusat via Google Sheets.</p></div></div>
     <!-- PANEL PETUNJUK (BARU) -->
     <div class="bg-blue-50 border border-blue-100 rounded-[2.5rem] p-8 mb-8"><div class="flex items-start space-x-4">
-        <div class="bg-blue-600 text-white p-3 rounded-2xl shadow-lg shadow-blue-200"><svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="Step 13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg></div>
+	<div class="bg-blue-600 text-white p-3 rounded-2xl shadow-lg shadow-blue-200"><svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg></div>
         <div class="flex-grow"><h3 class="font-black text-blue-900 text-lg mb-2">Panduan Sinkronisasi Google Sheets</h3><div class="grid grid-cols-1 md:grid-cols-2 gap-6 mt-4">
             <div class="space-y-3"><p class="text-xs font-bold text-blue-700 uppercase tracking-widest">1. Format Kolom (Wajib Berurutan):</p><div class="bg-white/50 p-4 rounded-2xl border border-blue-100"><table class="w-full text-[10px] font-mono"><tr class="text-blue-400 border-b border-blue-100"><th class="pb-1 text-left">A (Kolom 1)</th><th class="pb-1 text-left">B (Kolom 2)</th><th class="pb-1 text-left">C (Kolom 3)</th><th class="pb-1 text-left">D (Kolom 4)</th></tr><tr class="text-blue-900"><td class="pt-1">NIS</td><td class="pt-1">NAMA LENGKAP</td><td class="pt-1">KELAS</td><td class="pt-1">PASSWORD</td></tr></table></div><p class="text-[10px] text-blue-500 italic">*Jangan gunakan header/judul kolom pada baris pertama jika ingin data langsung terbaca.</p></div>
             <div class="space-y-3"><p class="text-xs font-bold text-blue-700 uppercase tracking-widest">2. Cara Publikasi Link:</p><ul class="text-[11px] text-blue-800 space-y-2 font-medium"><li class="flex items-center"><span class="w-5 h-5 bg-blue-200 text-blue-700 rounded-full flex items-center justify-center text-[9px] mr-2 font-black">1</span> Klik menu <b>File</b> > <b>Share</b> > <b>Publish to web</b></li><li class="flex items-center"><span class="w-5 h-5 bg-blue-200 text-blue-700 rounded-full flex items-center justify-center text-[9px] mr-2 font-black">2</span> Pilih tab <b>Link</b>, ubah "Entire Document" menjadi <b>Sheet1</b></li><li class="flex items-center"><span class="w-5 h-5 bg-blue-200 text-blue-700 rounded-full flex items-center justify-center text-[9px] mr-2 font-black">3</span> Ubah "Web Page" menjadi <b>Comma-separated values (.csv)</b></li><li class="flex items-center"><span class="w-5 h-5 bg-blue-200 text-blue-700 rounded-full flex items-center justify-center text-[9px] mr-2 font-black">4</span> Klik Publish, salin linknya dan tempel di bawah ini.</li></ul></div>

@@ -1044,53 +1044,51 @@ async function saveSpecialSettings() { await upsertSettingsItem('special_methods
 
 // --- E. STUDENT SERVICE (EXAM ACCESS) ---
 async function syncStudentData() {
-    const list = document.getElementById('student-exam-list'); 
-    list.innerHTML = `<div class="col-span-full text-center py-10 text-[10px] font-bold text-slate-400 uppercase tracking-widest">Memuat Jadwal...</div>`;
+    const list = document.getElementById('student-exam-list');
+    list.innerHTML = `<div class="animate-pulse space-y-4">
+        <div class="h-24 bg-white rounded-[2rem]"></div>
+        <div class="h-24 bg-white rounded-[2rem]"></div>
+    </div>`;
 
     try {
-        const { data: exams, error } = await db.from('exams').select('*'); 
+        const { data: exams, error } = await db.from('exams').select('*');
         if (error) throw error;
         
-        list.innerHTML = ""; 
+        list.innerHTML = "";
         const today = new Date().toISOString().split('T')[0];
-        let count = 0;
+        let found = 0;
 
         exams.forEach(x => {
-            const allowedClasses = x.kelas ? x.kelas.split(', ') : [], 
-                  isAllowed = allowedClasses.includes(user.kelas);
-            
-            // Tampilkan jika kelas cocok, aktif, dan tanggal hari ini
-            if(isAllowed && x.active !== false && x.date === today) { 
-                count++;
+            const allowed = x.kelas ? x.kelas.split(', ') : [];
+            if (allowed.includes(user.kelas) && x.active !== false && x.date === today) {
+                found++;
                 list.innerHTML += `
-                <div class="student-card bg-white p-4 md:p-6 rounded-[2rem] border border-slate-100 shadow-sm flex flex-col items-center text-center transition-all">
-                    <div class="w-10 h-10 md:w-14 md:h-14 bg-indigo-50 text-indigo-600 rounded-xl flex items-center justify-center mb-3 text-lg md:text-2xl font-black">
-                        ${x.mapel.charAt(0)}
+                <div class="bg-white p-5 rounded-[2.5rem] shadow-sm border border-slate-100 flex items-center justify-between group hover:border-indigo-300 transition-all">
+                    <div class="flex items-center gap-4">
+                        <div class="w-14 h-14 bg-indigo-50 text-indigo-600 rounded-2xl flex items-center justify-center text-xl font-black">
+                            ${x.mapel.charAt(0)}
+                        </div>
+                        <div>
+                            <h4 class="font-extrabold text-slate-800 text-sm leading-tight mb-1">${x.mapel}</h4>
+                            <div class="flex gap-2">
+                                <span class="text-[9px] font-bold text-slate-400 uppercase tracking-widest">${x.duration} Menit</span>
+                                <span class="text-[9px] font-bold text-indigo-500 uppercase tracking-widest">${x.camera ? 'CCTV On' : 'No CCTV'}</span>
+                            </div>
+                        </div>
                     </div>
-                    <h4 class="font-black text-[11px] md:text-sm text-slate-800 leading-tight mb-2 h-8 overflow-hidden line-clamp-2 uppercase italic">${x.mapel}</h4>
-                    <div class="flex items-center gap-1 mb-4">
-                        <span class="bg-slate-100 text-slate-500 px-2 py-0.5 rounded-full text-[8px] font-black uppercase">${x.duration} Menit</span>
-                    </div>
-                    <div class="w-full space-y-2">
-                        <input type="text" id="tk-${x.id}" 
-                            class="w-full bg-slate-50 p-2.5 rounded-xl text-center font-black text-[12px] outline-none border-2 border-transparent focus:border-indigo-500 uppercase tracking-widest" 
-                            placeholder="TOKEN">
-                        <button onclick="startExam('${x.id}', '${x.token}')" 
-                            class="w-full bg-indigo-600 text-white py-3 rounded-xl font-black text-[9px] md:text-[10px] uppercase tracking-widest shadow-lg shadow-indigo-100 active:scale-95 transition-all">
-                            MULAI
-                        </button>
+                    <div class="flex flex-col items-end gap-2">
+                        <input type="text" id="tk-${x.id}" class="w-20 bg-slate-50 border border-slate-200 rounded-lg p-1.5 text-center text-[10px] font-black uppercase tracking-widest focus:ring-2 ring-indigo-500 outline-none" placeholder="TOKEN">
+                        <button onclick="startExam('${x.id}', '${x.token}')" class="bg-indigo-600 text-white px-5 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest shadow-md shadow-indigo-100 active:scale-95 transition-all">START</button>
                     </div>
                 </div>`;
             }
         });
 
-        if (count === 0) {
-            list.innerHTML = `<div class="col-span-full bg-white p-10 rounded-[2.5rem] border border-dashed text-center">
-                <p class="text-slate-400 text-[10px] font-bold italic uppercase tracking-widest">Tidak ada ujian untuk kelas Anda hari ini.</p>
-            </div>`;
+        if (found === 0) {
+            list.innerHTML = `<div class="text-center py-10"><p class="text-slate-400 font-bold text-xs">TIDAK ADA UJIAN HARI INI</p></div>`;
         }
-    } catch (e) { 
-        list.innerHTML = `<p class="col-span-full text-center text-red-500 text-[10px]">Gagal sinkronisasi data.</p>`; 
+    } catch (e) {
+        list.innerHTML = `<p class="text-red-500 text-center text-xs">Gagal memuat data. Periksa koneksi.</p>`;
     }
 }
 

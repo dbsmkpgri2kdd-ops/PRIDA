@@ -1143,7 +1143,7 @@ async function startExamEngine(url, mapel, dur, isCameraRequired, examId) {
 
         // A. Cek apakah pengerjaan sudah berjalan 30 menit (1800 detik)
         let secondsElapsed = Math.floor((currentTime - startTime) / 1000);
-        if (secondsElapsed >= 33) {if (finishBtn) finishBtn.classList.remove('hidden-element');}
+        if (secondsElapsed >= 1800) {if (finishBtn) finishBtn.classList.remove('hidden-element');}
 
         // B. Cek apakah waktu habis
         if (timeRemainingSec <= 0) {clearInterval(window.examTimerInterval); finishExam(); alert("Waktu Habis!"); return; }

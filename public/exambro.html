@@ -1049,16 +1049,14 @@ async function syncSpecialSettings() { const d = await publicData.collection('se
 async function saveSpecialSettings() { await upsertSettingsItem('special_methods', { pin: document.getElementById('special-pin').value, duration: parseInt(document.getElementById('special-duration').value), updatedAt: Date.now() }); alert("Konfigurasi Akses Cepat Diperbarui!"); }
 
 // --- E. STUDENT SERVICE (EXAM ACCESS) ---
-
 async function syncStudentData() {
     const list = document.getElementById('student-exam-list');
     if (!list) return;
 
-    // 1. Loading State
-    list.innerHTML = `<div class="col-span-full text-center py-10"><div class="animate-spin inline-block w-8 h-8 border-4 border-indigo-500 border-t-transparent rounded-full"></div><p class="text-slate-400 font-bold text-xs mt-4 uppercase tracking-widest">Memuat Jadwal...</p></div>`;
+    // 1. Tampilkan Loading
+    list.innerHTML = `<div class="col-span-full text-center py-20"><div class="animate-spin inline-block w-10 h-10 border-4 border-indigo-500 border-t-transparent rounded-full mb-4"></div><p class="text-slate-400 font-bold text-xs uppercase tracking-[0.2em]">Sinkronisasi Jadwal...</p></div>`;
 
     try {
-        // Ambil data terbaru dari Supabase
         const { data: exams, error } = await db.from('exams').select('*');
         if (error) throw error;
 
@@ -1066,62 +1064,67 @@ async function syncStudentData() {
         const today = new Date().toISOString().split('T')[0];
         const groupedExams = {};
 
-        // 2. Filter Berdasarkan Kelas Siswa & Kelompokkan per Tanggal
-        // Hanya tampilkan ujian yang Aktif dan tanggalnya hari ini atau mendatang
+        // 2. Filter & Kelompokkan Data
         exams.forEach(x => {
             const allowedClasses = x.kelas ? x.kelas.split(', ') : [];
             const isAllowed = user && user.kelas && allowedClasses.includes(user.kelas);
             
+            // Hanya tampilkan jika kelas cocok, status aktif, dan tanggal tidak basi
             if (isAllowed && x.active !== false && x.date >= today) { 
-                const tgl = x.date || "Tanpa Tanggal";
-                if (!groupedExams[tgl]) groupedExams[tgl] = [];
-                groupedExams[tgl].push(x);
+                const tglKey = x.date || "Tanpa Tanggal";
+                if (!groupedExams[tglKey]) groupedExams[tglKey] = [];
+                groupedExams[tglKey].push(x);
             }
         });
 
-        // 3. Urutkan Tanggal
         const sortedDates = Object.keys(groupedExams).sort();
 
         if (sortedDates.length === 0) {
-            list.innerHTML = `<div class="col-span-full bg-white p-12 rounded-[3rem] border-2 border-dashed border-slate-100 text-center">
-                <p class="text-slate-400 text-xs font-bold uppercase tracking-widest">Belum ada ujian tersedia untuk kelas ${user.kelas}</p>
+            list.innerHTML = `<div class="col-span-full bg-white p-16 rounded-[3rem] border-2 border-dashed border-slate-100 text-center fade-in-up">
+                <div class="text-5xl mb-4">📅</div>
+                <p class="text-slate-400 text-xs font-black uppercase tracking-widest">Belum ada jadwal ujian untuk kelas ${user.kelas}</p>
             </div>`;
             return;
         }
 
-        // 4. Render ke HTML
+        // 3. Render Header Tanggal & Kartu Ujian
         sortedDates.forEach(tgl => {
-            // Header Tanggal (Menggunakan col-span-full agar memanjang)
+            // Header Group Tanggal
             const dateHeader = `
-                <div class="col-span-full mt-6 mb-2">
-                    <div class="flex items-center gap-3">
-                        <div class="bg-white border border-slate-200 px-4 py-1.5 rounded-xl shadow-sm">
-                            <h3 class="font-black text-indigo-600 text-[10px] uppercase tracking-tighter">📅 ${formatTanggalIndo(tgl)}</h3>
+                <div class="col-span-full mt-10 mb-4 fade-in-up">
+                    <div class="flex items-center gap-4">
+                        <div class="bg-indigo-600 px-6 py-2.5 rounded-2xl shadow-xl shadow-indigo-100">
+                            <h3 class="font-black text-white text-[10px] md:text-xs uppercase tracking-widest">
+                                📅 ${formatTanggalIndo(tgl)}
+                            </h3>
                         </div>
-                        <div class="h-[1px] flex-grow bg-slate-200/60"></div>
+                        <div class="h-[2px] flex-grow bg-indigo-50"></div>
                     </div>
                 </div>
             `;
             list.insertAdjacentHTML('beforeend', dateHeader);
 
-            // Render Kartu Ujian di bawah tanggal tersebut
+            // Daftar Kartu di bawah Tanggal tsb
             groupedExams[tgl].forEach(x => {
                 const cardHtml = `
-                    <div class="student-card bg-white p-5 rounded-[2.5rem] border border-slate-100 shadow-sm flex flex-col hover:shadow-md transition-all fade-in-up">
-                        <div class="mb-4">
-                            <h4 class="font-black text-[13px] text-slate-900 leading-tight line-clamp-2 min-h-[32px]">${x.mapel}</h4>
-                            <div class="flex items-center gap-2 mt-2">
-                                <span class="bg-indigo-50 text-indigo-600 text-[8px] font-black px-2 py-0.5 rounded-md uppercase tracking-tighter">${x.duration} Menit</span>
-                                ${x.camera ? '<span class="text-[8px] font-bold text-emerald-500 uppercase tracking-tighter">● CCTV Aktif</span>' : ''}
+                    <div class="student-card bg-white p-6 rounded-[2.5rem] border border-slate-100 shadow-sm flex flex-col hover:shadow-xl transition-all duration-300 fade-in-up">
+                        <div class="mb-5">
+                            <div class="flex justify-between items-start mb-3">
+                                <span class="bg-slate-100 text-slate-500 text-[8px] font-black px-2 py-1 rounded-lg uppercase tracking-tighter">ID: ${x.id.toString().substr(0,5)}</span>
+                                ${x.camera ? '<span class="flex items-center gap-1 text-[8px] font-black text-emerald-500 uppercase"><span class="w-1.5 h-1.5 bg-emerald-500 rounded-full animate-pulse"></span> CCTV</span>' : ''}
                             </div>
+                            <h4 class="font-black text-[14px] text-slate-900 leading-tight line-clamp-2 min-h-[40px] uppercase tracking-tight">${x.mapel}</h4>
+                            <p class="text-[10px] font-bold text-indigo-500 mt-2 uppercase tracking-widest">${x.duration} Menit Pengerjaan</p>
                         </div>
-                        <div class="mt-auto space-y-2">
-                            <input type="text" id="tk-${x.id}" 
-                                class="w-full bg-slate-50 p-3 rounded-2xl text-center font-black text-xs outline-none border-2 border-transparent focus:border-indigo-500 transition-all uppercase tracking-widest" 
-                                placeholder="TOKEN">
+                        <div class="mt-auto space-y-3">
+                            <div class="relative">
+                                <input type="text" id="tk-${x.id}" 
+                                    class="w-full bg-slate-50 p-4 rounded-2xl text-center font-black text-xs outline-none border-2 border-transparent focus:border-indigo-500 focus:bg-white transition-all uppercase tracking-[0.3em]" 
+                                    placeholder="TOKEN">
+                            </div>
                             <button onclick="startExam('${x.id}', '${x.token}')" 
-                                class="w-full bg-indigo-600 text-white py-3.5 rounded-2xl font-black text-[10px] shadow-lg shadow-indigo-100 active:scale-95 transition-all uppercase tracking-widest">
-                                MULAI
+                                class="w-full bg-indigo-600 text-white py-4 rounded-2xl font-black text-[11px] shadow-lg shadow-indigo-200 hover:bg-indigo-700 active:scale-95 transition-all uppercase tracking-[0.1em]">
+                                MULAI UJIAN
                             </button>
                         </div>
                     </div>
@@ -1131,10 +1134,13 @@ async function syncStudentData() {
         });
 
     } catch (e) {
-        console.error("Gagal Memuat Jadwal:", e);
-        list.innerHTML = `<div class="col-span-full text-center text-red-500 font-bold text-xs p-10">GAGAL MEMUAT DATA. PERIKSA KONEKSI INTERNET.</div>`;
+        console.error("Sync Error:", e);
+        list.innerHTML = `<div class="col-span-full bg-rose-50 p-10 rounded-[2rem] text-center border border-rose-100">
+            <p class="text-rose-600 font-bold text-xs uppercase tracking-widest">Gagal memuat jadwal. Pastikan koneksi internet stabil.</p>
+        </div>`;
     }
 }
+
 
 function logActivity(a) {
     // Daftar aktivitas yang dianggap penting untuk dicatat di DB

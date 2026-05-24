@@ -424,37 +424,119 @@
 
 <!-- SECTION STUDENT -->
 <div id="section-student" class="hidden-element">
-    <div class="flex justify-between items-end mb-8"><div><h2 class="text-3xl font-black text-slate-900">Database Siswa</h2><p class="text-slate-400 text-xs mt-1">Kelola data peserta ujian secara terpusat via Google Sheets.</p></div></div>
+    <div class="flex justify-between items-end mb-6 px-2">
+        <div>
+            <h2 class="text-2xl md:text-3xl font-black text-slate-900 leading-tight">Database Siswa</h2>
+            <p class="text-slate-400 text-[10px] md:text-xs mt-1">Kelola data peserta ujian secara terpusat via Google Sheets.</p>
+        </div>
+    </div>
+
     <!-- PANEL PETUNJUK -->
-    <div class="bg-blue-50 border border-blue-100 rounded-[2.5rem] p-8 mb-8">
+    <div class="bg-blue-50 border border-blue-100 rounded-[2rem] md:rounded-[2.5rem] p-5 md:p-8 mb-6">
         
         <!-- Header: Ikon & Judul Panduan -->
-        <div class="flex items-end space-x-4 mb-6">
-            <div class="bg-blue-600 text-white p-2 rounded-xl shadow-lg shadow-blue-200 shrink-0">
-                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+        <div class="flex items-center space-x-3 mb-6">
+            <div class="bg-blue-600 text-white p-2.5 rounded-xl shadow-lg shadow-blue-200 shrink-0">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
                 </svg>
             </div>  
-            <h3 class="font-black text-blue-900 text-lg">Panduan Sinkronisasi Google Sheets</h3>
+            <h3 class="font-black text-blue-900 text-base md:text-lg leading-tight">Panduan Sinkronisasi Google Sheets</h3>
         </div>
 
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mt-4">
-            <div class="space-y-3"><p class="text-xs font-bold text-blue-700 uppercase tracking-widest">1. Format Kolom (Wajib Berurutan):</p><div class="bg-white/50 p-4 rounded-2xl border border-blue-100"><table class="w-full text-[10px] font-mono"><tr class="text-blue-400 border-b border-blue-100"><th class="pb-1 text-left">A (Kolom 1)</th><th class="pb-1 text-left">B (Kolom 2)</th><th class="pb-1 text-left">C (Kolom 3)</th><th class="pb-1 text-left">D (Kolom 4)</th></tr><tr class="text-blue-900"><td class="pt-1">NIS</td><td class="pt-1">NAMA LENGKAP</td><td class="pt-1">KELAS</td><td class="pt-1">PASSWORD</td></tr></table></div><p class="text-[10px] text-blue-500 italic">*Jangan gunakan header/judul kolom pada baris pertama jika ingin data langsung terbaca.</p></div>
-            <div class="space-y-3"><p class="text-xs font-bold text-blue-700 uppercase tracking-widest">2. Cara Publikasi Link:</p><ul class="text-[11px] text-blue-800 space-y-2 font-medium"><li class="flex items-center"><span class="w-5 h-5 bg-blue-200 text-blue-700 rounded-full flex items-center justify-center text-[9px] mr-2 font-black">1</span> Klik menu <b>File</b> > <b>Share</b> > <b>Publish to web</b></li><li class="flex items-center"><span class="w-5 h-5 bg-blue-200 text-blue-700 rounded-full flex items-center justify-center text-[9px] mr-2 font-black">2</span> Pilih tab <b>Link</b>, ubah "Entire Document" menjadi <b>Sheet1</b></li><li class="flex items-center"><span class="w-5 h-5 bg-blue-200 text-blue-700 rounded-full flex items-center justify-center text-[9px] mr-2 font-black">3</span> Ubah "Web Page" menjadi <b>Comma-separated values (.csv)</b></li><li class="flex items-center"><span class="w-5 h-5 bg-blue-200 text-blue-700 rounded-full flex items-center justify-center text-[9px] mr-2 font-black">4</span> Klik Publish, salin linknya dan tempel di bawah ini.</li></ul></div>
-        </div>
-   </div>
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+            <!-- Bagian 1: Format Kolom -->
+            <div class="space-y-3">
+                <p class="text-[10px] font-bold text-blue-700 uppercase tracking-widest">1. Format Kolom (Wajib Berurutan):</p>
+                <div class="bg-white/70 backdrop-blur-sm p-4 rounded-2xl border border-blue-100 overflow-x-auto">
+                    <table class="w-full min-w-[300px] text-[10px] font-mono">
+                        <tr class="text-blue-400 border-b border-blue-100">
+                            <th class="pb-2 text-left font-medium">A (Kolom 1)</th>
+                            <th class="pb-2 text-left font-medium">B (Kolom 2)</th>
+                            <th class="pb-2 text-left font-medium">C (Kolom 3)</th>
+                            <th class="pb-2 text-left font-medium">D (Kolom 4)</th>
+                        </tr>
+                        <tr class="text-blue-900 font-bold">
+                            <td class="pt-2">NIS</td>
+                            <td class="pt-2 uppercase">Nama Lengkap</td>
+                            <td class="pt-2">KELAS</td>
+                            <td class="pt-2 text-[9px]">PASSWORD</td>
+                        </tr>
+                    </table>
+                </div>
+                <p class="text-[10px] text-blue-500 italic leading-relaxed">*Jangan gunakan header/judul kolom pada baris pertama jika ingin data langsung terbaca.</p>
+            </div>
 
+            <!-- Bagian 2: Cara Publikasi -->
+            <div class="space-y-3">
+                <p class="text-[10px] font-bold text-blue-700 uppercase tracking-widest">2. Cara Publikasi Link:</p>
+                <ul class="text-[11px] text-blue-800 space-y-3 font-medium">
+                    <!-- Gunakan flex-start agar angka tetap di atas saat teks membungkus ke bawah -->
+                    <li class="flex items-start">
+                        <span class="w-5 h-5 bg-blue-200 text-blue-700 rounded-full flex shrink-0 items-center justify-center text-[9px] mr-3 font-black mt-0.5">1</span>
+                        <span>Klik menu <b>File</b> > <b>Share</b> > <b>Publish to web</b></span>
+                    </li>
+                    <li class="flex items-start">
+                        <span class="w-5 h-5 bg-blue-200 text-blue-700 rounded-full flex shrink-0 items-center justify-center text-[9px] mr-3 font-black mt-0.5">2</span>
+                        <span>Pilih tab <b>Link</b>, ubah "Entire Document" menjadi <b>Sheet1</b></span>
+                    </li>
+                    <li class="flex items-start">
+                        <span class="w-5 h-5 bg-blue-200 text-blue-700 rounded-full flex shrink-0 items-center justify-center text-[9px] mr-3 font-black mt-0.5">3</span>
+                        <span>Ubah "Web Page" menjadi <b>CSV (.csv)</b></span>
+                    </li>
+                    <li class="flex items-start">
+                        <span class="w-5 h-5 bg-blue-200 text-blue-700 rounded-full flex shrink-0 items-center justify-center text-[9px] mr-3 font-black mt-0.5">4</span>
+                        <span>Klik Publish, salin linknya dan tempel di bawah.</span>
+                    </li>
+                </ul>
+            </div>
+        </div>
+    </div>
 
     <!-- Panel Sinkronisasi -->
-    <div class="bg-white p-8 rounded-[2.5rem] border mb-8 shadow-sm"><div class="flex flex-col md:flex-row items-center space-y-4 md:space-y-0 md:space-x-4">
-        <div class="flex-grow w-full"><label class="text-[10px] font-black text-slate-400 ml-2 uppercase tracking-widest mb-2 block">Link Google Spreadsheet (CSV/Publish to Web)</label><div class="relative"><input type="text" id="sheet-url" class="w-full bg-slate-50 p-4 pl-12 rounded-2xl outline-none border-2 border-transparent focus:border-blue-500 transition-all text-sm font-medium" placeholder="https://docs.google.com/spreadsheets/d/..."><div class="absolute left-4 top-1/2 -translate-y-1/2 text-slate-300"><svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1" /></svg></div></div></div>
-        <div class="flex items-end h-full pt-6"><button id="btn-sync-sheet" onclick="saveAndSyncSheet()" class="bg-emerald-600 text-white px-10 py-4 rounded-2xl font-black text-xs shadow-xl shadow-emerald-100 flex items-center hover:bg-emerald-700 hover:scale-[1.02] active:scale-95 transition-all min-w-[220px] justify-center"><span id="sync-text">SIMPAN & SINKRON</span></button></div>
+    <div class="bg-white p-6 md:p-8 rounded-[2rem] md:rounded-[2.5rem] border mb-8 shadow-sm">
+        <div class="flex flex-col md:flex-row items-stretch md:items-end space-y-4 md:space-y-0 md:space-x-4">
+            <div class="flex-grow">
+                <label class="text-[10px] font-black text-slate-400 ml-1 uppercase tracking-widest mb-2 block">Link Google Spreadsheet (CSV)</label>
+                <div class="relative">
+                    <input type="text" id="sheet-url" 
+                        class="w-full bg-slate-50 p-4 pl-12 rounded-2xl outline-none border-2 border-transparent focus:border-blue-500 transition-all text-sm font-medium" 
+                        placeholder="https://docs.google.com/spreadsheets/d/...">
+                    <div class="absolute left-4 top-1/2 -translate-y-1/2 text-slate-300">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1" />
+                        </svg>
+                    </div>
+                </div>
+            </div>
+            <button id="btn-sync-sheet" onclick="saveAndSyncSheet()" 
+                class="bg-emerald-600 text-white px-8 py-4 rounded-2xl font-black text-xs shadow-xl shadow-emerald-100 flex items-center hover:bg-emerald-700 active:scale-95 transition-all justify-center">
+                <span id="sync-text">SIMPAN & SINKRON</span>
+            </button>
+        </div>
     </div>
-</div>
+
     <!-- Daftar Siswa -->
-    <div class="bg-white rounded-[2.5rem] border overflow-hidden shadow-sm">
-        <div class="p-6 border-b bg-slate-50/50 flex justify-between items-center"><h4 class="font-black text-slate-900 text-sm uppercase tracking-tight">Daftar Siswa Terdaftar</h4><span class="bg-white px-4 py-1.5 rounded-full border text-[10px] font-bold text-slate-500 shadow-sm" id="student-count-badge">0 Siswa</span></div>
-        <div class="max-h-[500px] overflow-y-auto"><table class="w-full text-left"><thead class="bg-white border-b sticky top-0 z-10"><tr><th class="px-8 py-5 text-[10px] font-black uppercase text-slate-400">NIS</th><th class="px-8 py-5 text-[10px] font-black uppercase text-slate-400">Nama Lengkap</th><th class="px-8 py-5 text-[10px] font-black uppercase text-slate-400">Kelas</th><th class="px-8 py-5 text-[10px] font-black uppercase text-slate-400">Password</th></tr></thead><tbody id="admin-student-list" class="divide-y"><!-- Data akan diisi otomatis oleh JavaScript --></tbody></table></div>
+    <div class="bg-white rounded-[2rem] border overflow-hidden shadow-sm">
+        <div class="p-5 border-b bg-slate-50/50 flex justify-between items-center">
+            <h4 class="font-black text-slate-900 text-xs md:text-sm uppercase tracking-tight">Daftar Siswa</h4>
+            <span class="bg-white px-3 py-1 rounded-full border text-[9px] font-bold text-slate-500 shadow-sm" id="student-count-badge">0 Siswa</span>
+        </div>
+        <div class="overflow-x-auto max-h-[500px]">
+            <table class="w-full text-left border-collapse">
+                <thead class="bg-white border-b sticky top-0 z-10">
+                    <tr>
+                        <th class="px-6 py-4 text-[10px] font-black uppercase text-slate-400 whitespace-nowrap">NIS</th>
+                        <th class="px-6 py-4 text-[10px] font-black uppercase text-slate-400 whitespace-nowrap">Nama Lengkap</th>
+                        <th class="px-6 py-4 text-[10px] font-black uppercase text-slate-400 whitespace-nowrap">Kelas</th>
+                        <th class="px-6 py-4 text-[10px] font-black uppercase text-slate-400 whitespace-nowrap">Password</th>
+                    </tr>
+                </thead>
+                <tbody id="admin-student-list" class="divide-y text-xs font-medium text-slate-700">
+                    <!-- Data akan diisi otomatis -->
+                </tbody>
+            </table>
+        </div>
     </div>
 </div>
 

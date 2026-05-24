@@ -1082,30 +1082,31 @@ async function syncStudentData() {
 
         // 3. Render dengan UI yang Lebih Kompak
         sortedDates.forEach(tgl => {
-            // Header Tanggal (Lebih rapat vertikal)
+            // Header Tanggal: Diubah ke bg-slate-100 & text-slate-600 agar lebih clean, minimalis, dan menyatu dengan card
             const dateHeader = `
-                <div class="col-span-full mt-3 mb-1 first:mt-1 fade-in-up">
+                <div class="col-span-full mt-4 mb-1.5 first:mt-1 fade-in-up">
                     <div class="flex items-center gap-2">
-                        <div class="bg-indigo-600 px-2 py-0.5 rounded-md shadow-sm"><h3 class="font-black text-white text-[9px] uppercase tracking-tighter">📅 ${formatTanggalIndo(tgl)}</h3></div>
-                        <div class="h-[1px] flex-grow bg-slate-200"></div>
+                        <div class="bg-slate-100 px-2.5 py-0.5 rounded-md border border-slate-200/60">
+                            <h3 class="font-bold text-slate-600 text-[9px] uppercase tracking-wider flex items-center gap-1">
+                                <span>📅</span> ${formatTanggalIndo(tgl)}
+                            </h3>
+                        </div>
+                        <div class="h-[1px] flex-grow bg-slate-200/70"></div>
                     </div>
                 </div>`;
             list.insertAdjacentHTML('beforeend', dateHeader);
 
             groupedExams[tgl].forEach(x => {
-                // Card lebih padat: p-2.5, gap dipangkas, tinggi judul dinamis tanpa min-h
                 const cardHtml = `
                     <div class="student-card bg-white p-2.5 rounded-xl border border-slate-100 shadow-sm flex flex-col hover:shadow-md transition-all fade-in-up">
                         <div class="mb-2.5">
                             <div class="flex justify-between items-start mb-1">
                                 <span class="text-[7px] font-black text-indigo-400 uppercase tracking-tighter italic">Session</span>
-                                ${x.camera ? '<span class="flex items-center gap-1 text-[7px] font-black text-emerald-500 uppercase">● On Camera</span>' : ''}
                             </div>
                             <h4 class="font-bold text-[11px] text-slate-800 leading-tight line-clamp-2 uppercase">${x.mapel}</h4>
                             <div class="mt-1 flex items-center gap-2">
                                 <span class="bg-slate-100 text-slate-500 text-[8px] px-1.5 py-0.5 rounded font-bold">${x.duration} menit</span>
-                                <span class="text-slate-300 text-[8px]">|</span>
-                                <span class="text-indigo-500 text-[8px] font-bold italic">Ready</span>
+                                ${x.camera ? '<span class="flex items-center gap-1 text-[7px] font-black text-emerald-500 uppercase">● On Camera</span>' : ''}
                             </div>
                         </div>
                         <div class="mt-auto space-y-1.5">
@@ -1122,6 +1123,7 @@ async function syncStudentData() {
         list.innerHTML = `<div class="col-span-full text-center p-5 text-red-500 font-bold text-[10px] uppercase">Gagal memuat data.</div>`;
     }
 }
+		
 
 function logActivity(a) {
     // Daftar aktivitas yang dianggap penting untuk dicatat di DB

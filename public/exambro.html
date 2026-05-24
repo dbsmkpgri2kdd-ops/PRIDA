@@ -1052,10 +1052,9 @@ async function saveSpecialSettings() { await upsertSettingsItem('special_methods
 async function syncStudentData() {
     const list = document.getElementById('student-exam-list');
     if (!list) return;
-
     // 1. Loading State Lebih Ringkas
     list.innerHTML = `
-        <div class="col-span-full text-center py-10">
+        <div class="col-span-full text-center py-6">
             <div class="animate-spin inline-block w-6 h-6 border-4 border-indigo-500 border-t-transparent rounded-full mb-2"></div>
             <p class="text-slate-400 font-bold text-[10px] uppercase tracking-widest">Sinkronisasi...</p>
         </div>`;
@@ -1063,26 +1062,19 @@ async function syncStudentData() {
     try {
         const { data: exams, error } = await db.from('exams').select('*');
         if (error) throw error;
-
         list.innerHTML = ""; 
         const groupedExams = {};
-
         // 2. Filter & Grouping
         exams.forEach(x => {
             const allowedClasses = x.kelas ? x.kelas.split(', ') : [];
             const isAllowed = user && user.kelas && allowedClasses.includes(user.kelas.trim());
-            if (isAllowed && x.active !== false) { 
-                const tglKey = x.date || "Tanpa Tanggal";
-                if (!groupedExams[tglKey]) groupedExams[tglKey] = [];
-                groupedExams[tglKey].push(x);
-            }
+            if (isAllowed && x.active !== false) { const tglKey = x.date || "Tanpa Tanggal"; if (!groupedExams[tglKey]) groupedExams[tglKey] = []; groupedExams[tglKey].push(x); }
         });
 
         const sortedDates = Object.keys(groupedExams).sort().reverse();
-
         if (sortedDates.length === 0) {
             list.innerHTML = `
-                <div class="col-span-full bg-white p-8 rounded-3xl border-2 border-dashed border-slate-100 text-center">
+                <div class="col-span-full bg-white p-6 rounded-2xl border-2 border-dashed border-slate-100 text-center">
                     <p class="text-slate-400 text-[11px] font-bold uppercase">Belum ada soal dipublikasikan</p>
                 </div>`;
             return;
@@ -1090,43 +1082,35 @@ async function syncStudentData() {
 
         // 3. Render dengan UI yang Lebih Kompak
         sortedDates.forEach(tgl => {
-            // Header Tanggal (Lebih tipis)
+            // Header Tanggal (Lebih rapat vertikal)
             const dateHeader = `
-                <div class="col-span-full mt-5 mb-2 first:mt-1 fade-in-up">
+                <div class="col-span-full mt-3 mb-1 first:mt-1 fade-in-up">
                     <div class="flex items-center gap-2">
-                        <div class="bg-indigo-600 px-3 py-1 rounded-lg shadow-md">
-                            <h3 class="font-black text-white text-[9px] uppercase tracking-tighter">
-                                📅 ${formatTanggalIndo(tgl)}
-                            </h3>
-                        </div>
+                        <div class="bg-indigo-600 px-2 py-0.5 rounded-md shadow-sm"><h3 class="font-black text-white text-[9px] uppercase tracking-tighter">📅 ${formatTanggalIndo(tgl)}</h3></div>
                         <div class="h-[1px] flex-grow bg-slate-200"></div>
                     </div>
                 </div>`;
             list.insertAdjacentHTML('beforeend', dateHeader);
 
             groupedExams[tgl].forEach(x => {
+                // Card lebih padat: p-2.5, gap dipangkas, tinggi judul dinamis tanpa min-h
                 const cardHtml = `
-                    <div class="student-card bg-white p-3.5 rounded-[1.5rem] border border-slate-100 shadow-sm flex flex-col hover:shadow-md transition-all fade-in-up">
-                        <div class="mb-3">
-                            <div class="flex justify-between items-start mb-1.5">
+                    <div class="student-card bg-white p-2.5 rounded-xl border border-slate-100 shadow-sm flex flex-col hover:shadow-md transition-all fade-in-up">
+                        <div class="mb-2.5">
+                            <div class="flex justify-between items-start mb-1">
                                 <span class="text-[7px] font-black text-indigo-400 uppercase tracking-tighter italic">Session</span>
-                                ${x.camera ? '<span class="flex items-center gap-1 text-[7px] font-black text-emerald-500 uppercase">● CCTV</span>' : ''}
+                                ${x.camera ? '<span class="flex items-center gap-1 text-[7px] font-black text-emerald-500 uppercase">● On Camera</span>' : ''}
                             </div>
-                            <h4 class="font-bold text-[11px] text-slate-800 leading-tight line-clamp-2 uppercase min-h-[28px]">${x.mapel}</h4>
-                            <div class="mt-1.5 flex items-center gap-2">
-                                <span class="bg-slate-100 text-slate-500 text-[8px] px-1.5 py-0.5 rounded font-bold">${x.duration}m</span>
+                            <h4 class="font-bold text-[11px] text-slate-800 leading-tight line-clamp-2 uppercase">${x.mapel}</h4>
+                            <div class="mt-1 flex items-center gap-2">
+                                <span class="bg-slate-100 text-slate-500 text-[8px] px-1.5 py-0.5 rounded font-bold">${x.duration} menit</span>
                                 <span class="text-slate-300 text-[8px]">|</span>
                                 <span class="text-indigo-500 text-[8px] font-bold italic">Ready</span>
                             </div>
                         </div>
-                        <div class="mt-auto space-y-2">
-                            <input type="text" id="tk-${x.id}" 
-                                class="w-full bg-slate-50 p-2.5 rounded-xl text-center font-black text-[10px] outline-none border border-transparent focus:border-indigo-400 transition-all uppercase tracking-[0.2em]" 
-                                placeholder="TOKEN">
-                            <button onclick="startExam('${x.id}', '${x.token}')" 
-                                class="w-full bg-indigo-600 text-white py-2.5 rounded-xl font-black text-[10px] shadow-md active:scale-95 transition-all uppercase">
-                                MULAI
-                            </button>
+                        <div class="mt-auto space-y-1.5">
+                            <input type="text" id="tk-${x.id}" class="w-full bg-slate-50 p-2 rounded-lg text-center font-black text-[10px] outline-none border border-transparent focus:border-indigo-400 transition-all uppercase tracking-[0.2em]" placeholder="TOKEN">
+                            <button onclick="startExam('${x.id}', '${x.token}')" class="w-full bg-indigo-600 text-white py-2 rounded-lg font-black text-[10px] shadow-md active:scale-95 transition-all uppercase">MULAI</button>
                         </div>
                     </div>`;
                 list.insertAdjacentHTML('beforeend', cardHtml);
@@ -1138,7 +1122,6 @@ async function syncStudentData() {
         list.innerHTML = `<div class="col-span-full text-center p-5 text-red-500 font-bold text-[10px] uppercase">Gagal memuat data.</div>`;
     }
 }
-
 
 function logActivity(a) {
     // Daftar aktivitas yang dianggap penting untuk dicatat di DB

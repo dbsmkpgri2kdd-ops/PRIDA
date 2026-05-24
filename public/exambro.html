@@ -1049,30 +1049,25 @@ async function syncSpecialSettings() { const d = await publicData.collection('se
 async function saveSpecialSettings() { await upsertSettingsItem('special_methods', { pin: document.getElementById('special-pin').value, duration: parseInt(document.getElementById('special-duration').value), updatedAt: Date.now() }); alert("Konfigurasi Akses Cepat Diperbarui!"); }
 
 // --- E. STUDENT SERVICE (EXAM ACCESS) ---
+
 async function syncStudentData() {
     const list = document.getElementById('student-exam-list');
     if (!list) return;
-
     // 1. Loading State & Bersihkan Placeholder (Ikon July 17 akan hilang di sini)
     list.innerHTML = `
         <div class="col-span-full text-center py-20">
             <div class="animate-spin inline-block w-8 h-8 border-4 border-indigo-500 border-t-transparent rounded-full mb-4"></div>
             <p class="text-slate-400 font-bold text-xs uppercase tracking-widest">Memuat Semua Jadwal...</p>
         </div>`;
-
     try {
         const { data: exams, error } = await db.from('exams').select('*');
         if (error) throw error;
-
         list.innerHTML = ""; // Pastikan kontainer kosong total
-        
         const groupedExams = {};
-
         // 2. Filter Berdasarkan Kelas & Kelompokkan per Tanggal
         exams.forEach(x => {
             const allowedClasses = x.kelas ? x.kelas.split(', ') : [];
             const isAllowed = user && user.kelas && allowedClasses.includes(user.kelas.trim());
-            
             // Logika: Hanya cek Kelas dan Status Aktif (Tanggal diabaikan agar semua muncul)
             if (isAllowed && x.active !== false) { 
                 const tglKey = x.date || "Tanpa Tanggal";
@@ -1115,25 +1110,16 @@ async function syncStudentData() {
                 const cardHtml = `
                     <div class="student-card bg-white p-6 rounded-[2.5rem] border border-slate-100 shadow-sm flex flex-col hover:shadow-xl transition-all duration-300 fade-in-up">
                         <div class="mb-6">
-                            <div class="flex justify-between items-center mb-3">
-                                <span class="bg-blue-50 text-blue-600 text-[8px] font-black px-2 py-1 rounded-lg uppercase tracking-tighter italic">EXAM SESSION</span>
-                                ${x.camera ? '<span class="flex items-center gap-1 text-[8px] font-black text-emerald-500 uppercase"><span class="w-1 h-1 bg-emerald-500 rounded-full animate-pulse"></span> CCTV</span>' : ''}
-                            </div>
-                            <h4 class="font-black text-[14px] text-slate-900 leading-tight line-clamp-2 uppercase tracking-tight min-h-[40px]">${x.mapel}</h4>
+                            <span class="bg-blue-50 text-blue-600 text-[7px] font-black px-2 py-1 rounded-lg uppercase tracking-tighter italic">EXAM SESSION</span>
+                            <h4 class="font-black text-[12px] text-slate-900 leading-tight line-clamp-2 uppercase tracking-tight min-h-[40px]">${x.mapel}</h4>
                             <div class="flex items-center gap-2 mt-2">
-                                <p class="text-[9px] font-bold text-slate-400 uppercase tracking-widest">${x.duration} Menit</p>
-                                <span class="text-slate-300">|</span>
-                                <p class="text-[9px] font-bold text-indigo-500 uppercase italic">Tersedia</p>
+                                <p class="text-[8px] font-bold text-slate-400 uppercase tracking-widest">${x.duration} Menit</p><span class="text-slate-300">|</span>
+                                ${x.camera ? '<span class="flex items-center gap-1 text-[8px] font-black text-emerald-500 uppercase"><span class="w-1 h-1 bg-emerald-500 rounded-full animate-pulse"></span> On Came</span>' : ''}
                             </div>
                         </div>
                         <div class="mt-auto space-y-3">
-                            <input type="text" id="tk-${x.id}" 
-                                class="w-full bg-slate-50 p-4 rounded-2xl text-center font-black text-xs outline-none border-2 border-transparent focus:border-indigo-500 focus:bg-white transition-all uppercase tracking-[0.3em]" 
-                                placeholder="TOKEN">
-                            <button onclick="startExam('${x.id}', '${x.token}')" 
-                                class="w-full bg-indigo-600 text-white py-4 rounded-2xl font-black text-[11px] shadow-lg shadow-indigo-100 hover:bg-indigo-700 active:scale-95 transition-all uppercase tracking-widest">
-                                MULAI
-                            </button>
+                            <input type="text" id="tk-${x.id}" class="w-full bg-slate-50 p-4 rounded-2xl text-center font-black text-xs outline-none border-2 border-transparent focus:border-indigo-500 focus:bg-white transition-all uppercase tracking-[0.3em]" placeholder="TOKEN">
+                            <button onclick="startExam('${x.id}', '${x.token}')" class="w-full bg-indigo-600 text-white py-4 rounded-2xl font-black text-[11px] shadow-lg shadow-indigo-100 hover:bg-indigo-700 active:scale-95 transition-all uppercase tracking-widest">MULAI</button>
                         </div>
                     </div>`;
                 list.insertAdjacentHTML('beforeend', cardHtml);

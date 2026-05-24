@@ -425,18 +425,26 @@
 <!-- SECTION STUDENT -->
 <div id="section-student" class="hidden-element">
     <div class="flex justify-between items-end mb-8"><div><h2 class="text-3xl font-black text-slate-900">Database Siswa</h2><p class="text-slate-400 text-xs mt-1">Kelola data peserta ujian secara terpusat via Google Sheets.</p></div></div>
-    <!-- PANEL PETUNJUK (BARU) -->
-    <div class="bg-blue-50 border border-blue-100 rounded-[2.5rem] p-8 mb-8"><div class="flex items-start space-x-4">
-	<div class="bg-blue-600 text-white p-3 rounded-2xl shadow-lg shadow-blue-200"><svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg></div>
+    <!-- PANEL PETUNJUK -->
+    <div class="bg-blue-50 border border-blue-100 rounded-[2.5rem] p-8 mb-8">
+        
+        <!-- Header: Ikon & Judul Panduan -->
+        <div class="flex items-end space-x-4 mb-6">
+            <div class="bg-blue-600 text-white p-2 rounded-xl shadow-lg shadow-blue-200 shrink-0">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+            </div>  
+            <h3 class="font-black text-blue-900 text-lg">Panduan Sinkronisasi Google Sheets</h3>
+        </div>
 
-        <div class="flex-grow"><h3 class="font-black text-blue-900 text-lg mb-2">Panduan Sinkronisasi Google Sheets</h3>
         <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mt-4">
             <div class="space-y-3"><p class="text-xs font-bold text-blue-700 uppercase tracking-widest">1. Format Kolom (Wajib Berurutan):</p><div class="bg-white/50 p-4 rounded-2xl border border-blue-100"><table class="w-full text-[10px] font-mono"><tr class="text-blue-400 border-b border-blue-100"><th class="pb-1 text-left">A (Kolom 1)</th><th class="pb-1 text-left">B (Kolom 2)</th><th class="pb-1 text-left">C (Kolom 3)</th><th class="pb-1 text-left">D (Kolom 4)</th></tr><tr class="text-blue-900"><td class="pt-1">NIS</td><td class="pt-1">NAMA LENGKAP</td><td class="pt-1">KELAS</td><td class="pt-1">PASSWORD</td></tr></table></div><p class="text-[10px] text-blue-500 italic">*Jangan gunakan header/judul kolom pada baris pertama jika ingin data langsung terbaca.</p></div>
             <div class="space-y-3"><p class="text-xs font-bold text-blue-700 uppercase tracking-widest">2. Cara Publikasi Link:</p><ul class="text-[11px] text-blue-800 space-y-2 font-medium"><li class="flex items-center"><span class="w-5 h-5 bg-blue-200 text-blue-700 rounded-full flex items-center justify-center text-[9px] mr-2 font-black">1</span> Klik menu <b>File</b> > <b>Share</b> > <b>Publish to web</b></li><li class="flex items-center"><span class="w-5 h-5 bg-blue-200 text-blue-700 rounded-full flex items-center justify-center text-[9px] mr-2 font-black">2</span> Pilih tab <b>Link</b>, ubah "Entire Document" menjadi <b>Sheet1</b></li><li class="flex items-center"><span class="w-5 h-5 bg-blue-200 text-blue-700 rounded-full flex items-center justify-center text-[9px] mr-2 font-black">3</span> Ubah "Web Page" menjadi <b>Comma-separated values (.csv)</b></li><li class="flex items-center"><span class="w-5 h-5 bg-blue-200 text-blue-700 rounded-full flex items-center justify-center text-[9px] mr-2 font-black">4</span> Klik Publish, salin linknya dan tempel di bawah ini.</li></ul></div>
         </div>
    </div>
-</div>
-</div>
+
+
     <!-- Panel Sinkronisasi -->
     <div class="bg-white p-8 rounded-[2.5rem] border mb-8 shadow-sm"><div class="flex flex-col md:flex-row items-center space-y-4 md:space-y-0 md:space-x-4">
         <div class="flex-grow w-full"><label class="text-[10px] font-black text-slate-400 ml-2 uppercase tracking-widest mb-2 block">Link Google Spreadsheet (CSV/Publish to Web)</label><div class="relative"><input type="text" id="sheet-url" class="w-full bg-slate-50 p-4 pl-12 rounded-2xl outline-none border-2 border-transparent focus:border-blue-500 transition-all text-sm font-medium" placeholder="https://docs.google.com/spreadsheets/d/..."><div class="absolute left-4 top-1/2 -translate-y-1/2 text-slate-300"><svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1" /></svg></div></div></div>
@@ -1044,21 +1052,89 @@ async function saveSpecialSettings() { await upsertSettingsItem('special_methods
 
 async function syncStudentData() {
     const list = document.getElementById('student-exam-list');
-    list.innerHTML = `<div class="animate-pulse space-y-4">
-        <div class="h-24 bg-white rounded-[2rem]"></div>
-        <div class="h-24 bg-white rounded-[2rem]"></div>
-    </div>`;
+    // Tampilkan loading state
+    list.innerHTML = `<div class="col-span-full animate-pulse text-center p-10 text-slate-400">Memuat Jadwal...</div>`;
+    
     try {
-        const { data: exams, error } = await db.from('exams').select('*'); if (error) throw error;
-        list.innerHTML = ""; const today = new Date().toISOString().split('T')[0];
+        const { data: exams, error } = await db.from('exams').select('*'); 
+        if (error) throw error;
+
+        list.innerHTML = ""; 
+        const today = new Date().toISOString().split('T')[0];
+        const groupedExams = {};
+
+        // 1. Filter dan Kelompokkan berdasarkan tanggal
         exams.forEach(x => {
-            const allowedClasses = x.kelas ? x.kelas.split(', ') : [], isAllowed = allowedClasses.includes(user.kelas);
-            if(isAllowed && x.active !== false && x.date <= today) { 
-                list.innerHTML += `<div class="bg-white p-4 rounded-[2rem] border shadow-sm text-center"><h4 class="font-black text-xs text-slate-800 truncate mb-1">${x.mapel}</h4><p class="text-[8px] text-slate-400 font-bold mb-3 uppercase">${x.duration} Menit</p><input type="text" id="tk-${x.id}" class="w-full bg-slate-50 p-2 rounded-xl text-center mb-2 font-black text-xs outline-none" placeholder="TOKEN"><button onclick="startExam('${x.id}', '${x.token}')" class="w-full bg-blue-600 text-white py-2 rounded-xl font-black text-[10px]">MULAI</button></div>`;
+            const allowedClasses = x.kelas ? x.kelas.split(', ') : [];
+            const isAllowed = allowedClasses.includes(user.kelas);
+            
+            // Tampilkan jika: Kelas cocok, Ujian Aktif, dan Tanggal >= hari ini
+            if(isAllowed && x.active !== false && x.date >= today) { 
+                const tgl = x.date || "Tanpa Tanggal";
+                if (!groupedExams[tgl]) groupedExams[tgl] = [];
+                groupedExams[tgl].push(x);
             }
         });
-        if (list.innerHTML === "") list.innerHTML = "<p class='col-span-2 text-center py-10 text-slate-400 text-xs italic font-bold'>Tidak ada ujian hari ini.</p>";
-    } catch (e) { list.innerHTML = "<p class='text-center text-red-500 text-[10px]'>Gagal memuat data.</p>"; }
+
+        // Urutkan tanggal (mendatang di bawah, yang paling dekat di atas)
+        const sortedDates = Object.keys(groupedExams).sort();
+
+        if (sortedDates.length === 0) {
+            list.innerHTML = "<p class='col-span-full text-center py-10 text-slate-400 text-xs italic font-bold'>Tidak ada ujian yang dijadwalkan untuk kelas Anda.</p>";
+            return;
+        }
+
+        // 2. Render Header Tanggal dan Grid Kartu
+        sortedDates.forEach(tgl => {
+            // Header Hari/Tanggal
+            let sectionHtml = `
+                <div class="col-span-full mt-8 first:mt-0 fade-in-up">
+                    <div class="flex items-center gap-3 mb-5">
+                        <div class="bg-white border border-slate-200 px-5 py-2 rounded-2xl shadow-sm">
+                            <span class="text-[11px] font-black uppercase text-indigo-600 tracking-widest">
+                                📅 ${formatTanggalIndo(tgl)}
+                            </span>
+                        </div>
+                        <div class="h-[1px] flex-grow bg-slate-200"></div>
+                    </div>
+                    <!-- Sub-grid untuk kartu di bawah tanggal ini -->
+                    <div class="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6">
+            `;
+
+            // Render Kartu Ujian untuk tanggal tersebut
+            groupedExams[tgl].forEach(x => {
+                sectionHtml += `
+                    <div class="student-card bg-white p-5 rounded-[2.5rem] border border-slate-100 shadow-sm hover:shadow-xl transition-all">
+                        <div class="flex flex-col h-full">
+                            <div class="mb-4">
+                                <h4 class="font-black text-[13px] text-slate-800 leading-tight line-clamp-2 min-h-[32px]">${x.mapel}</h4>
+                                <div class="flex items-center gap-2 mt-2">
+                                    <span class="bg-indigo-50 text-indigo-600 text-[8px] font-black px-2 py-0.5 rounded-md uppercase tracking-tighter">${x.duration} Menit</span>
+                                    <span class="text-[8px] font-bold text-slate-300 uppercase">${x.camera ? '📷 Kamera On' : '📷 No Cam'}</span>
+                                </div>
+                            </div>
+                            <div class="mt-auto space-y-2">
+                                <input type="text" id="tk-${x.id}" 
+                                    class="w-full bg-slate-50 p-3 rounded-2xl text-center font-black text-xs outline-none border-2 border-transparent focus:border-indigo-500 transition-all uppercase tracking-widest" 
+                                    placeholder="TOKEN">
+                                <button onclick="startExam('${x.id}', '${x.token}')" 
+                                    class="w-full bg-indigo-600 text-white py-3.5 rounded-2xl font-black text-[10px] shadow-lg shadow-indigo-100 active:scale-95 transition-all uppercase tracking-widest">
+                                    Mulai Ujian
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            });
+
+            sectionHtml += `</div></div>`;
+            list.insertAdjacentHTML('beforeend', sectionHtml);
+        });
+
+    } catch (e) { 
+        console.error("Gagal sinkron jadwal:", e);
+        list.innerHTML = "<p class='col-span-full text-center text-red-500 text-[10px] font-bold'>Terjadi kesalahan koneksi saat memuat jadwal.</p>"; 
+    }
 }
 
 function logActivity(a) {

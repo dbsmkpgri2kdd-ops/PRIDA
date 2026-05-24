@@ -1053,61 +1053,55 @@ async function syncStudentData() {
     const list = document.getElementById('student-exam-list');
     if (!list) return;
 
-    // 1. Loading State (Menghapus tampilan lama termasuk ikon July 17)
+    // 1. Loading State & Bersihkan Placeholder (Ikon July 17 akan hilang di sini)
     list.innerHTML = `
         <div class="col-span-full text-center py-20">
             <div class="animate-spin inline-block w-8 h-8 border-4 border-indigo-500 border-t-transparent rounded-full mb-4"></div>
-            <p class="text-slate-400 font-bold text-xs uppercase tracking-widest">Sinkronisasi Jadwal...</p>
+            <p class="text-slate-400 font-bold text-xs uppercase tracking-widest">Memuat Semua Jadwal...</p>
         </div>`;
 
     try {
         const { data: exams, error } = await db.from('exams').select('*');
         if (error) throw error;
 
-        list.innerHTML = ""; // Bersihkan kontainer
-        
-        // Ambil tanggal hari ini (format YYYY-MM-DD) untuk filter
-        const now = new Date();
-        const today = now.getFullYear() + '-' + String(now.getMonth() + 1).padStart(2, '0') + '-' + String(now.getDate()).padStart(2, '0');
+        list.innerHTML = ""; // Pastikan kontainer kosong total
         
         const groupedExams = {};
 
-        // 2. Filter Ujian & Kelompokkan per Tanggal
+        // 2. Filter Berdasarkan Kelas & Kelompokkan per Tanggal
         exams.forEach(x => {
             const allowedClasses = x.kelas ? x.kelas.split(', ') : [];
             const isAllowed = user && user.kelas && allowedClasses.includes(user.kelas.trim());
             
-            // Aturan: Harus kelas yang sama, status AKTIF, dan tanggal hari ini atau mendatang
-            if (isAllowed && x.active !== false && x.date >= today) { 
-                const tgl = x.date || "Tanpa Tanggal";
-                if (!groupedExams[tgl]) groupedExams[tgl] = [];
-                groupedExams[tgl].push(x);
+            // Logika: Hanya cek Kelas dan Status Aktif (Tanggal diabaikan agar semua muncul)
+            if (isAllowed && x.active !== false) { 
+                const tglKey = x.date || "Tanpa Tanggal";
+                if (!groupedExams[tglKey]) groupedExams[tglKey] = [];
+                groupedExams[tglKey].push(x);
             }
         });
 
-        const sortedDates = Object.keys(groupedExams).sort();
+        // Urutkan tanggal dari yang terbaru di paling atas
+        const sortedDates = Object.keys(groupedExams).sort().reverse();
 
-        // 3. Jika Tidak Ada Ujian Tersedia
         if (sortedDates.length === 0) {
             list.innerHTML = `
-                <div class="col-span-full bg-white p-16 rounded-[3rem] border-2 border-dashed border-slate-100 text-center fade-in-up">
-                    <div class="text-5xl mb-6">📅</div>
-                    <p class="text-slate-900 font-black text-sm uppercase tracking-tight">Tidak Ada Ujian Tersedia</p>
-                    <p class="text-slate-400 text-[10px] mt-2 uppercase font-bold tracking-widest leading-relaxed">
-                        Belum ada jadwal ujian aktif untuk kelas ${user.kelas}<br>pada hari ini atau mendatang.
-                    </p>
+                <div class="col-span-full bg-white p-16 rounded-[3rem] border-2 border-dashed border-slate-100 text-center">
+                    <div class="text-5xl mb-6">📂</div>
+                    <p class="text-slate-900 font-black text-sm uppercase">Belum Ada Soal</p>
+                    <p class="text-slate-400 text-[10px] mt-2 uppercase font-bold tracking-widest">Admin belum mempublikasikan ujian untuk kelas ${user.kelas}</p>
                 </div>`;
             return;
         }
 
-        // 4. Render Ujian Berdasarkan Kelompok Tanggal
+        // 3. Render Header Tanggal dan Kartu Ujian
         sortedDates.forEach(tgl => {
-            // Header Tanggal (Full Width)
+            // Header Hari/Tanggal (Full Width)
             const dateHeader = `
                 <div class="col-span-full mt-10 mb-4 first:mt-2 fade-in-up">
                     <div class="flex items-center gap-4">
-                        <div class="bg-indigo-600 px-5 py-2.5 rounded-2xl shadow-xl shadow-indigo-100">
-                            <h3 class="font-black text-white text-[11px] uppercase tracking-widest">
+                        <div class="bg-indigo-600 px-5 py-2.5 rounded-2xl shadow-lg shadow-indigo-100">
+                            <h3 class="font-black text-white text-[10px] md:text-xs uppercase tracking-widest">
                                 📅 ${formatTanggalIndo(tgl)}
                             </h3>
                         </div>
@@ -1116,17 +1110,21 @@ async function syncStudentData() {
                 </div>`;
             list.insertAdjacentHTML('beforeend', dateHeader);
 
-            // Daftar Kartu Ujian di bawah tanggal tersebut
+            // Render Kartu-kartu Ujian di bawah tanggal tersebut
             groupedExams[tgl].forEach(x => {
                 const cardHtml = `
                     <div class="student-card bg-white p-6 rounded-[2.5rem] border border-slate-100 shadow-sm flex flex-col hover:shadow-xl transition-all duration-300 fade-in-up">
                         <div class="mb-6">
                             <div class="flex justify-between items-center mb-3">
-                                <span class="bg-slate-50 text-slate-400 text-[8px] font-black px-2 py-1 rounded-lg uppercase tracking-tighter">UJIAN AKTIF</span>
+                                <span class="bg-blue-50 text-blue-600 text-[8px] font-black px-2 py-1 rounded-lg uppercase tracking-tighter italic">EXAM SESSION</span>
                                 ${x.camera ? '<span class="flex items-center gap-1 text-[8px] font-black text-emerald-500 uppercase"><span class="w-1 h-1 bg-emerald-500 rounded-full animate-pulse"></span> CCTV</span>' : ''}
                             </div>
                             <h4 class="font-black text-[14px] text-slate-900 leading-tight line-clamp-2 uppercase tracking-tight min-h-[40px]">${x.mapel}</h4>
-                            <p class="text-[10px] font-bold text-indigo-500 mt-2 uppercase tracking-widest">${x.duration} Menit Pengerjaan</p>
+                            <div class="flex items-center gap-2 mt-2">
+                                <p class="text-[9px] font-bold text-slate-400 uppercase tracking-widest">${x.duration} Menit</p>
+                                <span class="text-slate-300">|</span>
+                                <p class="text-[9px] font-bold text-indigo-500 uppercase italic">Tersedia</p>
+                            </div>
                         </div>
                         <div class="mt-auto space-y-3">
                             <input type="text" id="tk-${x.id}" 
@@ -1134,7 +1132,7 @@ async function syncStudentData() {
                                 placeholder="TOKEN">
                             <button onclick="startExam('${x.id}', '${x.token}')" 
                                 class="w-full bg-indigo-600 text-white py-4 rounded-2xl font-black text-[11px] shadow-lg shadow-indigo-100 hover:bg-indigo-700 active:scale-95 transition-all uppercase tracking-widest">
-                                MULAI SEKARANG
+                                MULAI
                             </button>
                         </div>
                     </div>`;
@@ -1144,7 +1142,7 @@ async function syncStudentData() {
 
     } catch (e) {
         console.error("Sync Error:", e);
-        list.innerHTML = `<div class="col-span-full text-center text-red-500 font-bold text-xs p-10 uppercase tracking-widest">Koneksi Gagal. Silakan Coba Lagi.</div>`;
+        list.innerHTML = `<div class="col-span-full text-center p-10 text-red-500 font-bold text-xs uppercase">Gagal sinkronisasi data dari server.</div>`;
     }
 }
 

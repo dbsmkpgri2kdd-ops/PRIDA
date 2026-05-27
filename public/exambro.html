@@ -822,12 +822,16 @@
 
 // --- 1. GLOBAL STATE & CONFIG ---
 const apiKey = "AIzaSyBrpMLLakAoM5HIL0Vax91OI0wX371Bgxc"; 
+const MASTER_URL = "https://qozlaoemoirldfpcjsnm.supabase.co";
+const MASTER_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFvemxhb2Vtb2lybGRmcGNqc25tIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzk4NTMwNjIsImV4cCI6MjA5NTQyOTA2Mn0.gpUUAATtpxJg_J8XurdTsYYpH22RfFRG2MBQw6s3LTY";
+let dbMaster = supabase.createClient(MASTER_URL, MASTER_KEY);
 
-let serverConfigs = JSON.parse(localStorage.getItem('PRIDA_MULTI_CONFIG')) || {
+let serverConfigs = {
     "SERVER_A": { url: "", key: "", classes: [] },
     "SERVER_B": { url: "", key: "", classes: [] },
     "SERVER_C": { url: "", key: "", classes: [] }
 };
+
 
 let ADMIN_USER = localStorage.getItem('PRIDA_ADM_USER') || "admin";
 let ADMIN_PWD = localStorage.getItem('PRIDA_ADM_PWD') || "admin123";
@@ -892,7 +896,7 @@ async function connectToClassServer(className) {
     return false;
 }
 
-function saveMultiSettings() {
+async function saveMultiSettings() {
     const config = {
         "SERVER_A": { 
             url: document.getElementById('srv-a-url').value, 
@@ -910,15 +914,27 @@ function saveMultiSettings() {
             classes: document.getElementById('srv-c-classes').value.split(',').map(s => s.trim())
         }
     };
-    // Tambahkan baris ini untuk menyimpan kredensial admin baru
-    const newAdmin = document.getElementById('set-admin-user').value;
-    const newPass = document.getElementById('set-admin-pwd').value;
-    if(newAdmin) localStorage.setItem('PRIDA_ADM_USER', newAdmin);
-    if(newPass) localStorage.setItem('PRIDA_ADM_PWD', newPass);
 
-    localStorage.setItem('PRIDA_MULTI_CONFIG', JSON.stringify(config));
-    alert("Konfigurasi 3 Server & Admin Berhasil Disimpan!");
-    location.reload();
+    try {
+        // 1. Simpan ke Supabase (Pusat)
+        const { error } = await dbMaster
+            .from('system_settings')
+            .upsert({ 
+                id: 'multi_server_config', 
+                config_data: config,
+                updated_at: new Date().toISOString() 
+            });
+
+        if (error) throw error;
+
+        // 2. Simpan cadangan ke localStorage
+        localStorage.setItem('PRIDA_MULTI_CONFIG', JSON.stringify(config));
+        
+        alert("Konfigurasi berhasil disinkronkan ke Cloud Supabase!");
+        location.reload();
+    } catch (e) {
+        alert("Gagal menyimpan ke Cloud: " + e.message);
+    }
 }
 
 
@@ -939,6 +955,19 @@ function createCollectionWrapper(database) {
                         async delete() { return await database.from(name).delete().or(`id.eq."${id}",nis.eq."${id}"`); }
                     };
                 },
+                // Tambahkan fungsi onSnapshot sederhana untuk Supabase
+                onSnapshot(callback) {
+                    // Ambil data awal
+                    database.from(name).select('*').then(({data}) => {
+                        if(data) callback(data.map(r => ({ id: r.id || r.nis, data: () => r })));
+                    });
+                    // Dengar perubahan Realtime
+                    return database.channel(`public-${name}`)
+                        .on('postgres_changes', { event: '*', schema: 'public', table: name }, async () => {
+                            const { data } = await database.from(name).select('*');
+                            if(data) callback(data.map(r => ({ id: r.id || r.nis, data: () => r })));
+                        }).subscribe();
+                },
                 where(field, op, value) {
                     return {
                         async get() {
@@ -954,11 +983,30 @@ function createCollectionWrapper(database) {
 }
 
 window.onload = async () => {
-    // 1. Matikan Loading Overlay
-    document.getElementById('loading-overlay').classList.add('hidden-element');
-    
-    // 2. Muat Daftar Kelas dari file konfigurasi
+    document.getElementById('loading-overlay').classList.remove('hidden-element');
+
+    try {
+        // AMBIL KONFIGURASI DARI SUPABASE MASTER
+        const { data, error } = await dbMaster
+            .from('system_settings')
+            .select('config_data')
+            .eq('id', 'multi_server_config')
+            .single();
+
+        if (data && data.config_data) {
+            serverConfigs = data.config_data;
+            // Update localStorage agar tetap sinkron
+            localStorage.setItem('PRIDA_MULTI_CONFIG', JSON.stringify(serverConfigs));
+        }
+    } catch (e) {
+        console.log("Menggunakan cache lokal karena gagal terhubung ke Master Server");
+        const local = localStorage.getItem('PRIDA_MULTI_CONFIG');
+        if(local) serverConfigs = JSON.parse(local);
+    }
+
+    // Lanjutkan proses loading seperti biasa...
     loadKelas(); 
+    document.getElementById('loading-overlay').classList.add('hidden-element');
 
     const savedSession = localStorage.getItem('exambro_session');
     if (savedSession) {
@@ -1214,9 +1262,21 @@ async function checkSupabaseConnection() {
 }
 
 async function upsertSettingsItem(settingId, data) {
-    let payload = { id: settingId, ...data }, res = await db.from('settings').upsert(payload, { onConflict: 'id' });
-    if (res.error && res.error.code === '42703') { payload = { key: settingId, ...data }; res = await db.from('settings').upsert(payload, { onConflict: 'key' }); }
-    if (res.error) throw res.error; return res;
+    const payload = { 
+        id: settingId, 
+        ...data,
+        updated_at: new Date().toISOString()
+    };
+    
+    // Pastikan jika ada properti lastSync, diubah jadi last_sync untuk database
+    if (data.lastSync) {
+        payload.last_sync = new Date(data.lastSync).toISOString();
+        delete payload.lastSync;
+    }
+
+    // Selalu simpan ke tabel system_settings
+    const { error } = await db.from('system_settings').upsert(payload);
+    if (error) throw error;
 }
 
 async function cleanupLiveRows(createdBefore) {
@@ -1343,20 +1403,52 @@ function syncAdminData() {
 }
 
 async function saveAndSyncSheet() {
-    const urlInput = document.getElementById('sheet-url').value.trim(); if (!urlInput) return showNotify("Masukkan link Google Sheet!", "error");
-    const btn = document.getElementById('btn-sync-sheet'), btnText = document.getElementById('sync-text'); btn.disabled = true; btnText.textContent = "SINKRONISASI...";
+    if (!db) { showNotify("Pilih 'Server Kelola' di menu atas terlebih dahulu!", "error"); return; }
+    
+    const urlInput = document.getElementById('sheet-url').value.trim();
+    if (!urlInput) return showNotify("Masukkan link Google Sheet!", "error");
+    
+    const btn = document.getElementById('btn-sync-sheet'), btnText = document.getElementById('sync-text'); 
+    btn.disabled = true; btnText.textContent = "SINKRONISASI...";
+    
     try {
-        await upsertSettingsItem('sheet_config', { url: urlInput, lastSync: Date.now() }); let exportUrl = urlInput;
-        if (urlInput.includes('/edit')) { const match = urlInput.match(/\/d\/(.+?)\//); if (match) exportUrl = `https://docs.google.com/spreadsheets/d/${match[1]}/export?format=csv`; }
-        const res = await fetch(exportUrl), text = await res.text(), rows = text.split(/\r?\n/), rawUserRows = [];
-        rows.forEach((row, index) => { if (index === 0 || !row.trim()) return; const cols = row.match(/(".*?"|[^",]+)(?=\s*,|\s*$)/g);
-            if (cols && cols.length >= 3) { const clean = (str) => str ? str.replace(/^"|"$/g, '').trim() : ""; rawUserRows.push({ nis: clean(cols[0]), nama: clean(cols[1]), kelas: clean(cols[2]), pwd: cols[3] ? clean(cols[3]) : "123" }); }
+        await upsertSettingsItem('sheet_config', { url: urlInput, lastSync: Date.now() }); 
+        let exportUrl = urlInput;
+        if (urlInput.includes('/edit')) { 
+            const match = urlInput.match(/\/d\/(.+?)\//); 
+            if (match) exportUrl = `https://docs.google.com/spreadsheets/d/${match[1]}/export?format=csv`; 
+        }
+        
+        const res = await fetch(exportUrl);
+        const text = await res.text();
+        const rows = text.split(/\r?\n/);
+        const rawUserRows = [];
+        
+        rows.forEach((row, index) => { 
+            if (index === 0 || !row.trim()) return; 
+            const cols = row.match(/(".*?"|[^",]+)(?=\s*,|\s*$)/g);
+            if (cols && cols.length >= 3) { 
+                const clean = (str) => str ? str.replace(/^"|"$/g, '').trim() : ""; 
+                rawUserRows.push({ nis: clean(cols[0]), nama: clean(cols[1]), kelas: clean(cols[2]), pwd: cols[3] ? clean(cols[3]) : "123" }); 
+            }
         });
+        
         const userRows = [], seenNis = new Set();
         rawUserRows.forEach(item => { if (!seenNis.has(item.nis)) { seenNis.add(item.nis); userRows.push(item); } });
-        if (userRows.length > 0) { const { error: insertError } = await db.from('users').upsert(userRows, { onConflict: 'nis' }); if (insertError) throw insertError; }
-        alert(`Berhasil! ${userRows.length} data siswa disinkronkan.`); if (typeof loadKelas === "function") loadKelas();
-    } catch (e) { console.error(e); alert("Gagal Sinkron: " + e.message); } finally { btn.disabled = false; btnText.textContent = "SIMPAN & SINKRON"; }
+        
+        if (userRows.length > 0) { 
+            const { error: insertError } = await db.from('users').upsert(userRows, { onConflict: 'nis' }); 
+            if (insertError) throw insertError; 
+        }
+        
+        showNotify(`Berhasil! ${userRows.length} data siswa disinkronkan.`, "success"); 
+        if (typeof loadKelas === "function") loadKelas();
+    } catch (e) { 
+        console.error(e); 
+        alert("Gagal Sinkron: " + e.message); 
+    } finally { 
+        btn.disabled = false; btnText.textContent = "SIMPAN & SINKRON"; 
+    }
 }
 
 async function saveExam() {

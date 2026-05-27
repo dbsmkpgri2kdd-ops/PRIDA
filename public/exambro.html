@@ -1268,14 +1268,14 @@ async function upsertSettingsItem(settingId, data) {
         updated_at: new Date().toISOString()
     };
     
-    // Pastikan jika ada properti lastSync, diubah jadi last_sync untuk database
     if (data.lastSync) {
         payload.last_sync = new Date(data.lastSync).toISOString();
         delete payload.lastSync;
     }
 
-    // Selalu simpan ke tabel system_settings
-    const { error } = await db.from('system_settings').upsert(payload);
+    // GUNAKAN dbMaster untuk setting global, atau db untuk setting server lokal
+    // Agar aman, simpan di dbMaster
+    const { error } = await dbMaster.from('system_settings').upsert(payload);
     if (error) throw error;
 }
 
@@ -1403,16 +1403,22 @@ function syncAdminData() {
 }
 
 async function saveAndSyncSheet() {
-    if (!db) { showNotify("Pilih 'Server Kelola' di menu atas terlebih dahulu!", "error"); return; }
+    if (!db) { 
+        showNotify("Pilih 'Server Kelola' di menu atas terlebih dahulu!", "error"); 
+        return; 
+    }
     
     const urlInput = document.getElementById('sheet-url').value.trim();
     if (!urlInput) return showNotify("Masukkan link Google Sheet!", "error");
     
     const btn = document.getElementById('btn-sync-sheet'), btnText = document.getElementById('sync-text'); 
-    btn.disabled = true; btnText.textContent = "SINKRONISASI...";
+    btn.disabled = true; 
+    btnText.textContent = "SINKRONISASI...";
     
     try {
+        // Simpan konfigurasi ke Master
         await upsertSettingsItem('sheet_config', { url: urlInput, lastSync: Date.now() }); 
+        
         let exportUrl = urlInput;
         if (urlInput.includes('/edit')) { 
             const match = urlInput.match(/\/d\/(.+?)\//); 
@@ -1429,14 +1435,25 @@ async function saveAndSyncSheet() {
             const cols = row.match(/(".*?"|[^",]+)(?=\s*,|\s*$)/g);
             if (cols && cols.length >= 3) { 
                 const clean = (str) => str ? str.replace(/^"|"$/g, '').trim() : ""; 
-                rawUserRows.push({ nis: clean(cols[0]), nama: clean(cols[1]), kelas: clean(cols[2]), pwd: cols[3] ? clean(cols[3]) : "123" }); 
+                rawUserRows.push({ 
+                    nis: clean(cols[0]), 
+                    nama: clean(cols[1]), 
+                    kelas: clean(cols[2]), 
+                    pwd: cols[3] ? clean(cols[3]) : "123" 
+                }); 
             }
         });
         
         const userRows = [], seenNis = new Set();
-        rawUserRows.forEach(item => { if (!seenNis.has(item.nis)) { seenNis.add(item.nis); userRows.push(item); } });
+        rawUserRows.forEach(item => { 
+            if (!seenNis.has(item.nis)) { 
+                seenNis.add(item.nis); 
+                userRows.push(item); 
+            } 
+        });
         
         if (userRows.length > 0) { 
+            // Data siswa dikirim ke server A, B, atau C yang terpilih
             const { error: insertError } = await db.from('users').upsert(userRows, { onConflict: 'nis' }); 
             if (insertError) throw insertError; 
         }
@@ -1447,7 +1464,8 @@ async function saveAndSyncSheet() {
         console.error(e); 
         alert("Gagal Sinkron: " + e.message); 
     } finally { 
-        btn.disabled = false; btnText.textContent = "SIMPAN & SINKRON"; 
+        btn.disabled = false; 
+        btnText.textContent = "SIMPAN & SINKRON"; 
     }
 }
 
@@ -2074,6 +2092,7 @@ function stopActiveStream(id) {
 }
 
 async function syncFilterOptions() {
+    if (!db) return;
     const filterSelect = document.getElementById('monitor-filter-kelas'); if (filterSelect.options.length > 1) return;
     try {
         const { data, error } = await db.from('users').select('kelas'); if (error) throw error;

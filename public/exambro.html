@@ -1416,10 +1416,7 @@ function initPeerConnection() {
         config: {
             'iceServers': [
                 { urls: 'stun:stun.l.google.com:19302' },
-                { urls: 'stun:stun1.l.google.com:19302' },
-                { urls: 'stun:stun2.l.google.com:19302' },
-                { urls: 'stun:stun3.l.google.com:19302' },
-                { urls: 'stun:stun4.l.google.com:19302' }
+                { urls: 'stun:stun1.l.google.com:19302' }
             ],
             'sdpSemantics': 'unified-plan'
         }
@@ -1478,10 +1475,7 @@ function initAdminPeer() {
         config: {
             'iceServers': [
                 { urls: 'stun:stun.l.google.com:19302' },
-                { urls: 'stun:stun1.l.google.com:19302' },
-                { urls: 'stun:stun2.l.google.com:19302' },
-                { urls: 'stun:stun3.l.google.com:19302' },
-                { urls: 'stun:stun4.l.google.com:19302' }
+                { urls: 'stun:stun1.l.google.com:19302' }
             ],
             'sdpSemantics': 'unified-plan'
         }
@@ -1727,23 +1721,20 @@ function startLiveStream(safeId) {
     const imgEl = document.getElementById(`snapshot-${safeId}`);
     const btn = document.getElementById(`btn-live-${safeId}`);
 
-    if (btn.textContent === "STOP") { 
-        stopActiveStream(safeId); 
-        return; 
-    }
-
+    if (btn.textContent === "STOP") { stopActiveStream(safeId); return; }
+    
     if (!adminPeer || !adminPeer.open) {
-        showNotify("Menyambung ke server Signaling...", "info");
-        initAdminPeer();
-        return;
+        showNotify("Koneksi Admin belum siap...", "info");
+        initAdminPeer(); return;
     }
 
     if (currentlyWatching) stopActiveStream(currentlyWatching);
-
+    
     btn.textContent = "CONNECTING...";
     btn.disabled = true;
+    console.log("Menghubungi HP Siswa ID: " + safeId);
 
-    // Mulai Panggilan
+    // Kirim stream kosong (Hanya untuk memicu respon HP)
     const call = adminPeer.call(safeId, new MediaStream());
     
     window.activeCalls = window.activeCalls || {};
@@ -1751,7 +1742,7 @@ function startLiveStream(safeId) {
     currentlyWatching = safeId;
 
     call.on('stream', (remoteStream) => {
-        console.log('🎬 Stream Diterima!');
+        console.log('🎬 Berhasil! Video diterima dari HP.');
         btn.disabled = false;
         btn.textContent = "STOP";
         btn.classList.replace('bg-blue-600', 'bg-red-600');
@@ -1760,36 +1751,25 @@ function startLiveStream(safeId) {
         videoEl.classList.remove('hidden');
         imgEl.classList.add('hidden');
         
-        // PAKSA PLAY (Penting untuk Chrome/Edge di Laptop)
-        videoEl.muted = true; // Harus muted agar mau play otomatis
-        const playPromise = videoEl.play();
-        if (playPromise !== undefined) {
-            playPromise.catch(error => {
-                console.log("Autoplay dicegah browser, mencoba play manual.");
-                videoEl.play(); 
-            });
-        }
+        // Memastikan video menyala (Wajib Muted di Admin agar tidak diblokir browser)
+        videoEl.muted = true;
+        videoEl.play().catch(e => console.error("Gagal putar video:", e));
     });
 
-    // Timeout (Ganti ke 10-12 detik agar tidak terlalu lama menunggu)
+    // Timeout sedikit diperpanjang karena discovery butuh waktu
     const callTimeout = setTimeout(() => {
         if (btn.textContent === "CONNECTING...") {
+            console.warn("Panggilan ke " + safeId + " Timeout.");
             stopActiveStream(safeId);
-            showNotify("Gagal tersambung. Pastikan HP Siswa fokus di halaman ujian.", "error");
+            showNotify("Siswa tidak merespon. Pastikan HP Siswa fokus di halaman ujian dan tidak terkunci.", "error");
         }
-    }, 12000);
+    }, 18000); // 18 detik
 
     call.on('error', (err) => {
-        clearTimeout(callTimeout);
-        stopActiveStream(safeId);
-        showNotify("Koneksi terputus.", "error");
-    });
-
-    call.on('close', () => {
+        console.error("Peer Call Error:", err);
         clearTimeout(callTimeout);
         stopActiveStream(safeId);
     });
-
 }
 
 // Fungsi bantu untuk mematikan stream

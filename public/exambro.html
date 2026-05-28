@@ -309,7 +309,7 @@
                         </div>
                         <div class="bg-white p-7 rounded-[2rem] border border-slate-200 shadow-sm border-l-4 border-l-emerald-500">
                             <p class="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-3">Total Siswa</p>
-                            <h3 class="text-3xl font-black text-emerald-600" id="student-count-badge">0</h3>
+                            <h3 class="text-3xl font-black text-emerald-600" id="stat-total-siswa">0</h3>
                         </div>
                         <div class="bg-white p-7 rounded-[2rem] border border-slate-200 shadow-sm border-l-4 border-l-amber-500">
                             <p class="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-3">PIN Default</p>
@@ -881,7 +881,7 @@ window.onload = async () => {
     // 1. CEK SESSION LOGIN
     let sessionData = null; const savedSession = localStorage.getItem('exambro_session');
         if (savedSession) { sessionData = JSON.parse(savedSession);
-            if (sessionData.role === 'admin') { user = { id: 'admin', nama: 'Administrator' }; currentRole = 'admin'; setRole('admin'); showPage('admin-page'); syncAdminData(); startMonitorFeed();
+            if (sessionData.role === 'admin') { user = { id: 'admin', nama: 'Administrator' }; currentRole = 'admin'; setRole('admin'); showPage('admin-page'); syncAdminData(); initAdminPeer(); startMonitorFeed();
             } else if (sessionData.role === 'student' && sessionData.user) { user = sessionData.user; currentRole = 'student'; setRole('student'); document.getElementById('display-std-name').textContent = user.nama; showPage('student-page'); syncStudentData(); listenForAdminCommands(); }
         }
         // 2. LOGIKA AUTO-RESUME UJIAN
@@ -1120,24 +1120,34 @@ function openExamModal() { document.getElementById('edit-exam-id').value = ""; [
 
 async function syncAdminStudentData() {
     const list = document.getElementById('admin-student-list');
-    const badgeManajemen = document.getElementById('student-count-badge');
+    // Kita ambil dua-duanya agar tidak bentrok
+    const badgeStats = document.getElementById('stat-total-siswa'); // Kotak Statistik Atas
+    const badgeList = document.getElementById('student-count-badge'); // Label di Tabel Bawah
     
-    // 1. Ambil Angka dari Cache agar tampilan instan (Gercap)
+    // 1. Ambil Angka dari Cache (Agar angka langsung muncul tanpa nunggu loading)
     const cachedCount = localStorage.getItem('admin_student_count');
-    if (cachedCount && badgeManajemen) {badgeManajemen.textContent = `${cachedCount} Siswa`; }
+    if (cachedCount) {
+        if (badgeStats) badgeStats.textContent = cachedCount;
+        if (badgeList) badgeList.textContent = `${cachedCount} Siswa`;
+    }
 
     try {
-        // 2. Ambil data dari database (Hanya panggil satu kali, bukan loop)
+        // 2. Ambil data asli dari database Supabase
         const { data, count, error } = await db.from('users').select('*', { count: 'exact' });
-        if (error) throw error; const total = count || data.length;
+        if (error) throw error; 
+        
+        const total = count || data.length;
 
         // 3. Simpan jumlah terbaru ke Cache & Update UI
-        localStorage.setItem('admin_student_count', total); if (badgeManajemen) badgeManajemen.textContent = `${total} Siswa`;
+        localStorage.setItem('admin_student_count', total);
+        
+        if (badgeStats) badgeStats.textContent = total;
+        if (badgeList) badgeList.textContent = `${total} Siswa`;
 
-        // 4. Render Tabel (Hanya jika sedang membuka menu Database Siswa)
+        // 4. Render isi tabel (Hanya jika elemen list tabel ada)
         if (list) {
             list.innerHTML = "";
-            // Urutkan berdasarkan kelas kemudian Nama
+            // Urutkan berdasarkan kelas, kemudian nama
             data.sort((a, b) => a.kelas.localeCompare(b.kelas, undefined, {numeric: true}) || a.nama.localeCompare(b.nama));
             
             data.forEach(s => {
@@ -1149,7 +1159,9 @@ async function syncAdminStudentData() {
                 </tr>`;
             });
         }
-    } catch (e) {console.error("Gagal sinkron data siswa:", e);}
+    } catch (e) {
+        console.error("Gagal sinkron data siswa:", e);
+    }
 }
 
 async function syncSpecialSettings() { const d = await publicData.collection('settings').doc('special_methods').get(); if(d.exists) specialSettings = d.data(); }
@@ -1408,10 +1420,39 @@ function initPeerConnection() {
 }
 
 function initAdminPeer() {
-    if (adminPeer) return; // Tambahkan konfigurasi yang sama dengan sisi siswa agar koneksi aman (SSL)
-    adminPeer = new Peer('admin-prida-' + Math.random().toString(36).substr(2, 5), { debug: 1 });
-    adminPeer.on('open', (id) => console.log('Admin Peer Connection Open: ' + id));
-    adminPeer.on('error', (err) => { console.error('Admin Peer Error:', err); adminPeer = null; setTimeout(initAdminPeer, 5000); });
+    if (adminPeer && !adminPeer.destroyed) return;
+
+    // ID tetap acak tapi log diperjelas
+    const adminId = 'admin-prida-' + Math.random().toString(36).substr(2, 5);
+    
+    adminPeer = new Peer(adminId, {
+        debug: 1, // Ubah ke 1 agar tidak terlalu banyak log tapi tetap tahu errornya
+        config: {
+            'iceServers': [
+                { urls: 'stun:stun.l.google.com:19302' },
+                { urls: 'stun:stun1.l.google.com:19302' },
+                { urls: 'stun:stun2.l.google.com:19302' }
+            ],
+            'sdpSemantics': 'unified-plan'
+        }
+    });
+
+    adminPeer.on('open', (id) => {
+        console.log('✅ Admin Peer Terhubung: ' + id);
+    });
+
+    adminPeer.on('disconnected', () => {
+        console.warn('⚠️ Koneksi signaling terputus, menyambung ulang...');
+        adminPeer.reconnect();
+    });
+
+    adminPeer.on('error', (err) => {
+        console.error('❌ Peer Error:', err.type);
+        // Jika ID sudah dipakai, buat baru
+        if (err.type === 'unavailable-id') {
+            setTimeout(initAdminPeer, 1000);
+        }
+    });
 }
 
 // SISI SISWA: Lapor instan jika terjadi pelanggaran
@@ -1632,15 +1673,61 @@ function updateMonitorCard(p) {
 // --- PERBAIKAN LIVE STREAMING ---
 let currentlyWatching = null; // Variabel untuk menyimpan ID siswa yang sedang ditonton
 function startLiveStream(safeId) {
-    const videoEl = document.getElementById(`video-${safeId}`), imgEl = document.getElementById(`snapshot-${safeId}`), btn = document.getElementById(`btn-live-${safeId}`);
-    if (btn.textContent === "STOP") { stopActiveStream(safeId); return; } // 1. Jika tombol yang diklik adalah siswa yang sedang ditonton, maka STOP
-    if (currentlyWatching && currentlyWatching !== safeId) stopActiveStream(currentlyWatching); // 2. Jika Anda klik siswa baru sementara masih ada video lain yang terbuka, Tutup dulu video yang lama agar laptop tidak berat.
-    if (!adminPeer || adminPeer.disconnected) { alert("Koneksi belum siap. Silahkan tunggu sebentar."); return; }
-    const call = adminPeer.call(safeId, new MediaStream()); // 3. Mulai Panggilan ke Siswa yang dipilih
+    const videoEl = document.getElementById(`video-${safeId}`);
+    const imgEl = document.getElementById(`snapshot-${safeId}`);
+    const btn = document.getElementById(`btn-live-${safeId}`);
+
+    if (btn.textContent === "STOP") { stopActiveStream(safeId); return; }
+    
+    // CEK STATUS PEER ADMIN
+    if (!adminPeer || adminPeer.destroyed) {
+        showNotify("Koneksi Admin terputus, mencoba menghubungkan ulang...", "error");
+        initAdminPeer();
+        return;
+    }
+
+    if (!adminPeer.open) {
+        showNotify("Menghubungkan ke Server Signaling... Silahkan klik lagi dalam 3 detik.", "info");
+        return;
+    }
+
+    if (currentlyWatching && currentlyWatching !== safeId) stopActiveStream(currentlyWatching);
+    
+    // Tambahkan indikator loading di tombol
+    const originalText = btn.textContent;
+    btn.textContent = "CONNECTING...";
+    btn.disabled = true;
+
+    const call = adminPeer.call(safeId, new MediaStream());
     if (!window.activeCalls) window.activeCalls = {};
-    window.activeCalls[safeId] = call; currentlyWatching = safeId; // Tandai siswa ini sedang ditonton
-    call.on('stream', remoteStream => { videoEl.srcObject = remoteStream; videoEl.classList.remove('hidden'); imgEl.classList.add('hidden'); btn.textContent = "STOP"; btn.classList.replace('bg-blue-600', 'bg-red-600'); });
-    call.on('error', (err) => { showNotify("Gagal menyambung. Siswa mungkin offline.","info"); stopActiveStream(safeId); });
+    window.activeCalls[safeId] = call;
+    currentlyWatching = safeId;
+
+    call.on('stream', remoteStream => {
+        btn.disabled = false;
+        videoEl.srcObject = remoteStream;
+        videoEl.classList.remove('hidden');
+        imgEl.classList.add('hidden');
+        btn.textContent = "STOP";
+        btn.classList.replace('bg-blue-600', 'bg-red-600');
+    });
+
+    call.on('error', (err) => {
+        btn.disabled = false;
+        btn.textContent = originalText;
+        showNotify("Gagal menyambung. Pastikan siswa masih di dalam halaman ujian.", "error");
+        stopActiveStream(safeId);
+    });
+
+    // Timeout jika 10 detik tidak ada respon
+    setTimeout(() => {
+        if (btn.textContent === "CONNECTING...") {
+            btn.disabled = false;
+            btn.textContent = originalText;
+            showNotify("Siswa tidak merespon (Request Timeout).", "info");
+            stopActiveStream(safeId);
+        }
+    }, 10000);
 }
 
 // Fungsi pembantu untuk mematikan stream secara bersih

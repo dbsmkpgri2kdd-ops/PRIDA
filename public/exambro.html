@@ -136,6 +136,27 @@
         -webkit-box-orient: vertical;  
         overflow: hidden;
     }
+
+/* Animasi Getar saat Siswa Melanggar */
+@keyframes shake {
+    0%, 100% { transform: translateX(0); }
+    25% { transform: translateX(-10px); }
+    75% { transform: translateX(10px); }
+}
+.violation-shake {
+    animation: shake 0.2s ease-in-out 0s 2;
+}
+
+/* Toast Pelanggaran agar melayang di tengah atas */
+.violation-toast {
+    position: fixed;
+    top: 20px;
+    left: 50%;
+    transform: translateX(-50%);
+    z-index: 999999;
+    min-width: 300px;
+    pointer-events: none;
+}
 </style>
 
 </head>
@@ -215,22 +236,11 @@
 
             <nav class="flex-1 px-6 space-y-2 mt-4">
                 <p class="px-4 text-[10px] font-bold text-slate-400 uppercase tracking-[0.2em] mb-4">Main Menu</p>
-                <button onclick="switchTab('exam')" id="tab-btn-exam" class="sidebar-item sidebar-active">
-                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/></svg>
-                    Manajemen Ujian
-                </button>
-                <button onclick="switchTab('monitor')" id="tab-btn-monitor" class="sidebar-item">
-                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"/></svg>
-                    Live Monitoring
-                </button>
-                <button onclick="switchTab('student')" id="tab-btn-student" class="sidebar-item">
-                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z"/></svg>
-                    Database Siswa
-                </button>
-                <button onclick="switchTab('bank')" id="tab-btn-bank" class="sidebar-item">
-                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/></svg>
-                    Bank Soal AI
-                </button>
+                <button onclick="switchTab('exam')" id="tab-btn-exam" class="sidebar-item sidebar-active"><svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/></svg>Manajemen Ujian</button>
+                <button onclick="switchTab('monitor')" id="tab-btn-monitor" class="sidebar-item"><svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"/></svg>Live Monitoring</button>
+                <button onclick="switchTab('student')" id="tab-btn-student" class="sidebar-item"><svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z"/></svg>Database Siswa</button>
+                <button onclick="switchTab('bank')" id="tab-btn-bank" class="sidebar-item"><svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/></svg>Bank Soal AI</button>
+		<button onclick="switchTab('settings')" id="tab-btn-settings" class="sidebar-item"><svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" /><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /></svg>Sistem & API</button>
             </nav>
 
             <div class="p-6 mt-auto border-t border-slate-100">
@@ -239,7 +249,7 @@
                         <span class="w-2 h-2 bg-emerald-500 rounded-full animate-pulse"></span>
                         <span class="text-[10px] font-bold text-indigo-900 uppercase tracking-tight">Cloud Connected</span>
                     </div>
-                    <p class="text-[10px] text-indigo-600 font-semibold leading-relaxed">Sistem terenkripsi via Supabase Realtime.</p>
+                    <p class="text-[9px] text-indigo-600 font-semibold leading-relaxed">Sistem terenkripsi via Supabase Realtime.</p>
                 </div>
                 <button onclick="logout()" class="sidebar-item text-rose-500 hover:bg-rose-50 hover:text-rose-600 font-bold transition-all">
                     <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"/></svg>
@@ -266,11 +276,25 @@
             <input type="text" placeholder="Cari..." class="bg-transparent border-none outline-none text-xs ml-3 w-full font-semibold text-slate-600">
         </div>
     </div>
-                <div class="flex items-center gap-5">
-                    <div class="text-right">
-                        <p class="text-xs font-extrabold text-slate-900 leading-none">Institusi Administrator</p>
-                        <p class="text-[9px] text-indigo-600 font-black mt-1.5 uppercase tracking-tighter bg-indigo-50 px-2 py-0.5 rounded-md inline-block">Verified Access</p>
-                    </div>
+
+
+<!-- Cari div class="flex items-center gap-5" di header admin -->
+<div class="flex items-center gap-5">
+    <!-- TAMBAHKAN INI: Dropdown Switch Server -->
+    <div class="relative">
+        <select id="admin-server-switch" onchange="switchAdminServer(this.value)" class="bg-indigo-50 text-indigo-600 text-[10px] font-black px-3 py-2 rounded-xl border-2 border-indigo-100 outline-none cursor-pointer hover:bg-indigo-100 transition-all">
+            <option value="">🔌 Pilih Server Kelola</option>
+            <option value="SERVER_A">Server Kelas X</option>
+            <option value="SERVER_B">Server Kelas XI</option>
+            <option value="SERVER_C">Server Kelas XII</option>
+        </select>
+    </div>
+    
+    <div class="text-right hidden sm:block">
+        <p class="text-xs font-extrabold text-slate-900 leading-none">Institusi Administrator</p>
+        <p class="text-[9px] text-indigo-600 font-black mt-1.5 uppercase tracking-tighter bg-indigo-50 px-2 py-0.5 rounded-md inline-block">Verified Access</p>
+    </div>
+
                     <div class="w-11 h-11 bg-slate-100 rounded-2xl border-2 border-white shadow-md overflow-hidden p-1">
                         <img src="https://ui-avatars.com/api/?name=Admin&background=4f46e5&color=fff&bold=true" class="w-full h-full rounded-xl object-cover" alt="Profile">
                     </div>
@@ -373,7 +397,7 @@
                                 <span class="w-2 h-2 bg-emerald-500 rounded-full animate-pulse shadow-[0_0_10px_rgba(16,185,129,0.8)]"></span>
                                 <p class="text-emerald-600 text-[10px] font-black uppercase tracking-widest" id="online-count">0 Peserta Terkoneksi</p>
                             </div>
-			    <button onclick="document.getElementById('monitor-usage-guide').classList.toggle('hidden')" class="text-blue-500 font-bold text-[10px] uppercase mr-4 border-b-2 border-blue-50 hover:border-blue-500 pb-1 mb-2 transition-all">Petunjuk Penggunaan</button>
+			    <button onclick="document.getElementById('monitor-usage-guide').classList.toggle('hidden')" class="text-blue-500 font-bold text-[9px] mr-4 border-b-2 border-blue-50 hover:border-blue-500 pb-1 mb-2 transition-all">Lihat petunjuk penggunaan disini!</button>
                         </div>
                         <div class="flex items-center gap-4">
                             <select id="monitor-filter-kelas" onchange="startMonitorFeed()" class="bg-white border border-slate-200 text-xs font-black text-slate-700 rounded-2xl px-6 py-4 min-w-[200px] outline-none focus:ring-2 ring-indigo-500 shadow-sm cursor-pointer transition-all">
@@ -422,86 +446,87 @@
                     </div>
                 </div>
 
+
 <!-- SECTION STUDENT -->
 <div id="section-student" class="hidden-element">
-    <div class="flex justify-between items-end mb-6 px-2">
+    <div class="flex justify-between items-end mb-8">
         <div>
-            <h2 class="text-2xl md:text-3xl font-black text-slate-900 leading-tight">Database Siswa</h2>
-            <p class="text-slate-400 text-[10px] md:text-xs mt-1">Kelola data peserta ujian secara terpusat via Google Sheets.</p>
+            <h2 class="text-3xl font-black text-slate-900">Database Siswa</h2>
+            <p class="text-slate-400 text-xs mt-1">Kelola data peserta ujian secara terpusat via Google Sheets.</p>
         </div>
     </div>
-
+    
     <!-- PANEL PETUNJUK -->
-    <div class="bg-blue-50 border border-blue-100 rounded-[2rem] md:rounded-[2.5rem] p-5 md:p-8 mb-6">
+    <div class="bg-blue-50 border border-blue-100 rounded-[2.5rem] p-8 mb-8">
         
         <!-- Header: Ikon & Judul Panduan -->
-        <div class="flex items-center space-x-3 mb-6">
-            <div class="bg-blue-600 text-white p-2.5 rounded-xl shadow-lg shadow-blue-200 shrink-0">
-                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+        <div class="flex items-end space-x-4 mb-6">
+            <div class="bg-blue-600 text-white p-2 rounded-xl shadow-lg shadow-blue-200 shrink-0">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
                 </svg>
             </div>  
-            <h3 class="font-black text-blue-900 text-base md:text-lg leading-tight">Panduan Sinkronisasi Google Sheets</h3>
+            <h3 class="font-black text-blue-900 text-lg">Panduan Sinkronisasi Google Sheets</h3>
         </div>
 
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
-            <!-- Bagian 1: Format Kolom -->
+        <!-- Grid Konten: Rata kiri sejajar persis dengan Ikon biru di atasnya -->
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+            
+            <!-- Panduan 1 -->
             <div class="space-y-3">
-                <p class="text-[10px] font-bold text-blue-700 uppercase tracking-widest">1. Format Kolom (Wajib Berurutan):</p>
-                <div class="bg-white/70 backdrop-blur-sm p-4 rounded-2xl border border-blue-100 overflow-x-auto">
-                    <table class="w-full min-w-[300px] text-[10px] font-mono">
+                <p class="text-xs font-bold text-blue-700 uppercase tracking-widest">1. Format Kolom (Wajib Berurutan):</p>
+                <div class="bg-white/50 p-4 rounded-2xl border border-blue-100">
+                    <table class="w-full text-[10px] font-mono">
                         <tr class="text-blue-400 border-b border-blue-100">
-                            <th class="pb-2 text-left font-medium">A (Kolom 1)</th>
-                            <th class="pb-2 text-left font-medium">B (Kolom 2)</th>
-                            <th class="pb-2 text-left font-medium">C (Kolom 3)</th>
-                            <th class="pb-2 text-left font-medium">D (Kolom 4)</th>
+                            <th class="pb-1 text-left">A (Kolom 1)</th>
+                            <th class="pb-1 text-left">B (Kolom 2)</th>
+                            <th class="pb-1 text-left">C (Kolom 3)</th>
+                            <th class="pb-1 text-left">D (Kolom 4)</th>
                         </tr>
-                        <tr class="text-blue-900 font-bold">
-                            <td class="pt-2">NIS</td>
-                            <td class="pt-2 uppercase">Nama Lengkap</td>
-                            <td class="pt-2">KELAS</td>
-                            <td class="pt-2 text-[9px]">PASSWORD</td>
+                        <tr class="text-blue-900">
+                            <td class="pt-1">NIS</td>
+                            <td class="pt-1">NAMA LENGKAP</td>
+                            <td class="pt-1">KELAS</td>
+                            <td class="pt-1">PASSWORD</td>
                         </tr>
                     </table>
                 </div>
-                <p class="text-[10px] text-blue-500 italic leading-relaxed">*Jangan gunakan header/judul kolom pada baris pertama jika ingin data langsung terbaca.</p>
+                <p class="text-[10px] text-blue-500 italic">*Jangan gunakan header/judul kolom pada baris pertama jika ingin data langsung terbaca.</p>
             </div>
-
-            <!-- Bagian 2: Cara Publikasi -->
+            
+            <!-- Panduan 2 -->
             <div class="space-y-3">
-                <p class="text-[10px] font-bold text-blue-700 uppercase tracking-widest">2. Cara Publikasi Link:</p>
-                <ul class="text-[11px] text-blue-800 space-y-3 font-medium">
-                    <!-- Gunakan flex-start agar angka tetap di atas saat teks membungkus ke bawah -->
+                <p class="text-xs font-bold text-blue-700 uppercase tracking-widest">2. Cara Publikasi Link:</p>
+                <ul class="text-[11px] text-blue-800 space-y-2 font-medium">
                     <li class="flex items-start">
-                        <span class="w-5 h-5 bg-blue-200 text-blue-700 rounded-full flex shrink-0 items-center justify-center text-[9px] mr-3 font-black mt-0.5">1</span>
+                        <span class="w-5 h-5 bg-blue-200 text-blue-700 rounded-full flex items-center justify-center text-[9px] mr-2 font-black shrink-0 mt-[2px]">1</span> 
                         <span>Klik menu <b>File</b> > <b>Share</b> > <b>Publish to web</b></span>
                     </li>
                     <li class="flex items-start">
-                        <span class="w-5 h-5 bg-blue-200 text-blue-700 rounded-full flex shrink-0 items-center justify-center text-[9px] mr-3 font-black mt-0.5">2</span>
+                        <span class="w-5 h-5 bg-blue-200 text-blue-700 rounded-full flex items-center justify-center text-[9px] mr-2 font-black shrink-0 mt-[2px]">2</span> 
                         <span>Pilih tab <b>Link</b>, ubah "Entire Document" menjadi <b>Sheet1</b></span>
                     </li>
                     <li class="flex items-start">
-                        <span class="w-5 h-5 bg-blue-200 text-blue-700 rounded-full flex shrink-0 items-center justify-center text-[9px] mr-3 font-black mt-0.5">3</span>
-                        <span>Ubah "Web Page" menjadi <b>CSV (.csv)</b></span>
+                        <span class="w-5 h-5 bg-blue-200 text-blue-700 rounded-full flex items-center justify-center text-[9px] mr-2 font-black shrink-0 mt-[2px]">3</span> 
+                        <span>Ubah "Web Page" menjadi <b>Comma-separated values (.csv)</b></span>
                     </li>
                     <li class="flex items-start">
-                        <span class="w-5 h-5 bg-blue-200 text-blue-700 rounded-full flex shrink-0 items-center justify-center text-[9px] mr-3 font-black mt-0.5">4</span>
-                        <span>Klik Publish, salin linknya dan tempel di bawah.</span>
+                        <span class="w-5 h-5 bg-blue-200 text-blue-700 rounded-full flex items-center justify-center text-[9px] mr-2 font-black shrink-0 mt-[2px]">4</span> 
+                        <span>Klik Publish, salin linknya dan tempel di bawah ini.</span>
                     </li>
                 </ul>
             </div>
+            
         </div>
     </div>
 
     <!-- Panel Sinkronisasi -->
-    <div class="bg-white p-6 md:p-8 rounded-[2rem] md:rounded-[2.5rem] border mb-8 shadow-sm">
-        <div class="flex flex-col md:flex-row items-stretch md:items-end space-y-4 md:space-y-0 md:space-x-4">
-            <div class="flex-grow">
-                <label class="text-[10px] font-black text-slate-400 ml-1 uppercase tracking-widest mb-2 block">Link Google Spreadsheet (CSV)</label>
+    <div class="bg-white p-8 rounded-[2.5rem] border mb-8 shadow-sm">
+        <div class="flex flex-col md:flex-row items-center space-y-4 md:space-y-0 md:space-x-4">
+            <div class="flex-grow w-full">
+                <label class="text-[10px] font-black text-slate-400 ml-2 uppercase tracking-widest mb-2 block">Link Google Spreadsheet (CSV/Publish to Web)</label>
                 <div class="relative">
-                    <input type="text" id="sheet-url" 
-                        class="w-full bg-slate-50 p-4 pl-12 rounded-2xl outline-none border-2 border-transparent focus:border-blue-500 transition-all text-sm font-medium" 
-                        placeholder="https://docs.google.com/spreadsheets/d/...">
+                    <input type="text" id="sheet-url" class="w-full bg-slate-50 p-4 pl-12 rounded-2xl outline-none border-2 border-transparent focus:border-blue-500 transition-all text-sm font-medium" placeholder="https://docs.google.com/spreadsheets/d/...">
                     <div class="absolute left-4 top-1/2 -translate-y-1/2 text-slate-300">
                         <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1" />
@@ -509,36 +534,86 @@
                     </div>
                 </div>
             </div>
-            <button id="btn-sync-sheet" onclick="saveAndSyncSheet()" 
-                class="bg-emerald-600 text-white px-8 py-4 rounded-2xl font-black text-xs shadow-xl shadow-emerald-100 flex items-center hover:bg-emerald-700 active:scale-95 transition-all justify-center">
-                <span id="sync-text">SIMPAN & SINKRON</span>
-            </button>
+            <div class="flex items-end h-full pt-6">
+                <button id="btn-sync-sheet" onclick="saveAndSyncSheet()" class="bg-emerald-600 text-white px-10 py-4 rounded-2xl font-black text-xs shadow-xl shadow-emerald-100 flex items-center hover:bg-emerald-700 hover:scale-[1.02] active:scale-95 transition-all min-w-[220px] justify-center">
+                    <span id="sync-text">SIMPAN & SINKRON</span>
+                </button>
+            </div>
         </div>
     </div>
 
     <!-- Daftar Siswa -->
-    <div class="bg-white rounded-[2rem] border overflow-hidden shadow-sm">
-        <div class="p-5 border-b bg-slate-50/50 flex justify-between items-center">
-            <h4 class="font-black text-slate-900 text-xs md:text-sm uppercase tracking-tight">Daftar Siswa</h4>
-            <span class="bg-white px-3 py-1 rounded-full border text-[9px] font-bold text-slate-500 shadow-sm" id="student-count-badge">0 Siswa</span>
+    <div class="bg-white rounded-[2.5rem] border overflow-hidden shadow-sm">
+        <div class="p-6 border-b bg-slate-50/50 flex justify-between items-center">
+            <h4 class="font-black text-slate-900 text-sm uppercase tracking-tight">Daftar Siswa Terdaftar</h4>
+            <span class="bg-white px-4 py-1.5 rounded-full border text-[10px] font-bold text-slate-500 shadow-sm" id="student-count-badge">0 Siswa</span>
         </div>
-        <div class="overflow-x-auto max-h-[500px]">
-            <table class="w-full text-left border-collapse">
+        <div class="max-h-[500px] overflow-y-auto">
+            <table class="w-full text-left">
                 <thead class="bg-white border-b sticky top-0 z-10">
                     <tr>
-                        <th class="px-6 py-4 text-[10px] font-black uppercase text-slate-400 whitespace-nowrap">NIS</th>
-                        <th class="px-6 py-4 text-[10px] font-black uppercase text-slate-400 whitespace-nowrap">Nama Lengkap</th>
-                        <th class="px-6 py-4 text-[10px] font-black uppercase text-slate-400 whitespace-nowrap">Kelas</th>
-                        <th class="px-6 py-4 text-[10px] font-black uppercase text-slate-400 whitespace-nowrap">Password</th>
+                        <th class="px-8 py-5 text-[10px] font-black uppercase text-slate-400">NIS</th>
+                        <th class="px-8 py-5 text-[10px] font-black uppercase text-slate-400">Nama Lengkap</th>
+                        <th class="px-8 py-5 text-[10px] font-black uppercase text-slate-400">Kelas</th>
+                        <th class="px-8 py-5 text-[10px] font-black uppercase text-slate-400">Password</th>
                     </tr>
                 </thead>
-                <tbody id="admin-student-list" class="divide-y text-xs font-medium text-slate-700">
-                    <!-- Data akan diisi otomatis -->
+                <tbody id="admin-student-list" class="divide-y">
+                    <!-- Data akan diisi otomatis oleh JavaScript -->
                 </tbody>
             </table>
         </div>
     </div>
 </div>
+
+
+
+
+
+
+
+<!-- SECTION SETTINGS -->
+<!-- GANTI ISI SECTION SETTINGS DENGAN INI -->
+<div id="section-settings" class="hidden-element scale-up">
+    <div class="mb-10">
+        <h2 class="text-3xl font-extrabold text-slate-900 tracking-tight">Multi-Server Configuration</h2>
+        <p class="text-slate-500 text-sm mt-2 font-medium">Bagi beban 500+ siswa ke dalam 3 instance Supabase berbeda.</p>
+    </div>
+
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
+        <!-- Server A -->
+        <div class="bg-white p-6 rounded-[2rem] border border-slate-200 shadow-sm">
+            <h4 class="font-black text-indigo-600 mb-4 uppercase tracking-widest text-xs">Server Kelas X</h4>
+            <input type="text" id="srv-a-url" class="w-full bg-slate-50 p-3 rounded-xl border mb-3 text-xs font-mono" placeholder="URL Supabase A">
+            <input type="text" id="srv-a-key" class="w-full bg-slate-50 p-3 rounded-xl border mb-3 text-xs font-mono" placeholder="Anon Key A">
+            <textarea id="srv-a-classes" class="w-full bg-slate-50 p-3 rounded-xl border text-xs h-20" placeholder="XII-IPA-1, XII-IPA-2 (Pisahkan koma)"></textarea>
+        </div>
+        <!-- Server B -->
+        <div class="bg-white p-6 rounded-[2rem] border border-slate-200 shadow-sm">
+            <h4 class="font-black text-emerald-600 mb-4 uppercase tracking-widest text-xs">Server Kelas XI</h4>
+            <input type="text" id="srv-b-url" class="w-full bg-slate-50 p-3 rounded-xl border mb-3 text-xs font-mono" placeholder="URL Supabase B">
+            <input type="text" id="srv-b-key" class="w-full bg-slate-50 p-3 rounded-xl border mb-3 text-xs font-mono" placeholder="Anon Key B">
+            <textarea id="srv-b-classes" class="w-full bg-slate-50 p-3 rounded-xl border text-xs h-20" placeholder="XII-IPS-1, XII-IPS-2"></textarea>
+        </div>
+        <!-- Server C -->
+        <div class="bg-white p-6 rounded-[2rem] border border-slate-200 shadow-sm">
+            <h4 class="font-black text-amber-600 mb-4 uppercase tracking-widest text-xs">Server Kelas XII</h4>
+            <input type="text" id="srv-c-url" class="w-full bg-slate-50 p-3 rounded-xl border mb-3 text-xs font-mono" placeholder="URL Supabase C">
+            <input type="text" id="srv-c-key" class="w-full bg-slate-50 p-3 rounded-xl border mb-3 text-xs font-mono" placeholder="Anon Key C">
+            <textarea id="srv-c-classes" class="w-full bg-slate-50 p-3 rounded-xl border text-xs h-20" placeholder="X-1, X-2, X-3"></textarea>
+        </div>
+    </div>
+
+    <div class="bg-white p-8 rounded-[2rem] border border-slate-200">
+        <h4 class="font-black text-rose-600 mb-4 uppercase tracking-widest text-xs">Admin Master Credentials</h4>
+        <div class="grid grid-cols-2 gap-4">
+            <input type="text" id="set-admin-user" class="p-4 bg-slate-50 rounded-2xl border" placeholder="Username Admin">
+            <input type="password" id="set-admin-pwd" class="p-4 bg-slate-50 rounded-2xl border" placeholder="Password Admin">
+        </div>
+        <button onclick="saveMultiSettings()" class="w-full bg-indigo-600 text-white py-4 rounded-2xl font-black mt-6 shadow-xl shadow-indigo-100 hover:bg-indigo-700 transition-all uppercase tracking-widest text-xs">Simpan & Sinkronkan Server</button>
+    </div>
+</div>
+
 
                 <!-- SECTION BANK AI -->
                 <div id="section-bank" class="hidden-element scale-up">
@@ -551,7 +626,6 @@
                     </div>
                     <div id="ai-question-list" class="grid grid-cols-1 gap-6"></div>
                 </div>
-
             </div>
         </main>
     </div>
@@ -746,16 +820,419 @@
     <audio id="alarm-sound" src="https://assets.mixkit.co/active_storage/sfx/951/951-preview.mp3" preload="auto"></audio>
     <script>
 
-// --- A. SETUP CONFIGURATION & SUPABASE ---
-const apiKey = "AIzaSyBrpMLLakAoM5HIL0Vax91OI0wX371Bgxc";
-const SUPABASE_URL = "https://yeukammxkbatyldqbtzy.supabase.co";
-const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InlldWthbW14a2JhdHlsZHFidHp5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzg5OTk0OTEsImV4cCI6MjA5NDU3NTQ5MX0.RVvEVGhknsaqpsJjqom9Kawum31MkOb22aM7CHvLLgk";
-const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY, { auth: { persistSession: true, autoRefreshToken: true } });
-const db = supabaseClient;
-const publicData = createCollectionWrapper(db);
-const appId = 'exambro-system-2026';
-const monitorChannel = db.channel('exam-monitoring', {config: { broadcast: { self: false, ack: false } } }); monitorChannel.subscribe();
-const isLocalFileOrigin = window.location.protocol === 'file:' || window.location.origin === 'null';
+// --- 1. GLOBAL STATE & CONFIG ---
+const apiKey = "AIzaSyBrpMLLakAoM5HIL0Vax91OI0wX371Bgxc"; 
+const MASTER_URL = "https://qozlaoemoirldfpcjsnm.supabase.co";
+const MASTER_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFvemxhb2Vtb2lybGRmcGNqc25tIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzk4NTMwNjIsImV4cCI6MjA5NTQyOTA2Mn0.gpUUAATtpxJg_J8XurdTsYYpH22RfFRG2MBQw6s3LTY";
+let dbMaster = supabase.createClient(MASTER_URL, MASTER_KEY);
+
+let serverConfigs = JSON.parse(localStorage.getItem('PRIDA_MULTI_CONFIG')) || {
+    "SERVER_A": { url: "", key: "", classes: [] },
+    "SERVER_B": { url: "", key: "", classes: [] },
+    "SERVER_C": { url: "", key: "", classes: [] }
+};
+
+
+let ADMIN_USER = localStorage.getItem('PRIDA_ADM_USER') || "admin";
+let ADMIN_PWD = localStorage.getItem('PRIDA_ADM_PWD') || "admin123";
+const multiDb = { SERVER_A: null, SERVER_B: null, SERVER_C: null };
+let db = null; 
+let publicData = null;
+let monitorChannel = null;
+
+let user = null;
+let isExamActive = false;
+let isResuming = false;
+let activePin = "1234";
+let violationCount = 0;
+let lastViolationTime = 0;
+let initialWidth = window.innerWidth;
+let initialHeight = window.innerHeight;
+let currentRole = 'student';
+let specialSettings = { pin: "1234", duration: 60 };
+let myPeer = null;
+let currentClassChannel = null;
+let adminPeer = null;
+let isMonitoringEnabled = true;
+window.sendSnapshot = () => { console.log("Snapshot belum siap."); };
+
+const sharedCanvas = document.createElement('canvas');
+const sharedCtx = sharedCanvas.getContext('2d');
+
+
+// Fungsi untuk inisialisasi koneksi berdasarkan kelas
+async function connectToClassServer(className) {
+    let targetConfig = null;
+    
+    // Cari server mana yang menghandle kelas ini
+    for (let srv in serverConfigs) {
+        if (serverConfigs[srv].classes.includes(className)) {
+            targetConfig = serverConfigs[srv];
+            break;
+        }
+    }
+
+    if (targetConfig && targetConfig.url && targetConfig.key) {
+        try {
+            db = supabase.createClient(targetConfig.url, targetConfig.key);
+            publicData = createCollectionWrapper(db);
+            // Re-subscribe channel
+            if (monitorChannel) monitorChannel.unsubscribe();
+            monitorChannel = db.channel('global-exam-room').subscribe();
+            console.log(`Terhubung ke Server untuk kelas: ${className}`);
+            return true;
+        } catch (e) {
+            console.error("Koneksi Server Gagal", e);
+            return false;
+        }
+    }
+    return false;
+}
+
+async function saveMultiSettings() {
+    const config = {
+        "SERVER_A": { 
+            url: document.getElementById('srv-a-url').value, 
+            key: document.getElementById('srv-a-key').value,
+            classes: document.getElementById('srv-a-classes').value.split(',').map(s => s.trim())
+        },
+        "SERVER_B": { 
+            url: document.getElementById('srv-b-url').value, 
+            key: document.getElementById('srv-b-key').value,
+            classes: document.getElementById('srv-b-classes').value.split(',').map(s => s.trim())
+        },
+        "SERVER_C": { 
+            url: document.getElementById('srv-c-url').value, 
+            key: document.getElementById('srv-c-key').value,
+            classes: document.getElementById('srv-c-classes').value.split(',').map(s => s.trim())
+        }
+    };
+
+    try {
+        // 1. Simpan ke Supabase (Pusat)
+        const { error } = await dbMaster
+            .from('system_settings')
+            .upsert({ 
+                id: 'multi_server_config', 
+                config_data: config,
+                updated_at: new Date().toISOString() 
+            });
+
+        if (error) throw error;
+
+        // 2. Simpan cadangan ke localStorage
+        localStorage.setItem('PRIDA_MULTI_CONFIG', JSON.stringify(config));
+        
+        alert("Konfigurasi berhasil disinkronkan ke Cloud Supabase!");
+        location.reload();
+    } catch (e) {
+        alert("Gagal menyimpan ke Cloud: " + e.message);
+    }
+}
+
+
+// --- 2. DATABASE WRAPPER (STANDARDIZED) ---
+function createCollectionWrapper(database) {
+    if (!database) return null;
+    return {
+        collection(name) {
+            return {
+                doc(id) {
+                    return {
+                        async get() { 
+                            const { data } = await database.from(name).select('*').or(`id.eq."${id}",nis.eq."${id}"`).maybeSingle();
+                            return { exists: !!data, data: () => data, id };
+                        },
+                        async set(d) { return await database.from(name).upsert({id, ...d, updated_at: new Date().toISOString()}); },
+                        async update(d) { 
+                            const payload = { ...d, updated_at: new Date().toISOString() };
+                            // Mapping CamelCase ke SnakeCase Database
+                            if (payload.isLocked !== undefined) { payload.is_locked = payload.isLocked; delete payload.isLocked; }
+                            if (payload.lastStatus) { payload.last_status = payload.lastStatus; delete payload.lastStatus; }
+                            if (payload.violationCount !== undefined) { payload.v = payload.violationCount; delete payload.violationCount; }
+                            return await database.from(name).update(payload).or(`id.eq."${id}",nis.eq."${id}"`); 
+                        },
+                        async delete() { return await database.from(name).delete().or(`id.eq."${id}",nis.eq."${id}"`); }
+                    };
+                },
+                onSnapshot(callback) {
+                    const channel = database.channel(`realtime-${name}`)
+                        .on('postgres_changes', { event: '*', schema: 'public', table: name }, async () => {
+                            const { data } = await database.from(name).select('*');
+                            if(data) callback(data.map(r => ({ id: r.id || r.nis, data: () => r })));
+                        }).subscribe();
+                    return () => { database.removeChannel(channel); };
+                }
+            };
+        }
+    };
+}
+
+window.onload = async () => {
+    document.getElementById('loading-overlay').classList.remove('hidden-element');
+
+    try {
+        // AMBIL KONFIGURASI DARI SUPABASE MASTER
+        const { data, error } = await dbMaster
+            .from('system_settings')
+            .select('config_data')
+            .eq('id', 'multi_server_config')
+            .single();
+
+        if (data && data.config_data) {
+            serverConfigs = data.config_data;
+            // Update localStorage agar tetap sinkron
+            localStorage.setItem('PRIDA_MULTI_CONFIG', JSON.stringify(serverConfigs));
+        }
+    } catch (e) {
+        console.log("Menggunakan cache lokal karena gagal terhubung ke Master Server");
+        const local = localStorage.getItem('PRIDA_MULTI_CONFIG');
+        if(local) serverConfigs = JSON.parse(local);
+    }
+
+    // Lanjutkan proses loading seperti biasa...
+    loadKelas(); 
+    document.getElementById('loading-overlay').classList.add('hidden-element');
+
+    const savedSession = localStorage.getItem('exambro_session');
+    if (savedSession) {
+        const sessionData = JSON.parse(savedSession);
+        
+        // --- LOGIKA JIKA ADMIN LOGIN ---
+        if (sessionData.role === 'admin') {
+            user = { id: 'admin', nama: 'Administrator' };
+            currentRole = 'admin'; 
+
+            // Hubungkan ke SEMUA server (A, B, C) sekaligus
+            initMultiAdmin(); 
+            // Aktifkan PeerJS untuk fitur Live Streaming
+            initAdminPeer(); 
+            
+            showPage('admin-page');
+            loadSettingsToUI();
+            console.log("🛠️ Admin Dashboard Ready (Multi-Server Mode)");
+
+        // --- LOGIKA JIKA SISWA LOGIN ---
+        } else if (sessionData.role === 'student' && sessionData.user) {
+            if (sessionData.serverUrl && sessionData.serverKey) {
+                db = supabase.createClient(sessionData.serverUrl, sessionData.serverKey);
+                publicData = createCollectionWrapper(db);
+                
+                user = sessionData.user;
+                currentRole = 'student';
+                
+                document.getElementById('display-std-name').textContent = user.nama;
+                showPage('student-page'); 
+                
+                // CUKUP PANGGIL INI SAJA (Sudah mencakup listener perintah admin)
+                startStudentBroadcast(); 
+                syncStudentData();     
+                console.log(`🎓 Siswa: ${user.nama} Connected to ${sessionData.serverUrl}`);
+            }
+        }
+    }
+    
+    // 4. Jalankan Background Service untuk membersihkan data sampah tiap 60 detik
+    startCleanupService();
+};
+
+async function switchAdminServer(srvKey) {
+    const config = serverConfigs[srvKey];
+    if (!config || !config.url) {
+        showNotify("Konfigurasi server ini kosong!", "error");
+        return;
+    }
+    
+    // Set target DB yang sedang dikelola (Tab Manajemen/Database)
+    db = multiDb[srvKey]; 
+    if (!db) {
+        db = supabase.createClient(config.url, config.key);
+        multiDb[srvKey] = db;
+    }
+    
+    publicData = createCollectionWrapper(db);
+    
+    // Refresh data UI Manajemen
+    syncAdminData(); 
+    syncAdminStudentData(); 
+    renderClassCheckboxes();
+    
+    showNotify(`Mode Kelola: ${srvKey} Aktif`, "success");
+}
+
+
+// --- 4. AUTH & SETTINGS ---
+function saveSystemSettings() {
+    // Karena sekarang Multi-Server, kita gunakan fungsi saveMultiSettings yang sudah Anda buat
+    saveMultiSettings();
+}
+
+function loadSettingsToUI() {
+    const s = serverConfigs;
+    document.getElementById('srv-a-url').value = s.SERVER_A.url;
+    document.getElementById('srv-a-key').value = s.SERVER_A.key;
+    document.getElementById('srv-a-classes').value = s.SERVER_A.classes.join(', ');
+
+    document.getElementById('srv-b-url').value = s.SERVER_B.url;
+    document.getElementById('srv-b-key').value = s.SERVER_B.key;
+    document.getElementById('srv-b-classes').value = s.SERVER_B.classes.join(', ');
+
+    document.getElementById('srv-c-url').value = s.SERVER_C.url;
+    document.getElementById('srv-c-key').value = s.SERVER_C.key;
+    document.getElementById('srv-c-classes').value = s.SERVER_C.classes.join(', ');
+
+    document.getElementById('set-admin-user').value = ADMIN_USER;
+    document.getElementById('set-admin-pwd').value = ADMIN_PWD;
+}
+
+function initMultiAdmin() {
+    for (const key in serverConfigs) {
+        const conf = serverConfigs[key];
+        if (conf.url && conf.key) {
+            multiDb[key] = supabase.createClient(conf.url, conf.key);
+        }
+    }
+}
+
+async function handleLogin() {
+    const pwd = document.getElementById('user-pwd').value;
+    const userIdInput = document.getElementById('user-id').value;
+    const loginBtn = document.querySelector('button[onclick="handleLogin()"]');
+    
+    if (!pwd) return showNotify("Password wajib diisi!", "error");
+    
+    loginBtn.disabled = true; 
+    loginBtn.innerHTML = "Memverifikasi...";
+
+    try {
+        if (currentRole === 'admin') {
+            // --- LOGIKA LOGIN ADMIN ---
+            if (userIdInput === ADMIN_USER && pwd === ADMIN_PWD) {
+                // Admin masuk menggunakan kredensial yang tersimpan di browser
+                localStorage.setItem('exambro_session', JSON.stringify({ 
+                    role: 'admin', 
+                    user: { id: 'admin' }, 
+                    time: Date.now() 
+                }));
+		initMultiAdmin()
+                location.reload();
+            } else { 
+                showNotify("Kredensial Admin Salah!", "error"); 
+            }
+        } else {
+            // --- LOGIKA LOGIN SISWA (MULTI-SERVER) ---
+            const selectedKelas = document.getElementById('select-kelas').value;
+            const sid = document.getElementById('select-nama').value;
+
+            if (!selectedKelas || !sid) {
+                showNotify("Pilih Kelas dan Nama terlebih dahulu!", "error");
+                loginBtn.disabled = false; loginBtn.innerHTML = "MASUK SISTEM";
+                return;
+            }
+
+            // 1. Sambungkan ke Server Supabase yang menghandle kelas ini
+            const isConnected = await connectToClassServer(selectedKelas);
+            
+            if (!isConnected) {
+                showNotify("Server untuk kelas ini tidak ditemukan/offline!", "error");
+                loginBtn.disabled = false; loginBtn.innerHTML = "MASUK SISTEM";
+                return;
+            }
+
+            // 2. Ambil data siswa dari server tersebut
+            const doc = await publicData.collection('users').doc(sid).get();
+            
+            if (doc.exists && doc.data().pwd.toString() === pwd) {
+                user = { id: doc.id, ...doc.data() };
+                
+                // 3. Simpan Sesi (Termasuk info server mana yang digunakan)
+                localStorage.setItem('exambro_session', JSON.stringify({ 
+                    role: 'student', 
+                    user: user, 
+                    serverUrl: db.supabaseUrl, 
+                    serverKey: db.supabaseKey,
+                    time: Date.now() 
+                }));
+                
+                // Beri jeda sedikit untuk penulisan localStorage
+                setTimeout(() => location.reload(), 500);
+            } else { 
+                showNotify("Password Salah!", "error"); 
+            }
+        }
+    } catch (e) { 
+        console.error(e);
+        showNotify("Terjadi kesalahan sistem: " + e.message, "error"); 
+    } finally { 
+        loginBtn.disabled = false; 
+        loginBtn.innerHTML = "MASUK SISTEM"; 
+    }
+}
+
+// --- 5. UI CONTROLS ---
+function showPage(id) {
+    ['login-page','admin-page','student-page'].forEach(p => document.getElementById(p).classList.add('hidden-element'));
+    document.getElementById(id).classList.remove('hidden-element');
+}
+
+function switchTab(t) {
+    ['exam','monitor','student','bank','settings'].forEach(id => {
+        const sec = document.getElementById('section-' + id);
+        const btn = document.getElementById('tab-btn-' + id);
+        if (sec) sec.classList.add('hidden-element');
+        if (btn) { btn.classList.remove('sidebar-active'); btn.classList.add('text-slate-400'); }
+    });
+    document.getElementById('section-' + t).classList.remove('hidden-element');
+    const activeBtn = document.getElementById('tab-btn-' + t);
+    activeBtn.classList.add('sidebar-active'); activeBtn.classList.remove('text-slate-400');
+    if (t === 'monitor') startMonitorFeed();
+    if (t === 'settings') loadSettingsToUI();
+    if (window.innerWidth < 1024) toggleSidebar();
+}
+
+
+async function syncStudentData() {
+    const list = document.getElementById('student-exam-list');
+    if(!db) return;
+    try {
+        const { data: exams } = await db.from('exams').select('*');
+        list.innerHTML = "";
+        const today = new Date().toISOString().split('T')[0];
+        exams.forEach(x => {
+            if(x.kelas.includes(user.kelas) && x.active && x.date <= today) {
+                list.innerHTML += `<div class="bg-white p-6 rounded-[2rem] border shadow-sm text-center">
+                    <h4 class="font-black text-sm text-slate-800 mb-1">${x.mapel}</h4>
+                    <p class="text-[10px] text-slate-400 font-bold mb-4 uppercase">${x.duration} Menit</p>
+                    <input type="text" id="tk-${x.id}" class="w-full bg-slate-50 p-3 rounded-xl text-center mb-3 font-black outline-none" placeholder="TOKEN">
+                    <button onclick="startExam('${x.id}', '${x.token}')" class="w-full bg-indigo-600 text-white py-3 rounded-xl font-black text-xs uppercase tracking-widest">Mulai</button>
+                </div>`;
+            }
+        });
+    } catch (e) { console.error(e); }
+}
+
+
+async function startExam(id, correctToken) {
+    const input = document.getElementById(`tk-${id}`).value.toUpperCase();
+    if (input !== correctToken) return showNotify("Token Salah!", "error");
+    const doc = await publicData.collection('exams').doc(id).get();
+    const x = doc.data(); activePin = x.pin;
+    startExamEngine(x.link, x.mapel, x.duration, x.camera, id);
+}
+
+function setRole(r) {
+    currentRole = r;
+    const isStd = r === 'student';
+    document.getElementById('role-std').className = isStd ? "flex-1 py-3 text-xs font-bold rounded-xl bg-white shadow-sm text-blue-600" : "flex-1 py-3 text-xs font-bold rounded-xl text-slate-400";
+    document.getElementById('role-adm').className = !isStd ? "flex-1 py-3 text-xs font-bold rounded-xl bg-white shadow-sm text-blue-600" : "flex-1 py-3 text-xs font-bold rounded-xl text-slate-400";
+    document.getElementById('user-id').classList.toggle('hidden-element', isStd);
+    document.getElementById('select-kelas').classList.toggle('hidden-element', !isStd);
+    document.getElementById('select-nama').classList.toggle('hidden-element', !isStd);
+}
+
+
+
+
 
 function showStartupError(message) {
     console.error('Startup Error:', message); const existing = document.getElementById('startup-error-banner'); if (existing) existing.remove();
@@ -771,153 +1248,70 @@ async function checkSupabaseConnection() {
 }
 
 async function upsertSettingsItem(settingId, data) {
-    let payload = { id: settingId, ...data }, res = await db.from('settings').upsert(payload, { onConflict: 'id' });
-    if (res.error && res.error.code === '42703') { payload = { key: settingId, ...data }; res = await db.from('settings').upsert(payload, { onConflict: 'key' }); }
-    if (res.error) throw res.error; return res;
+    // 1. Siapkan payload dasar dengan ID dan waktu update terbaru
+    const payload = { 
+        id: settingId, 
+        updated_at: new Date().toISOString()
+    };
+    
+    // 2. Mapping kolom khusus untuk tabel 'system_settings'
+    
+    // Simpan URL (untuk Google Sheets) jika ada
+    if (data.url !== undefined) payload.url = data.url;
+    
+    // Konversi lastSync (JS) menjadi last_sync (SQL)
+    if (data.lastSync) {
+        payload.last_sync = new Date(data.lastSync).toISOString();
+    } else if (data.last_sync) {
+        payload.last_sync = data.last_sync;
+    }
+
+    // 3. Logika penyimpanan JSON (config_data)
+    // Jika data adalah object konfigurasi (seperti serverConfigs atau specialSettings)
+    if (settingId === 'multi_server_config' || settingId === 'special_methods') {
+        payload.config_data = data;
+    } else if (data.config_data) {
+        payload.config_data = data.config_data;
+    }
+
+    try {
+        // 4. Eksekusi ke database MASTER
+        // Kita gunakan dbMaster agar link sheet dan config server tidak hilang saat pindah server kelola
+        const { error } = await dbMaster
+            .from('system_settings')
+            .upsert(payload, { onConflict: 'id' });
+
+        if (error) {
+            console.error(`Error Upsert [${settingId}]:`, error);
+            throw error;
+        }
+        
+        console.log(`Berhasil sinkronisasi setting: ${settingId}`);
+    } catch (e) {
+        console.error("System Error pada upsertSettingsItem:", e.message);
+        throw e;
+    }
 }
 
 async function cleanupLiveRows(createdBefore) {
-    let res = await db.from('live').delete().lt('last', createdBefore);
-    if (res.error && res.error.code === '42703') res = await db.from('live').delete().lt('updated_at', createdBefore);
-    if (res.error && res.error.code === '42703') res = await db.from('live').delete().lt('created_at', createdBefore);
-    if (res.error) throw res.error; return res;
-}
-
-function createCollectionWrapper(db) {
-    const mapOp = (q, field, op, value) => {
-        switch (op) {
-            case '==': return q.eq(field, value); 
-            case '<': return q.lt(field, value); 
-            case '<=': return q.lte(field, value);
-            case '>': return q.gt(field, value); 
-            case '>=': return q.gte(field, value); 
-            default: return q.eq(field, value);
-        }
-    };
-    
-    return {
-        collection(name) {
-            const state = { name, filters: [], order: null };
-            const buildQuery = () => {
-                let query = db.from(name).select('*'); 
-                state.filters.forEach(f => { query = mapOp(query, f.field, f.op, f.value); }); 
-                if (state.order) query = query.order(state.order.field, { ascending: state.order.dir === 'asc' }); 
-                return query; 
-            };
-            const createDocSnapshot = (row) => ({ 
-                id: row.id, 
-                data: () => { const { id: _id, ...rest } = row; return rest; }, 
-                exists: row != null, 
-                ref: {
-                    update: async (data) => { const { error } = await db.from(name).update(data).eq('id', row.id); if (error) throw error; }, 
-                    delete: async () => { const { error } = await db.from(name).delete().eq('id', row.id); if (error) throw error; } 
-                } 
-            });
-            const normalizeRows = (rows) => (rows || []).map(row => createDocSnapshot(row));
-            
-            return {
-                doc(id) {
-                    const queryKey = async (column) => db.from(name).select('*').filter(column, 'eq', id).maybeSingle();
-                    const getRow = async () => { let result = await queryKey('id'); if (result.error && result.error.code === '42703') result = await queryKey('key'); return result; };
-                    const updateRow = async (data) => { let result = await db.from(name).update(data).eq('id', id); if (result.error && result.error.code === '42703') result = await db.from(name).update(data).eq('key', id); return result; };
-                    const deleteRow = async () => { let result = await db.from(name).delete().eq('id', id); if (result.error && result.error.code === '42703') result = await db.from(name).delete().eq('key', id); return result; };
-                    const upsertRow = async (data) => { let payload = { ...data, id }; let result = await db.from(name).upsert(payload, { onConflict: 'id' }); if (result.error && result.error.code === '42703') { payload = { ...data, key: id }; result = await db.from(name).upsert(payload, { onConflict: 'key' }); } return result; };
-                    
-                    return {
-                        async get() { const { data, error } = await getRow(); if (error && error.code !== 'PGRST116') throw error; return { exists: !!data, data: () => { const { id: _id, ...rest } = data || {}; return rest; }, id }; },
-                        async set(data) { const { error } = await upsertRow(data); if (error) throw error; },
-                        async update(data) { const { error } = await updateRow(data); if (error) throw error; },
-                        async delete() { const { error } = await deleteRow(); if (error) throw error; },
-                        onSnapshot(callback) { 
-                            let lastPayload = null; 
-                            const poll = async () => { const { data, error } = await getRow(); if (error && error.code !== 'PGRST116') { console.error(error); return; } const payload = data || null; if (JSON.stringify(payload) !== JSON.stringify(lastPayload)) { lastPayload = payload; callback({ exists: !!payload, data: () => { const { id: _id, ...rest } = payload || {}; return rest; }, ref: { update: async (updateData) => { const { error } = await updateRow(updateData); if (error) throw error; }, delete: async () => { const { error } = await deleteRow(); if (error) throw error; } } }); } }; 
-                            poll(); const interval = setInterval(poll, 3000); return { unsubscribe: () => clearInterval(interval) }; 
-                        }
-                    };
-                },
-                async get() { const { data, error } = await buildQuery(); if (error) throw error; return { forEach: (fn) => { (data || []).forEach(row => fn(createDocSnapshot(row))); }, size: (data || []).length, docs: normalizeRows(data) }; },
-                async add(data) { const { data: inserted, error } = await db.from(name).insert([data]).select().single(); if (error) throw error; return { id: inserted.id, data: () => inserted, exists: true }; },
-                orderBy(field, dir) { state.order = { field, dir }; return this; },
-                where(field, op, value) { state.filters.push({ field, op, value }); return this; },
-                onSnapshot(callback) { 
-                    let lastPayload = null; 
-                    const poll = async () => { const { data, error } = await buildQuery(); if (error) { console.error(error); return; } const payload = data || []; if (JSON.stringify(payload) !== JSON.stringify(lastPayload)) { lastPayload = payload; callback({ size: payload.length, forEach: (fn) => payload.forEach(row => fn(createDocSnapshot(row))), docs: normalizeRows(payload) }); } }; 
-                    poll(); const interval = setInterval(poll, 3000); return { unsubscribe: () => clearInterval(interval) }; 
-                }
-            };
-        }
-    }; // Pembungkus utama ditutup dengan benar di sini
-}
-
-
-// --- 2. GLOBAL STATE ---
-let isMonitoringEnabled = true
-let user = null;
-let isExamActive = false;
-let isResuming = false;
-let activePin = "1234";
-let violationCount = 0;
-let lastViolationTime = 0;
-let initialWidth = 0;
-let initialHeight = 0;
-let monitorInterval = null;
-let currentRole = 'student';
-let specialSettings = { pin: "1234", duration: 60 };
-let studentSnapshotInterval = null;
-let myPeer = null;
-let currentClassChannel = null;
-let adminPeer = null;
-const sharedCanvas = document.createElement('canvas');
-const sharedCtx = sharedCanvas.getContext('2d');
-
-// --- 3. INITIALIZATION ---
-window.onload = async () => {
-    if ('serviceWorker' in navigator) {navigator.serviceWorker.getRegistrations().then(function(registrations) { for(let registration of registrations) {registration.unregister(); }}); }
-    try { if (!await checkSupabaseConnection()) return; document.getElementById('loading-overlay').classList.add('hidden-element');
-    // 1. CEK SESSION LOGIN
-    let sessionData = null; const savedSession = localStorage.getItem('exambro_session');
-        if (savedSession) { sessionData = JSON.parse(savedSession);
-            if (sessionData.role === 'admin') { user = { id: 'admin', nama: 'Administrator' }; currentRole = 'admin'; setRole('admin'); showPage('admin-page'); syncAdminData(); startMonitorFeed();
-            } else if (sessionData.role === 'student' && sessionData.user) { user = sessionData.user; currentRole = 'student'; setRole('student'); document.getElementById('display-std-name').textContent = user.nama; showPage('student-page'); syncStudentData(); listenForAdminCommands(); }
-        }
-        // 2. LOGIKA AUTO-RESUME UJIAN
-        const activeExam = localStorage.getItem('active_exam_state');
-        if (activeExam) {const examData = JSON.parse(activeExam); const now = Date.now();
-            if (now < examData.endTime) {isResuming = true; activePin = examData.pin; const remainingMinutes = Math.round((examData.endTime - now) / 60000); startExamEngine(examData.url, examData.mapel, examData.originalDur || remainingMinutes, examData.isCamera);
-            } else {localStorage.removeItem('active_exam_state');}
-        }
-        // 3. JALANKAN SERVICE DASAR
-        if (!sessionData || sessionData.role !== 'admin') { setRole('student'); }
-        syncSpecialSettings(); loadKelas(); startCleanupService(); loadSheetConfig();} catch (e) { console.error("Init Error:", e);}
-};
-
-// --- B. AUTHENTICATION & ROLE MANAGEMENT ---
-async function handleLogin() {
-    const pwdInput = document.getElementById('user-pwd'), pwd = pwdInput.value, userIdInput = document.getElementById('user-id'), selectNamaInput = document.getElementById('select-nama'), loginBtn = document.querySelector('button[onclick="handleLogin()"]');
-    if (!pwd) {showNotify("Password wajib diisi!","error"); return; }
-    loginBtn.disabled = true; loginBtn.innerHTML = "Memverifikasi...";
+    // Mencoba menghapus berdasarkan kolom yang tersedia secara fleksibel
     try {
-        if (currentRole === 'admin') {
-            if (userIdInput.value === 'admin' && pwd === 'admin123') { 
-                user = { id: 'admin', nama: 'Administrator' }; currentRole = 'admin'; setRole('admin'); 
-                localStorage.setItem('exambro_session', JSON.stringify({ role: 'admin', user, time: Date.now() })); 
-                showPage('admin-page'); syncAdminData(); initAdminPeer(); startMonitorFeed();
-            } else { showNotify("Username Admin atau Password Salah!", "error"); }
-        } else {
-            const userId = selectNamaInput.value; if (!userId) { showNotify("Silahkan pilih nama Anda!", "error"); loginBtn.disabled = false; loginBtn.innerHTML = "MASUK SISTEM"; return; }
-            const selectedText = selectNamaInput.options[selectNamaInput.selectedIndex].text, doc = await publicData.collection('users').doc(userId).get();
-            if (doc.exists) { 
-                const userData = doc.data();
-                if (userData.pwd.toString() === pwd.toString()) { 
-                    user = { id: doc.id, nama: selectedText, kelas: userData.kelas, nis: userData.nis }; currentRole = 'student'; setRole('student'); 
-                    localStorage.setItem('exambro_session', JSON.stringify({ role: 'student', user: user, time: Date.now() })); 
-                    document.getElementById('display-std-name').textContent = user.nama; showPage('student-page'); syncStudentData(); listenForAdminCommands();
-                } else { showNotify("Password Siswa Salah!", "error");; }
-            } else { showNotify("Data tidak ditemukan!", "error"); }
-        }
-    } catch (error) { console.error(error); alert("Gangguan Koneksi: " + error.message); }
-    finally { loginBtn.disabled = false; loginBtn.innerHTML = "MASUK SISTEM"; }
+        const dateLimit = new Date(createdBefore).toISOString();
+        const { error } = await db.from('live')
+            .delete()
+            .or(`updated_at.lt.${dateLimit},created_at.lt.${dateLimit}`);
+        if (error) throw error;
+    } catch (e) {
+        console.warn("Cleanup error (tabel mungkin kosong):", e.message);
+    }
 }
+
+function startCleanupService() { 
+    setInterval(() => { 
+        if(db) cleanupLiveRows(Date.now() - (10 * 60 * 1000)); // Hapus yang tidak aktif 10 menit
+    }, 60000); 
+}
+
 
 async function logout() {
     if(confirm("Yakin ingin keluar dari Akun Dashboard?")) {
@@ -930,18 +1324,23 @@ async function logout() {
     }
 }
 
-function setRole(r) {
-    currentRole = r; const isStd = r === 'student';
-    document.getElementById('role-std').className = isStd ? "flex-1 py-3 text-xs font-bold rounded-xl bg-white shadow-sm text-blue-600" : "flex-1 py-3 text-xs font-bold rounded-xl text-slate-400";
-    document.getElementById('role-adm').className = !isStd ? "flex-1 py-3 text-xs font-bold rounded-xl bg-white shadow-sm text-blue-600" : "flex-1 py-3 text-xs font-bold rounded-xl text-slate-400";
-    document.getElementById('user-id').classList.toggle('hidden-element', isStd); document.getElementById('select-kelas').classList.toggle('hidden-element', !isStd); document.getElementById('select-nama').classList.toggle('hidden-element', !isStd);
-}
-
 async function loadKelas() {
-    const { data, error } = await db.from('users').select('kelas'); if (error) return;
-    const kelasSet = new Set(); data.forEach(item => { if(item.kelas) kelasSet.add(item.kelas); });
-    const sortedKelas = Array.from(kelasSet).sort((a, b) => a.localeCompare(b, undefined, { numeric: true, sensitivity: 'base' })), select = document.getElementById('select-kelas');
-    select.innerHTML = '<option value="">Pilih Kelas</option>'; sortedKelas.forEach(k => { select.innerHTML += `<option value="${k}">${k}</option>`; });
+    const select = document.getElementById('select-kelas');
+    select.innerHTML = '<option value="">Pilih Kelas</option>';
+    
+    // Ambil kelas dari semua konfigurasi server
+    let allStatusClasses = [];
+    for (let srv in serverConfigs) {
+        if (serverConfigs[srv].classes) {
+            allStatusClasses = allStatusClasses.concat(serverConfigs[srv].classes);
+        }
+    }
+
+    // Hilangkan duplikat dan urutkan
+    const uniqueClasses = [...new Set(allStatusClasses)].sort();
+    uniqueClasses.forEach(k => {
+        if(k) select.innerHTML += `<option value="${k}">${k}</option>`;
+    });
 }
 
 document.getElementById('select-kelas').addEventListener('change', async function() {
@@ -970,19 +1369,7 @@ function showPage(id) {
     document.getElementById(id).classList.remove('hidden-element');
 }
 
-function switchTab(t) {
-    ['exam','bank','student','monitor'].forEach(id => { 
-        document.getElementById('section-'+id).classList.add('hidden-element'); 
-        document.getElementById('tab-btn-'+id).classList.remove('sidebar-active'); document.getElementById('tab-btn-'+id).classList.add('text-slate-400'); 
-    });
-    document.getElementById('section-'+t).classList.remove('hidden-element'); 
-    document.getElementById('tab-btn-'+t).classList.add('sidebar-active'); document.getElementById('tab-btn-'+t).classList.remove('text-slate-400');
 
-    // LOGIKA PENGHEMAT DATA:
-    if (t !== 'monitor') {
-        if (adminMonitorInterval) { clearInterval(adminMonitorInterval); adminMonitorInterval = null; console.log("Monitoring diakhiri."); }
-    } else { startMonitorFeed(); } toggleSidebar(); 
-}
 
 function switchStudentView(view) {
     const scheduled = document.getElementById('view-scheduled'), manual = document.getElementById('view-manual'), qr = document.getElementById('qr-reader-container');
@@ -1030,20 +1417,70 @@ function syncAdminData() {
 }
 
 async function saveAndSyncSheet() {
-    const urlInput = document.getElementById('sheet-url').value.trim(); if (!urlInput) return showNotify("Masukkan link Google Sheet!", "error");
-    const btn = document.getElementById('btn-sync-sheet'), btnText = document.getElementById('sync-text'); btn.disabled = true; btnText.textContent = "SINKRONISASI...";
+    if (!db) { 
+        showNotify("Pilih 'Server Kelola' di menu atas terlebih dahulu!", "error"); 
+        return; 
+    }
+    
+    const urlInput = document.getElementById('sheet-url').value.trim();
+    if (!urlInput) return showNotify("Masukkan link Google Sheet!", "error");
+    
+    const btn = document.getElementById('btn-sync-sheet'), btnText = document.getElementById('sync-text'); 
+    btn.disabled = true; 
+    btnText.textContent = "SINKRONISASI...";
+    
     try {
-        await upsertSettingsItem('sheet_config', { url: urlInput, lastSync: Date.now() }); let exportUrl = urlInput;
-        if (urlInput.includes('/edit')) { const match = urlInput.match(/\/d\/(.+?)\//); if (match) exportUrl = `https://docs.google.com/spreadsheets/d/${match[1]}/export?format=csv`; }
-        const res = await fetch(exportUrl), text = await res.text(), rows = text.split(/\r?\n/), rawUserRows = [];
-        rows.forEach((row, index) => { if (index === 0 || !row.trim()) return; const cols = row.match(/(".*?"|[^",]+)(?=\s*,|\s*$)/g);
-            if (cols && cols.length >= 3) { const clean = (str) => str ? str.replace(/^"|"$/g, '').trim() : ""; rawUserRows.push({ nis: clean(cols[0]), nama: clean(cols[1]), kelas: clean(cols[2]), pwd: cols[3] ? clean(cols[3]) : "123" }); }
+        // Simpan konfigurasi ke Master
+        await upsertSettingsItem('sheet_config', { url: urlInput, lastSync: Date.now() }); 
+        
+        let exportUrl = urlInput;
+        if (urlInput.includes('/edit')) { 
+            const match = urlInput.match(/\/d\/(.+?)\//); 
+            if (match) exportUrl = `https://docs.google.com/spreadsheets/d/${match[1]}/export?format=csv`; 
+        }
+        
+        const res = await fetch(exportUrl);
+        const text = await res.text();
+        const rows = text.split(/\r?\n/);
+        const rawUserRows = [];
+        
+        rows.forEach((row, index) => { 
+            if (index === 0 || !row.trim()) return; 
+            const cols = row.match(/(".*?"|[^",]+)(?=\s*,|\s*$)/g);
+            if (cols && cols.length >= 3) { 
+                const clean = (str) => str ? str.replace(/^"|"$/g, '').trim() : ""; 
+                rawUserRows.push({ 
+                    nis: clean(cols[0]), 
+                    nama: clean(cols[1]), 
+                    kelas: clean(cols[2]), 
+                    pwd: cols[3] ? clean(cols[3]) : "123" 
+                }); 
+            }
         });
+        
         const userRows = [], seenNis = new Set();
-        rawUserRows.forEach(item => { if (!seenNis.has(item.nis)) { seenNis.add(item.nis); userRows.push(item); } });
-        if (userRows.length > 0) { const { error: insertError } = await db.from('users').upsert(userRows, { onConflict: 'nis' }); if (insertError) throw insertError; }
-        alert(`Berhasil! ${userRows.length} data siswa disinkronkan.`); if (typeof loadKelas === "function") loadKelas();
-    } catch (e) { console.error(e); alert("Gagal Sinkron: " + e.message); } finally { btn.disabled = false; btnText.textContent = "SIMPAN & SINKRON"; }
+        rawUserRows.forEach(item => { 
+            if (!seenNis.has(item.nis)) { 
+                seenNis.add(item.nis); 
+                userRows.push(item); 
+            } 
+        });
+        
+        if (userRows.length > 0) { 
+            // Data siswa dikirim ke server A, B, atau C yang terpilih
+            const { error: insertError } = await db.from('users').upsert(userRows, { onConflict: 'nis' }); 
+            if (insertError) throw insertError; 
+        }
+        
+        showNotify(`Berhasil! ${userRows.length} data siswa disinkronkan.`, "success"); 
+        if (typeof loadKelas === "function") loadKelas();
+    } catch (e) { 
+        console.error(e); 
+        alert("Gagal Sinkron: " + e.message); 
+    } finally { 
+        btn.disabled = false; 
+        btnText.textContent = "SIMPAN & SINKRON"; 
+    }
 }
 
 async function saveExam() {
@@ -1130,76 +1567,6 @@ function syncAdminStudentData() {
 async function syncSpecialSettings() { const d = await publicData.collection('settings').doc('special_methods').get(); if(d.exists) specialSettings = d.data(); }
 async function saveSpecialSettings() { await upsertSettingsItem('special_methods', { pin: document.getElementById('special-pin').value, duration: parseInt(document.getElementById('special-duration').value), updatedAt: Date.now() }); alert("Konfigurasi Akses Cepat Diperbarui!"); }
 
-// --- E. STUDENT SERVICE (EXAM ACCESS) ---
-async function syncStudentData() {
-    const list = document.getElementById('student-exam-list');
-    if (!list) return;
-    // 1. Loading State Lebih Ringkas
-    list.innerHTML = `
-        <div class="col-span-full text-center py-6">
-            <div class="animate-spin inline-block w-6 h-6 border-4 border-indigo-500 border-t-transparent rounded-full mb-2"></div>
-            <p class="text-slate-400 font-bold text-[10px] uppercase tracking-widest">Sinkronisasi...</p>
-        </div>`;
-
-    try {
-        const { data: exams, error } = await db.from('exams').select('*');
-        if (error) throw error;
-        list.innerHTML = ""; 
-        const groupedExams = {};
-        // 2. Filter & Grouping
-        exams.forEach(x => {
-            const allowedClasses = x.kelas ? x.kelas.split(', ') : [];
-            const isAllowed = user && user.kelas && allowedClasses.includes(user.kelas.trim());
-            if (isAllowed && x.active !== false) { const tglKey = x.date || "Tanpa Tanggal"; if (!groupedExams[tglKey]) groupedExams[tglKey] = []; groupedExams[tglKey].push(x); }
-        });
-
-        const sortedDates = Object.keys(groupedExams).sort().reverse();
-        if (sortedDates.length === 0) {
-            list.innerHTML = `
-                <div class="col-span-full bg-white p-6 rounded-2xl border-2 border-dashed border-slate-100 text-center">
-                    <p class="text-slate-400 text-[11px] font-bold uppercase">Belum ada soal dipublikasikan</p>
-                </div>`;
-            return;
-        }
-
-        // 3. Render dengan UI yang Lebih Kompak
-        sortedDates.forEach(tgl => {
-            // Header Tanggal: Diubah ke bg-slate-100 & text-slate-600 agar lebih clean, minimalis, dan menyatu dengan card
-            const dateHeader = `
-                <div class="col-span-full mt-4 mb-1.5 first:mt-1 fade-in-up">
-                    <div class="flex items-center gap-2">
-			<div class="bg-emerald-50 px-2.5 py-0.5 rounded-md border border-emerald-100/80 shadow-sm"><h3 class="font-bold text-emerald-700 text-[9px] uppercase tracking-wider flex items-center gap-1"><span>📅</span> ${formatTanggalIndo(tgl)}</h3></div>
-                        <div class="h-[1px] flex-grow bg-slate-200/70"></div>
-                    </div>
-                </div>`;
-            list.insertAdjacentHTML('beforeend', dateHeader);
-
-            groupedExams[tgl].forEach(x => {
-                const cardHtml = `
-                    <div class="student-card bg-white p-2.5 rounded-xl border border-slate-100 shadow-sm flex flex-col hover:shadow-md transition-all fade-in-up">
-                        <div class="mb-2.5">
-                            <h4 class="font-black text-xs text-slate-800 truncate mb-2">${x.mapel}</h4>
-                            <div class="mt-1 flex items-center gap-2">
-                                <span class="bg-slate-100 text-slate-500 text-[8px] px-1.5 py-0.5 rounded font-bold">${x.duration} menit</span>
-                                <span class="text-slate-300 text-[8px]">|</span>
-                                ${x.camera ? '<span class="flex items-center gap-1 text-[7px] font-black text-emerald-500 uppercase">● CCTV</span>' : ''}
-                            </div>
-                        </div>
-                        <div class="mt-auto space-y-1.5">
-                            <input type="text" id="tk-${x.id}" class="w-full bg-slate-50 p-2 rounded-lg text-center font-black text-[10px] outline-none border border-transparent focus:border-indigo-400 transition-all uppercase tracking-[0.2em]" placeholder="TOKEN">
-                            <button onclick="startExam('${x.id}', '${x.token}')" class="w-full bg-indigo-600 text-white py-2 rounded-lg font-black text-[10px] shadow-md active:scale-95 transition-all uppercase">MULAI</button>
-                        </div>
-                    </div>`;
-                list.insertAdjacentHTML('beforeend', cardHtml);
-            });
-        });
-
-    } catch (e) {
-        console.error("Sync Error:", e);
-        list.innerHTML = `<div class="col-span-full text-center p-5 text-red-500 font-bold text-[10px] uppercase">Gagal memuat data.</div>`;
-    }
-}
-		
 
 function logActivity(a) {
     // Daftar aktivitas yang dianggap penting untuk dicatat di DB
@@ -1228,10 +1595,7 @@ function startManualExam() {
     startExamEngine(url, "Manual Access", duration, true); document.getElementById('manual-url').value = "";
 }
 
-async function startExam(id, correctToken) {
-    const tokenInput = document.getElementById(`tk-${id}`).value.toUpperCase(); if (tokenInput !== correctToken) { showNotify("Token salah! Silahkan hubungi pengawas.", "error"); return; }
-    const doc = await publicData.collection('exams').doc(id).get(); if (doc.exists) { const x = doc.data(); activePin = x.pin || specialSettings.pin; startExamEngine(x.link, x.mapel, x.duration, x.camera, id); }
-}
+
 
 async function startExamEngine(url, mapel, dur, isCameraRequired, examId) {
     await clearClipboard(); 
@@ -1347,8 +1711,17 @@ function enableHardLockdown() {
     document.oncontextmenu = (e) => { e.preventDefault(); return false; }; document.body.style.webkitUserSelect = "none";
     window.onkeydown = (e) => {
         if (!isExamActive) return;
-        if ([122, 123, 91, 92].includes(e.keyCode) || (e.ctrlKey && ['u','s','p','c','v'].includes(e.key.toLowerCase()))) { e.preventDefault(); reportViolation("Shortcut Terlarang"); return false; }
-    };
+    if (
+        e.key === "F12" ||
+        (e.ctrlKey && e.shiftKey && (e.key === "I" || e.key === "J" || e.key === "C")) ||
+        (e.ctrlKey && (e.key === "u" || e.key === "s" || e.key === "p" || e.key === "f")) ||
+        (e.metaKey && e.altKey && e.key === "i") // Untuk Mac
+    ) {
+        e.preventDefault();
+        reportViolation("Shortcut Terlarang: " + e.key);
+        return false;
+    }
+};
     window.onblur = () => { 
         if (!isExamActive) return; 
         setTimeout(() => {
@@ -1357,17 +1730,34 @@ function enableHardLockdown() {
         }, 500);
     };
     // 2. DETEKSI SPLIT SCREEN (Sering digunakan di Android)
-    window.addEventListener('resize', () => {
-        if (!isExamActive) return;
-        const widthDiff = Math.abs(window.innerWidth - initialWidth);
-        const isTooSmall = window.innerHeight < (initialHeight * 0.65);
-        const isInputActive = ['input', 'textarea'].includes(document.activeElement.tagName.toLowerCase());
-        // 1. Deteksi Perubahan Lebar (Split Screen Samping)
-        if (widthDiff > 100) {reportViolation("Layar Terbagi / Split Screen (Lebar)"); initialWidth = window.innerWidth; }
-        // Kita abaikan jika siswa sedang mengetik (keyboard muncul)
-        if (isTooSmall && !isInputActive) { reportViolation("Deteksi Layar Kecil / Split Screen (Tinggi)"); }
-    });
+window.addEventListener('resize', () => {
+    if (!isExamActive) return;
+    
+    const widthDiff = Math.abs(window.innerWidth - initialWidth);
+    const heightDiff = initialHeight - window.innerHeight;
+    // Cek apakah yang aktif adalah input teks (keyboard muncul)
+    const isInputActive = ['INPUT', 'TEXTAREA'].includes(document.activeElement.tagName);
+
+    if (widthDiff > 100) {
+        reportViolation("Layar Terbagi (Split Screen)");
+        initialWidth = window.innerWidth;
+    }
+
+    // Jika tinggi layar berkurang drastis tapi TIDAK sedang mengetik = Split Screen
+    if (heightDiff > 250 && !isInputActive) {
+        reportViolation("Percobaan Split Screen / Multi-window");
+    }
+});
     window.onfocus = () => { if (blurTimer) { clearTimeout(blurTimer); blurTimer = null; } }; isSecuritySetup = true;
+// Mematikan Drag and Drop (mencegah tarik teks dari luar ke dalam iframe)
+document.addEventListener('dragstart', (e) => e.preventDefault());
+document.addEventListener('drop', (e) => e.preventDefault());
+
+// Mematikan Print (Ctrl+P)
+window.onbeforeprint = () => {
+    reportViolation("Mencoba Print Halaman");
+    return false;
+};
 }
 
 function initPeerConnection() {
@@ -1434,7 +1824,7 @@ function reportViolation(reason = "Aktivitas Mencurigakan") {
 
     // 6. Sinkronisasi Data (DB & Admin)
     // Update Supabase (Async)
-    db.from('live').update({ v: violationCount, lastStatus: reason.toUpperCase(), updated_at: new Date().toISOString() }).eq('id', user.id);
+    db.from('live').update({ v: violationCount, last_status: reason.toUpperCase(), updated_at: new Date().toISOString() }).eq('id', user.id);
     // Kirim snapshot/broadcast instan ke Admin
     if (window.sendSnapshot) {window.sendSnapshot(`PELANGGARAN: ${reason.toUpperCase()}`); }
 
@@ -1443,40 +1833,98 @@ function reportViolation(reason = "Aktivitas Mencurigakan") {
 }
 
 async function triggerLock() { 
-    if (isExamActive) { document.getElementById('lock-screen').classList.remove('hidden-element');
-        if (user && user.id) { try { await publicData.collection('live').doc(user.id).update({ isLocked: true, v: violationCount, lastStatus: 'TERKUNCI - BUTUH PIN' }); } catch (e) { console.error("Gagal lapor status kunci"); } }
-    } 
+    if (!isExamActive) return;
+    document.getElementById('lock-screen').classList.remove('hidden-element');
+    
+    // Hapus konten iframe soal agar tidak bisa dibaca saat terkunci
+    const frameContainer = document.getElementById('exam-frame-container');
+    if (frameContainer.querySelector('iframe')) {
+        frameContainer.dataset.lastUrl = frameContainer.querySelector('iframe').src;
+        frameContainer.innerHTML = `<div class="flex items-center justify-center h-full bg-slate-800 text-white font-black uppercase">Akses Terkunci</div>`;
+    }
+
+    if (user?.id) {
+        await db.from('live').update({ is_locked: true, v: violationCount, last_status: 'TERKUNCI' }).eq('id', user.id);
+    }
 }
 
 async function unlockApp() {
     if (document.getElementById('unlock-pwd').value === activePin) {
-        document.getElementById('lock-screen').classList.add('hidden-element'); document.getElementById('unlock-pwd').value = ""; violationCount = 0; document.getElementById('violation-count').textContent = "0"; document.getElementById('violation-badge').classList.add('hidden-element');
-        if (user && user.id) { await db.from('live').update({ isLocked: false, v: 0, lastStatus: 'AKSES DIBUKA (PIN)', updated_at: new Date().toISOString() }).eq('id', user.id);
-            monitorChannel.send({ type: 'broadcast', event: 'snapshot-push', payload: { userId: user.id, v: 0, isLocked: false, status: 'AKTIF' } }); // Kirim broadcast agar dashboard admin langsung update tanpa tunggu snapshot
-	} 
-        setTimeout(() => document.documentElement.requestFullscreen().catch(() => {}), 500);
-    } else { showNotify("PIN Pengawas Salah!", "error"); }
+        document.getElementById('lock-screen').classList.add('hidden-element');
+        document.getElementById('unlock-pwd').value = "";
+        violationCount = 0;
+        
+        // Kembalikan Iframe
+        const frameContainer = document.getElementById('exam-frame-container');
+        if (frameContainer.dataset.lastUrl) {
+            frameContainer.innerHTML = `<iframe src="${frameContainer.dataset.lastUrl}" class="w-full h-full border-none"></iframe>`;
+        }
+
+        if (user?.id) {
+            await db.from('live').update({ is_locked: false, v: 0, last_status: 'AKTIF' }).eq('id', user.id);
+        }
+        showNotify("Akses Dibuka", "success");
+    } else {
+        showNotify("PIN Salah!", "error");
+    }
 }
 
 // --- H. MONITORING (SUPABASE BROADCAST REPLACEMENT) ---
 async function startStudentBroadcast() {
-    initPeerConnection(); // Pastikan PeerJS aktif
-    const classChannel = db.channel(`monitor-${user.kelas.replace(/\s+/g, '-')}`); classChannel.subscribe();
-    // Fungsi Pengirim Gambar yang dioptimasi
-	window.sendSnapshot = (reason = "ROUTINE") => {
-    // JIKA MONITORING DIMATIKAN, BERHENTI KIRIM DATA KE ADMIN
-	if (!isMonitoringEnabled) return; 
-	const img = captureSnapshot();
-	if (isExamActive && window.localStream && img) {
-        classChannel.send({ 
-            type: 'broadcast', 
-            event: 'snapshot-push', 
-            payload: { userId: user.id.replace(/[^a-zA-Z0-9]/g, ''), originalId: user.id, img: img, v: violationCount, nama: user.nama, 
-                isLocked: !document.getElementById('lock-screen').classList.contains('hidden-element'), status: reason 
-            } });}};
+    initPeerConnection(); 
+    listenForAdminCommands();
+    let mySrvKey = "SERVER_A";
+    for (let key in serverConfigs) {
+        if (serverConfigs[key].classes.includes(user.kelas)) { mySrvKey = key; break; }
+    }
 
-    // MENDENGARKAN SINYAL DARI ADMIN (Strict Filtering)
-    monitorChannel.on('broadcast', { event: 'request-snapshot' }, (data) => { if (data.payload.targetClass === user.kelas) window.sendSnapshot("ADMIN_REQUEST"); }); // HANYA membalas jika targetClass dari admin sama dengan kelas siswa ini
+    // Gunakan SATU channel utama untuk semua komunikasi
+    const classChannel = db.channel(`monitor-global-${mySrvKey}`); 
+
+    window.sendSnapshot = (reason = "ROUTINE") => {
+        if (!isMonitoringEnabled) return; 
+        const img = captureSnapshot();
+        if (isExamActive && window.localStream && img) {
+            classChannel.send({ 
+                type: 'broadcast', 
+                event: 'snapshot-push', 
+                payload: { 
+                    userId: user.id.replace(/[^a-zA-Z0-9]/g, ''), 
+                    originalId: user.id, 
+                    img: img, 
+                    v: violationCount, 
+                    nama: user.nama, 
+                    kelas: user.kelas,
+                    isLocked: !document.getElementById('lock-screen').classList.contains('hidden-element'), 
+                    status: reason 
+                } 
+            });
+        }
+    };
+
+    classChannel
+        .on('broadcast', { event: 'request-snapshot' }, (data) => { 
+            if (data.payload.targetClass === "ALL" || data.payload.targetClass === user.kelas) {
+                window.sendSnapshot("ADMIN_REQUEST"); 
+            }
+        })
+        .on('broadcast', { event: 'command-unlock' }, (data) => {
+            if (data.payload.targetUserId === user.id) forceUnlockLocally();
+        })
+        .on('broadcast', { event: 'force-stop-individual' }, (data) => {
+            if (data.payload.targetUserId === user.id) {
+                isExamActive = false;
+                showNotify("Ujian Anda telah diakhiri oleh pengawas.", "info");
+                setTimeout(() => { finishExam(); }, 2500);
+            }
+        })
+        .subscribe((status) => {
+            if (status === 'SUBSCRIBED') {
+                console.log("📡 Koneksi Realtime Siswa Aktif");
+                // Kirim sinyal masuk ke admin
+                window.sendSnapshot("JOIN_SUCCESS");
+            }
+        });
 }
 
 function captureSnapshot() {
@@ -1488,35 +1936,76 @@ function captureSnapshot() {
 
 // SISI ADMIN
 let adminMonitorInterval = null;
-function startMonitorFeed() {
-    const filterKelas = document.getElementById('monitor-filter-kelas').value, grid = document.getElementById('monitor-grid');
-    if (adminMonitorInterval) clearInterval(adminMonitorInterval);
-    
-    if (filterKelas === "ALL" || !filterKelas) {
-        grid.innerHTML = `<div class="col-span-full text-center p-20 bg-white rounded-[3rem] border-2 border-dashed border-slate-200"><p class="text-slate-400 font-bold text-sm">Pilih satu kelas spesifik untuk memantau visual.</p></div>`; return;
-    }
+let activeChannels = []; // Array untuk melacak channel yang sedang aktif
 
+async function startMonitorFeed() {
+    const filterKelas = document.getElementById('monitor-filter-kelas').value;
+    const grid = document.getElementById('monitor-grid');
+    const onlineCountBadge = document.getElementById('online-count');
+
+    // 1. Bersihkan channel lama agar tidak terjadi memory leak/duplikasi data
+    activeChannels.forEach(ch => ch.unsubscribe());
+    activeChannels = [];
+
+    // 2. Siapkan wadah grid
     grid.innerHTML = '<div id="monitor-grid-inner" class="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4"></div>';
-    
-    const sendPing = () => monitorChannel.send({ type: 'broadcast', event: 'request-snapshot', payload: { targetClass: filterKelas } });
-    sendPing(); adminMonitorInterval = setInterval(sendPing, 15000);
 
-    if (currentClassChannel) currentClassChannel.unsubscribe();
-    currentClassChannel = db.channel(`monitor-${filterKelas.replace(/\s+/g, '-')}`);
-    
-    // Listen pengeriman gambar
-    currentClassChannel.on('broadcast', { event: 'snapshot-push' }, (data) => updateMonitorCard(data.payload));
+    // 3. Loop melalui semua server yang sudah terkonfigurasi di multiDb
+    for (const srvKey in multiDb) {
+        const client = multiDb[srvKey];
+        if (!client) continue; // Skip jika server belum terkoneksi
 
-    // LISTENER BARU: Hapus kartu jika siswa mematikan monitoring
-    currentClassChannel.on('broadcast', { event: 'remove-card' }, (data) => {
-        const card = document.getElementById(`card-${data.payload.userId}`);
-        if (card) {
-            card.remove(); const innerGrid = document.getElementById('monitor-grid-inner');
-            if (innerGrid) document.getElementById('online-count').textContent = `${innerGrid.children.length} Siswa Terpantau`;
-        }
-    });
+        // Buat channel khusus monitoring untuk server ini
+        const channelName = `monitor-global-${srvKey}`;
+        const channel = client.channel(channelName);
 
-    currentClassChannel.subscribe();
+        channel.on('broadcast', { event: 'snapshot-push' }, (data) => {
+            const payload = data.payload;
+            
+            // Logika Filter:
+            // Tampilkan jika filter adalah "ALL" ATAU kelas siswa cocok dengan pilihan dropdown
+            if (filterKelas === "ALL" || payload.kelas === filterKelas) {
+                payload.serverOrigin = srvKey; // Sangat penting: Tandai asal server siswa ini
+                updateMonitorCard(payload);
+            }
+        })
+        .on('broadcast', { event: 'remove-card' }, (data) => {
+            // Hapus kartu jika siswa keluar (logout/selesai)
+            const card = document.getElementById(`card-${data.payload.userId}`);
+            if (card) card.remove();
+            
+            const innerGrid = document.getElementById('monitor-grid-inner');
+            if (innerGrid) onlineCountBadge.textContent = `${innerGrid.children.length} Siswa Terpantau`;
+        })
+        .subscribe((status) => {
+            if (status === 'SUBSCRIBED') {
+                console.log(`📡 Dashboard terhubung ke Feed Realtime: ${srvKey}`);
+                
+                // Minta semua siswa di server ini untuk mengirimkan gambar sekarang juga
+                channel.send({
+                    type: 'broadcast',
+                    event: 'request-snapshot',
+                    payload: { targetClass: filterKelas === "ALL" ? "ALL" : filterKelas }
+                });
+            }
+        });
+
+        activeChannels.push(channel);
+    }
+}
+
+// Fungsi pembantu untuk mengirim permintaan gambar ke siswa
+function sendSnapshotRequest(targetClass) {
+    // Pastikan perintah dikirim ke SEMUA server yang sedang aktif dipantau
+    if (activeChannels.length > 0) {
+        activeChannels.forEach(channel => {
+            channel.send({
+                type: 'broadcast',
+                event: 'request-snapshot',
+                payload: { targetClass: targetClass }
+            });
+        });
+    }
 }
 
 function updateMonitorCard(p) {
@@ -1527,34 +2016,46 @@ function updateMonitorCard(p) {
     let card = document.getElementById(`card-${safeId}`); 
     const timeStr = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
 
-    // JIKA KARTU BELUM ADA (SISWA BARU MASUK)
+    // Tentukan warna border berdasarkan asal server untuk memudahkan pengawas
+    let borderColor = "border-slate-200"; // Default
+    if (p.serverOrigin === 'SERVER_A') borderColor = "border-blue-400";    // Contoh: Kelas X
+    if (p.serverOrigin === 'SERVER_B') borderColor = "border-emerald-400"; // Contoh: Kelas XI
+    if (p.serverOrigin === 'SERVER_C') borderColor = "border-amber-400";   // Contoh: Kelas XII
+
+    // JIKA KARTU BELUM ADA (SISWA BARU TERDETEKSI)
     if (!card) {
         innerGrid.insertAdjacentHTML('beforeend', `
-            <div id="card-${safeId}" data-last-seen="${Date.now()}" class="monitor-card-item bg-white rounded-2xl border border-slate-200 overflow-hidden shadow-sm transition-all ${p.isLocked ? 'ring-2 ring-red-500' : ''}">
-                <!-- AREA VIDEO/SNAPSHOT -->
+            <div id="card-${safeId}" 
+                 data-server="${p.serverOrigin}" 
+                 data-last-seen="${Date.now()}" 
+                 class="monitor-card-item bg-white rounded-2xl border-2 ${borderColor} overflow-hidden shadow-sm transition-all ${p.isLocked ? 'ring-4 ring-red-500 animate-pulse' : ''}">
+                
+                <!-- AREA SNAPSHOT -->
                 <div class="aspect-video bg-black relative">
                     <img id="snapshot-${safeId}" src="${p.img}" class="w-full h-full object-cover">
                     <video id="video-${safeId}" class="w-full h-full object-cover hidden" autoplay playsinline></video>
                     
-                    <!-- OVERLAY TERKUNCI -->
-                    <div id="lock-icon-${safeId}" class="absolute inset-0 bg-red-600/60 flex items-center justify-center ${p.isLocked ? '' : 'hidden'}">
-                        <span class="text-white font-black text-[10px] tracking-widest">TERKUNCI</span>
+                    <!-- OVERLAY JIKA TERKUNCI -->
+                    <div id="lock-icon-${safeId}" class="absolute inset-0 bg-red-600/60 flex flex-col items-center justify-center ${p.isLocked ? '' : 'hidden'}">
+                        <svg class="w-8 h-8 text-white mb-1" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M5 9V7a5 5 0 0110 0v2a2 2 0 012 2v5a2 2 0 01-2 2H5a2 2 0 01-2-2v-5a2 2 0 012-2zm8-2v2H7V7a3 3 0 016 0z" clip-rule="evenodd"></path></svg>
+                        <span class="text-white font-black text-[10px] tracking-widest uppercase">Terkunci</span>
                     </div>
                     
-                    <!-- TIME TAG -->
-                    <div class="absolute bottom-1 right-1 bg-black/50 px-1.5 rounded text-[8px] text-white font-mono" id="time-${safeId}">${timeStr}</div>
+                    <!-- INFO SERVER & WAKTU -->
+                    <div class="absolute top-1 left-1 bg-black/40 backdrop-blur-md px-2 py-0.5 rounded text-[7px] text-white font-bold uppercase tracking-tighter">
+                        ${p.serverOrigin}
+                    </div>
+                    <div class="absolute bottom-1 right-1 bg-black/50 px-1.5 rounded text-[8px] text-white font-mono" id="time-${safeId}">
+                        ${timeStr}
+                    </div>
                 </div>
 
-                <!-- AREA INFO & KONTROL -->
                 <div class="p-3">
                     <div class="flex justify-between items-start mb-2">
                         <div class="w-3/4">
-                            <!-- NAMA SISWA -->
                             <p class="text-[10px] font-bold truncate text-slate-700 mb-0.5" title="${p.nama}">${p.nama}</p>
-                            
-                            <!-- BARIS STATUS & TOMBOL OUT -->
                             <div class="flex items-center gap-1.5">
-                                <p class="text-[7px] uppercase font-black leading-none" id="status-text-${safeId}">
+                                <p class="text-[7px] uppercase font-black" id="status-text-${safeId}">
                                     ${p.isLocked ? 'LOCKED' : 'ACTIVE'}
                                 </p>
                                 <button onclick="remoteFinishStudent('${p.originalId}', '${p.nama}')" 
@@ -1563,17 +2064,14 @@ function updateMonitorCard(p) {
                                 </button>
                             </div>
                         </div>
-                        
-                        <!-- BADGE PELANGGARAN -->
-                        <span id="v-badge-${safeId}" class="text-[9px] font-black ${p.v > 0 ? 'text-red-600 animate-bounce' : 'text-slate-400'}">
+                        <span id="v-badge-${safeId}" class="text-[9px] font-black ${p.v > 0 ? 'text-red-600' : 'text-slate-400'}">
                             ⚠️ ${p.v}
                         </span>
                     </div>
 
-                    <!-- TOMBOL ACTION UTAMA -->
                     <div class="flex gap-1">
-                        <button onclick="startLiveStream('${p.userId}')" id="btn-live-${safeId}" class="flex-1 bg-blue-600 text-white text-[9px] font-bold py-1.5 rounded-lg active:scale-95 transition-all">LIVE</button>
-                        <button onclick="remoteUnlockStudent('${p.originalId}')" class="flex-1 bg-slate-100 text-slate-600 text-[9px] font-bold py-1.5 rounded-lg hover:bg-emerald-600 hover:text-white active:scale-95 transition-all">UNLOCK</button>
+                        <button onclick="startLiveStream('${p.userId}')" id="btn-live-${safeId}" class="flex-1 bg-blue-600 text-white text-[9px] font-bold py-1.5 rounded-lg active:scale-95 transition-all uppercase">Live</button>
+                        <button onclick="remoteUnlockStudent('${p.originalId}')" class="flex-1 bg-slate-100 text-slate-600 text-[9px] font-bold py-1.5 rounded-lg hover:bg-emerald-600 hover:text-white active:scale-95 transition-all uppercase">Unlock</button>
                     </div>
                 </div>
             </div>`);
@@ -1589,19 +2087,20 @@ function updateMonitorCard(p) {
         
         if (p.isLocked) {
             lockIcon.classList.remove('hidden');
-            card.classList.add('ring-2', 'ring-red-500');
+            card.classList.add('ring-4', 'ring-red-500');
             statusText.textContent = "LOCKED";
-            statusText.className = "text-[7px] text-red-600 uppercase font-black leading-none";
+            statusText.className = "text-[7px] text-red-600 uppercase font-black";
         } else {
             lockIcon.classList.add('hidden');
-            card.classList.remove('ring-2', 'ring-red-500');
+            card.classList.remove('ring-4', 'ring-red-500');
             statusText.textContent = "ACTIVE";
-            statusText.className = "text-[7px] text-emerald-500 uppercase font-black leading-none";
+            statusText.className = "text-[7px] text-emerald-500 uppercase font-black";
         }
     }
 
-    // Update Counter Online (Tanpa melakukan Sorting berat setiap detik)
-    document.getElementById('online-count').textContent = `${innerGrid.children.length} Siswa Terpantau`;
+    // Update Counter Online
+    const onlineCount = document.getElementById('online-count');
+    if (onlineCount) onlineCount.textContent = `${innerGrid.children.length} Siswa Terpantau`;
 }
 
 // --- PERBAIKAN LIVE STREAMING ---
@@ -1628,6 +2127,7 @@ function stopActiveStream(id) {
 }
 
 async function syncFilterOptions() {
+    if (!db) return;
     const filterSelect = document.getElementById('monitor-filter-kelas'); if (filterSelect.options.length > 1) return;
     try {
         const { data, error } = await db.from('users').select('kelas'); if (error) throw error;
@@ -1638,67 +2138,141 @@ async function syncFilterOptions() {
 
 
 
-function listenForAdminCommands() {
-    // A. Perintah Buka Kunci (Unlock)
-    monitorChannel.on('broadcast', { event: 'command-unlock' }, (data) => { if (data.payload.targetUserId === user.id) forceUnlockLocally(); });
-    // B. Perintah AKTIFKAN Kamera & Monitoring
-    monitorChannel.on('broadcast', { event: 'force-camera-on' }, async (data) => {
-        if (isExamActive) {isMonitoringEnabled = true; 
-            try {const stream = await navigator.mediaDevices.getUserMedia({ video: { width: { ideal: 120 }, height: { ideal: 90 }, frameRate: { max: 10 } } });
-                window.localStream = stream; 
-                const selfVideo = document.getElementById('self-video'); 
-                selfVideo.srcObject = stream; selfVideo.parentElement.classList.remove('hidden-element'); // TAMPILKAN UI KAMERA
-                startStudentBroadcast(); 
-                console.log("Monitoring diaktifkan oleh Admin.");
-            } catch (e) { console.error("Gagal akses kamera:", e); }
+async function listenForAdminCommands() {
+    if (!user || !user.kelas) return;
+
+    // 1. Identifikasi Server: Cari tahu siswa ini harus mendengarkan di channel mana (A, B, atau C)
+    let mySrvKey = "SERVER_A"; // Default
+    for (let key in serverConfigs) {
+        if (serverConfigs[key].classes.includes(user.kelas)) {
+            mySrvKey = key;
+            break;
         }
-    });
+    }
 
-    // C. Perintah MATIKAN Kamera & Monitoring (TOTAL)
-    monitorChannel.on('broadcast', { event: 'force-camera-off' }, (data) => {
-        if (isExamActive) {
-            isMonitoringEnabled = false; // STOP KIRIM SNAPSHOT
-            if (window.localStream) { window.localStream.getTracks().forEach(t => t.stop()); window.localStream = null; }
-            document.getElementById('self-video').parentElement.classList.add('hidden-element'); // SEMBUNYIKAN UI KAMERA
-            // Beritahu Admin untuk menghapus kartu siswa ini dari grid
-            monitorChannel.send({ type: 'broadcast', event: 'remove-card', payload: { userId: user.id.replace(/[^a-zA-Z0-9]/g, '') } });
-            console.log("Monitoring dimatikan total oleh Admin."); } });
+    // 2. Setup Channel: Nama channel harus persis sama dengan yang dikirim Admin
+    const channelName = `monitor-global-${mySrvKey}`;
+    const cmdChannel = db.channel(channelName);
 
-    // D. TAMBAHAN: Perintah Berhenti Paksa
-    monitorChannel.on('broadcast', { event: 'force-stop-exam' }, (data) => {
-        const activeState = JSON.parse(localStorage.getItem('active_exam_state')); 
-       // Cek apakah siswa sedang ujian DAN ID ujiannya cocok dengan yang dimatikan admin
-        if (isExamActive && activeState && activeState.examId === data.payload.examId) {
-            showNotify("Ujian di akhiri oleh pengawas","info");
-            finishExam();} });
+    console.log(`📡 Siswa mendengarkan perintah pada channel: ${channelName}`);
 
-    // E. Tambahkan Perintah Berhenti Paksa individul
-    monitorChannel.on('broadcast', { event: 'force-stop-individual' }, (data) => {
-       if (data.payload.targetUserId === user.id) {
-        // Jika ID cocok, hentikan ujian tanpa konfirmasi PIN
-           isExamActive = false;
-        showNotify("Ujian Anda telah diakhiri Admin.", "info");
-        // Beri jeda 2 detik agar siswa sempat membaca notifikasi sebelum halaman reload
-        setTimeout(() => {finishExam();}, 2000); }});
+    cmdChannel
+        // A. Perintah Buka Kunci (Unlock Individual)
+        .on('broadcast', { event: 'command-unlock' }, (data) => {
+            if (data.payload.targetUserId === user.id) {
+                console.log("🔓 Perintah Unlock diterima dari Admin");
+                forceUnlockLocally();
+            }
+        })
 
-    // 3. Polling (Cadangan - Hanya aktif jika layar terkunci)
+        // B. Perintah Snapshot (Admin minta gambar sekarang juga)
+        .on('broadcast', { event: 'request-snapshot' }, (data) => {
+            // Balas jika Admin minta untuk "ALL" atau spesifik kelas siswa ini
+            if (data.payload.targetClass === "ALL" || data.payload.targetClass === user.kelas) {
+                if (typeof window.sendSnapshot === 'function') {
+                    window.sendSnapshot("ADMIN_REQUEST");
+                }
+            }
+        })
+
+        // C. Perintah Paksa Berhenti (Individual)
+        .on('broadcast', { event: 'force-stop-individual' }, (data) => {
+            if (data.payload.targetUserId === user.id) {
+                isExamActive = false;
+                showNotify("Ujian Anda telah diakhiri oleh pengawas.", "info");
+                setTimeout(() => { finishExam(); }, 2500);
+            }
+        })
+
+        // D. Perintah Paksa Berhenti (Massal per Paket Ujian)
+        .on('broadcast', { event: 'force-stop-exam' }, (data) => {
+            const activeState = JSON.parse(localStorage.getItem('active_exam_state'));
+            if (isExamActive && activeState && activeState.examId === data.payload.examId) {
+                showNotify("Sesi ujian ini telah ditutup oleh pengawas.", "info");
+                setTimeout(() => { finishExam(); }, 2500);
+            }
+        })
+
+        // E. Perintah Kontrol Kamera & Monitoring (On/Off)
+        .on('broadcast', { event: 'force-camera-on' }, async (data) => {
+            if (isExamActive) {
+                isMonitoringEnabled = true;
+                try {
+                    const stream = await navigator.mediaDevices.getUserMedia({ 
+                        video: { width: { ideal: 120 }, height: { ideal: 90 }, frameRate: { max: 10 } } 
+                    });
+                    window.localStream = stream;
+                    const selfVideo = document.getElementById('self-video');
+                    selfVideo.srcObject = stream;
+                    selfVideo.parentElement.classList.remove('hidden-element');
+                    console.log("📷 Kamera diaktifkan remote oleh Admin.");
+                } catch (e) { console.error("Gagal akses kamera remote", e); }
+            }
+        })
+        .on('broadcast', { event: 'force-camera-off' }, (data) => {
+            if (isExamActive) {
+                isMonitoringEnabled = false;
+                if (window.localStream) {
+                    window.localStream.getTracks().forEach(t => t.stop());
+                    window.localStream = null;
+                }
+                document.getElementById('self-video').parentElement.classList.add('hidden-element');
+                console.log("📷 Kamera dimatikan remote oleh Admin.");
+            }
+        })
+        .subscribe((status) => {
+            if (status === 'SUBSCRIBED') {
+                console.log("✅ Berhasil berlangganan perintah pengawas.");
+            }
+        });
+
+    // 3. Polling / Fallback (Cadangan jika Realtime terputus)
+    // Mengecek kolom 'command' di tabel 'live' setiap 20 detik
     setInterval(async () => {
-        if (!document.getElementById('lock-screen').classList.contains('hidden-element')) {
-            try {const { data } = await db.from('live').select('command').eq('id', user.id).maybeSingle();
-                if (data && data.command === 'unlock') { forceUnlockLocally(); await db.from('live').update({ command: null }).eq('id', user.id); }
-            } catch (e) {}
+        const isLocked = !document.getElementById('lock-screen').classList.contains('hidden-element');
+        if (isLocked) {
+            try {
+                const { data } = await db.from('live').select('command').eq('id', user.id).maybeSingle();
+                if (data && data.command === 'unlock') {
+                    forceUnlockLocally();
+                    // Bersihkan command setelah dieksekusi
+                    await db.from('live').update({ command: null }).eq('id', user.id);
+                }
+            } catch (e) { console.warn("Polling command failed"); }
         }
-    }, 20000); // Cek setiap 20 detik saja sebagai backup
+    }, 20000);
 }
 
 // Fungsi Admin untuk mengakhiri ujian siswa secara individu
 function remoteFinishStudent(studentId, studentName) {
-    if(confirm(`⚠️ PAKSA AKHIRI UJIAN untuk ${studentName}?\nSiswa akan langsung diarahkan ke halaman utama dan kamera dimatikan.`)) {
-        // Kirim broadcast khusus ke ID siswa tersebut
-        monitorChannel.send({ type: 'broadcast', event: 'force-stop-individual', payload: { targetUserId: studentId } });
-        // Opsional: Update status di database agar sinkron
-        db.from('live').update({ lastStatus: 'DIHENTIKAN ADMIN', isLocked: false }).eq('id', studentId);
-        showNotify(`Perintah Force Finish dikirim ke ${studentName}`, "info");
+    const safeId = studentId.replace(/[^a-zA-Z0-9]/g, '');
+    const card = document.getElementById(`card-${safeId}`);
+    
+    if (!card) return alert("Siswa tidak ditemukan!");
+    
+    const serverKey = card.dataset.server;
+    const targetDb = multiDb[serverKey];
+
+    if (confirm(`⚠️ PAKSA KELUAR ${studentName} dari ujian?\nSiswa akan otomatis diarahkan ke menu utama.`)) {
+        // 1. Kirim Sinyal Berhenti via Broadcast
+        const channelName = `monitor-global-${serverKey}`;
+        targetDb.channel(channelName).send({
+            type: 'broadcast',
+            event: 'force-stop-individual',
+            payload: { targetUserId: studentId }
+        });
+
+        // 2. Hapus data live dari Database
+        targetDb.from('live').delete().eq('id', studentId).then(() => {
+            showNotify(`Siswa ${studentName} telah dikeluarkan.`, "info");
+            card.remove(); // Hapus kartu dari grid admin
+            
+            // Update counter online
+            const innerGrid = document.getElementById('monitor-grid-inner');
+            if (innerGrid) {
+                document.getElementById('online-count').textContent = `${innerGrid.children.length} Siswa Terpantau`;
+            }
+        });
     }
 }
 
@@ -1709,9 +2283,45 @@ function forceUnlockLocally() {
 }
 
 function remoteUnlockStudent(studentId) {
-    if(confirm("Buka akses siswa ini?")) {
-        monitorChannel.send({ type: 'broadcast', event: 'command-unlock', payload: { targetUserId: studentId } }); // Kirim perintah unlock via broadcast agar instan
-        db.from('live').update({ command: 'unlock', isLocked: false, v: 0 }).eq('id', studentId); showNotify("Perintah buka kunci dikirim.","info"); // Backup via database
+    const safeId = studentId.replace(/[^a-zA-Z0-9]/g, '');
+    const card = document.getElementById(`card-${safeId}`);
+    
+    if (!card) return alert("Siswa tidak ditemukan di grid monitor!");
+    
+    const serverKey = card.dataset.server; // Mengambil identitas SERVER_A/B/C
+    const targetDb = multiDb[serverKey];
+
+    if (!targetDb) return alert("Koneksi ke server " + serverKey + " belum siap.");
+
+    if (confirm(`Buka akses ujian untuk siswa di ${serverKey}?`)) {
+        // 1. Kirim Perintah Instan via Broadcast
+        const channelName = `monitor-global-${serverKey}`;
+        targetDb.channel(channelName).send({
+            type: 'broadcast',
+            event: 'command-unlock',
+            payload: { targetUserId: studentId }
+        });
+
+        // 2. Update Status di Database (Backup)
+        targetDb.from('live')
+            .update({ 
+                isLocked: false, 
+                v: 0, 
+                command: 'unlock', 
+                lastStatus: 'DIBUKA OLEH ADMIN' 
+            })
+            .eq('id', studentId)
+            .then(({ error }) => {
+                if (!error) {
+                    showNotify("Akses siswa berhasil dibuka.", "success");
+                    // Update tampilan kartu secara lokal agar tidak menunggu snapshot berikutnya
+                    const statusText = document.getElementById(`status-text-${safeId}`);
+                    const lockIcon = document.getElementById(`lock-icon-${safeId}`);
+                    if(statusText) statusText.textContent = "ACTIVE";
+                    if(lockIcon) lockIcon.classList.add('hidden');
+                    card.classList.remove('ring-4', 'ring-red-500');
+                }
+            });
     }
 }
 
@@ -1728,8 +2338,6 @@ async function clearMonitorData() {
         alert("Database dan Feed berhasil dibersihkan!");
     } catch (e) { console.error("Gagal membersihkan feed:", e); alert("Gagal membersihkan data: " + e.message); }
 }
-
-function startCleanupService() { setInterval(async () => { try { const fiveMinutesAgo = Date.now() - (5 * 60 * 1000); await cleanupLiveRows(fiveMinutesAgo); } catch (e) { console.error("Cleanup error:", e); } }, 60000); }
 
 // --- OPTIMASI RAM ADMIN (WAJIB UNTUK 300 SISWA) ---
 // Fungsi untuk menghapus kartu siswa yang sudah tidak aktif dari layar admin
@@ -1764,22 +2372,18 @@ setInterval(() => {
 }, 5000); // Eksekusi hanya setiap 5 detik
 
 // --- I. LOGIKA AI GEMINI ---
-// Perbaikan fungsi generateAISoal
 async function generateAISoal() {
     const topic = document.getElementById('ai-topic').value;
     const count = document.getElementById('ai-count').value;
     const btn = document.getElementById('ai-btn');
     const loader = document.getElementById('ai-loading');
 
-    if (!topic) return alert("Isi topik!");
-    
+    if (!topic) return alert("Masukkan topik!");
     btn.classList.add('hidden-element');
     loader.classList.remove('hidden-element');
 
     try {
-        const prompt = `Buatkan ${count} soal pilihan ganda tentang ${topic} dalam Bahasa Indonesia. 
-        Berikan output HANYA dalam format JSON array seperti ini: 
-        [{"question": "isi soal", "options": ["A", "B", "C", "D"], "answer": "A"}]`;
+        const prompt = `Buatkan ${count} soal pilihan ganda tentang ${topic} dalam Bahasa Indonesia. Output WAJIB JSON array murni: [{"question": "..", "options": ["A", "B", "C", "D"], "answer": "A"}]`;
 
         const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`, {
             method: 'POST',
@@ -1789,33 +2393,27 @@ async function generateAISoal() {
 
         const result = await res.json();
         let rawText = result.candidates[0].content.parts[0].text;
-
-        // PEMBERSIHAN FORMAT JSON (Regex untuk menghapus ```json ... ```)
-        const jsonMatch = rawText.match(/\[[\s\S]*\]/); 
-        if (!jsonMatch) throw new Error("Format JSON tidak ditemukan oleh AI");
         
-        const cleanJson = JSON.parse(jsonMatch[0]);
+        // Membersihkan format markdown ```json ... ```
+        const jsonOnly = rawText.replace(/```json/g, "").replace(/```/g, "").trim();
+        const cleanJson = JSON.parse(jsonOnly);
 
-        // Simpan ke Supabase
-        const rows = cleanJson.map(q => ({
+        await db.from('ai_bank').insert(cleanJson.map(q => ({
             question: q.question,
             topic: topic,
-            data: q // simpan full object
-        }));
+            data: q,
+            created_at: new Date().toISOString()
+        })));
 
-        await db.from('ai_bank').insert(rows);
-        showNotify("Soal AI Berhasil Dibuat!", "success");
+        showNotify("Bank soal berhasil dibuat!", "success");
         closeModal('modal-ai');
-
     } catch (e) {
-        console.error(e);
         alert("AI Error: " + e.message);
     } finally {
         btn.classList.remove('hidden-element');
         loader.classList.add('hidden-element');
     }
 }
-
 // --- J. PENGATURAN AKHIR ---
 window.onbeforeunload = function() { if (isExamActive) return "Sedang Ujian!"; };
 

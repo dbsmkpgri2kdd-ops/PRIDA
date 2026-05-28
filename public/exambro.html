@@ -1010,7 +1010,7 @@ function formatTanggalIndo(dateStr) {
 }
 
 function syncAdminData() {
-    if (typeof syncAdminStudentData === "function") syncAdminStudentData(); 
+    syncAdminStudentData(); 
     syncFilterOptions();
     publicData.collection('exams').onSnapshot(s => {
         const list = document.getElementById('admin-exam-list'); if (!list) return; 
@@ -1045,8 +1045,8 @@ async function saveAndSyncSheet() {
         const userRows = [], seenNis = new Set();
         rawUserRows.forEach(item => { if (!seenNis.has(item.nis)) { seenNis.add(item.nis); userRows.push(item); } });
         if (userRows.length > 0) { const { error: insertError } = await db.from('users').upsert(userRows, { onConflict: 'nis' }); if (insertError) throw insertError; }
-        alert(`Berhasil! ${userRows.length} data siswa disinkronkan.`); if (typeof loadKelas === "function") loadKelas();
-    } catch (e) { console.error(e); alert("Gagal Sinkron: " + e.message); } finally { btn.disabled = false; btnText.textContent = "SIMPAN & SINKRON"; }
+        showNotify(`Sinkronisasi Berhasil! ${userRows.length} data siswa diperbarui.`, "success"); await syncAdminStudentData(); if (typeof loadKelas === "function") loadKelas();
+    } catch (e) { console.error(e); showNotify("Gagal Sinkron: " + e.message, "error"); } finally { btn.disabled = false; btnText.textContent = "SIMPAN & SINKRON"; }
 }
 
 async function saveExam() {
@@ -1117,17 +1117,38 @@ async function toggleExamFeature(id, feature, currentState) {
 async function delDoc(c, id) { if(confirm("Hapus data ini secara permanen dari Cloud?")) await publicData.collection(c).doc(id).delete(); }
 function openExamModal() { document.getElementById('edit-exam-id').value = ""; ['ex-mapel', 'ex-date', 'ex-duration', 'ex-token', 'ex-pin', 'ex-link'].forEach(i => document.getElementById(i).value = ""); renderClassCheckboxes([]); openModal('modal-exam'); }
 
-function syncAdminStudentData() {
-    const list = document.getElementById('admin-student-list'); if (!list) return;
-    publicData.collection('users').onSnapshot(snap => {
-        list.innerHTML = ""; let dataSiswa = []; snap.forEach(doc => { dataSiswa.push(doc.data()); });
-	const badge = document.getElementById('student-count-badge');
-	    if(badge) badge.textContent = `${dataSiswa.length} Siswa`;
-	    dataSiswa.sort((a, b) => a.kelas.localeCompare(b.kelas) || a.nama.localeCompare(b.nama));
+async function syncAdminStudentData() {
+    const list = document.getElementById('admin-student-list');
+    const badgeManajemen = document.getElementById('student-count-badge');
+    
+    // 1. Ambil Angka dari Cache agar tampilan instan (Gercap)
+    const cachedCount = localStorage.getItem('admin_student_count');
+    if (cachedCount && badgeManajemen) {badgeManajemen.textContent = `${cachedCount} Siswa`; }
 
-        dataSiswa.sort((a, b) => a.kelas.localeCompare(b.kelas) || a.nama.localeCompare(b.nama));
-        dataSiswa.forEach(s => { list.innerHTML += `<tr class="hover:bg-slate-50 transition-colors"><td class="px-8 py-4 text-[11px] font-bold text-slate-600">${s.nis}</td><td class="px-8 py-4 text-[11px] font-bold text-slate-900">${s.nama}</td><td class="px-8 py-4"><span class="bg-blue-50 text-blue-600 px-3 py-1 rounded-full text-[9px] font-black uppercase">${s.kelas}</span></td><td class="px-8 py-4 text-[11px] font-mono text-slate-400">${s.pwd}</td></tr>`; });
-    });
+    try {
+        // 2. Ambil data dari database (Hanya panggil satu kali, bukan loop)
+        const { data, count, error } = await db.from('users').select('*', { count: 'exact' });
+        if (error) throw error; const total = count || data.length;
+
+        // 3. Simpan jumlah terbaru ke Cache & Update UI
+        localStorage.setItem('admin_student_count', total); if (badgeManajemen) badgeManajemen.textContent = `${total} Siswa`;
+
+        // 4. Render Tabel (Hanya jika sedang membuka menu Database Siswa)
+        if (list) {
+            list.innerHTML = "";
+            // Urutkan berdasarkan kelas kemudian Nama
+            data.sort((a, b) => a.kelas.localeCompare(b.kelas, undefined, {numeric: true}) || a.nama.localeCompare(b.nama));
+            
+            data.forEach(s => {
+                list.innerHTML += `<tr class="hover:bg-slate-50 transition-colors">
+                    <td class="px-8 py-4 text-[11px] font-bold text-slate-600">${s.nis}</td>
+                    <td class="px-8 py-4 text-[11px] font-bold text-slate-900">${s.nama}</td>
+                    <td class="px-8 py-4"><span class="bg-blue-50 text-blue-600 px-3 py-1 rounded-full text-[9px] font-black uppercase">${s.kelas}</span></td>
+                    <td class="px-8 py-4 text-[11px] font-mono text-slate-400">${s.pwd}</td>
+                </tr>`;
+            });
+        }
+    } catch (e) {console.error("Gagal sinkron data siswa:", e);}
 }
 
 async function syncSpecialSettings() { const d = await publicData.collection('settings').doc('special_methods').get(); if(d.exists) specialSettings = d.data(); }

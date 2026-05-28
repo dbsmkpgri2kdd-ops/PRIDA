@@ -1409,14 +1409,43 @@ function enableHardLockdown() {
 
 function initPeerConnection() {
     if (myPeer && !myPeer.destroyed) return;
+    
     const safePeerId = user.id.replace(/[^a-zA-Z0-9]/g, ''); 
-    myPeer = new Peer(safePeerId, { debug: 1 });
+    
+    // TAMBAHKAN CONFIG STUN SERVER DI SINI
+    const peerConfig = {
+        debug: 1,
+        config: {
+            'iceServers': [
+                { urls: 'stun:stun.l.google.com:19302' },
+                { urls: 'stun:stun1.l.google.com:19302' },
+                { urls: 'stun:stun2.l.google.com:19302' }
+            ]
+        }
+    };
+
+    myPeer = new Peer(safePeerId, peerConfig);
+
     myPeer.on('open', (id) => {
-        console.log('PeerJS Aktif ID:', id);
+        console.log('✅ Peer Siswa Aktif ID:', id);
+        // Simpan ID ke database agar admin tahu siswa siap di-call
         db.from('live').update({ peer_id: id }).eq('id', user.id);
     });
-    myPeer.on('call', call => { if (window.localStream) call.answer(window.localStream); });
-    myPeer.on('error', (err) => {if (err.type === 'id-taken') setTimeout(initPeerConnection, 2000); console.error('PeerJS Error:', err); });
+
+    // Menjawab panggilan dari Admin
+    myPeer.on('call', call => {
+        console.log('📞 Menerima panggilan dari Admin...');
+        if (window.localStream) {
+            call.answer(window.localStream); // Kirim video kamera siswa
+        } else {
+            console.warn("Kamera belum aktif, tidak bisa menjawab video.");
+        }
+    });
+
+    myPeer.on('error', (err) => {
+        console.error('PeerJS Student Error:', err.type);
+        if (err.type === 'id-taken') setTimeout(initPeerConnection, 3000);
+    });
 }
 
 function initAdminPeer() {
@@ -1679,55 +1708,48 @@ function startLiveStream(safeId) {
 
     if (btn.textContent === "STOP") { stopActiveStream(safeId); return; }
     
-    // CEK STATUS PEER ADMIN
-    if (!adminPeer || adminPeer.destroyed) {
-        showNotify("Koneksi Admin terputus, mencoba menghubungkan ulang...", "error");
+    if (!adminPeer || !adminPeer.open) {
+        showNotify("Koneksi Admin belum siap. Tunggu sebentar...", "error");
         initAdminPeer();
         return;
     }
 
-    if (!adminPeer.open) {
-        showNotify("Menghubungkan ke Server Signaling... Silahkan klik lagi dalam 3 detik.", "info");
-        return;
-    }
-
-    if (currentlyWatching && currentlyWatching !== safeId) stopActiveStream(currentlyWatching);
+    if (currentlyWatching) stopActiveStream(currentlyWatching);
     
-    // Tambahkan indikator loading di tombol
-    const originalText = btn.textContent;
     btn.textContent = "CONNECTING...";
     btn.disabled = true;
 
+    // Lakukan panggilan ke Siswa (Admin mengirim stream kosong, Siswa membalas dengan videonya)
     const call = adminPeer.call(safeId, new MediaStream());
-    if (!window.activeCalls) window.activeCalls = {};
+    
+    window.activeCalls = window.activeCalls || {};
     window.activeCalls[safeId] = call;
     currentlyWatching = safeId;
 
     call.on('stream', remoteStream => {
+        console.log("🎬 Stream diterima dari siswa!");
         btn.disabled = false;
+        btn.textContent = "STOP";
+        btn.classList.replace('bg-blue-600', 'bg-red-600');
+        
         videoEl.srcObject = remoteStream;
         videoEl.classList.remove('hidden');
         imgEl.classList.add('hidden');
-        btn.textContent = "STOP";
-        btn.classList.replace('bg-blue-600', 'bg-red-600');
     });
 
     call.on('error', (err) => {
-        btn.disabled = false;
-        btn.textContent = originalText;
-        showNotify("Gagal menyambung. Pastikan siswa masih di dalam halaman ujian.", "error");
+        console.error("Call Error:", err);
         stopActiveStream(safeId);
+        showNotify("Gagal tersambung ke kamera siswa.", "error");
     });
 
-    // Timeout jika 10 detik tidak ada respon
+    // Timeout diperpanjang ke 15 detik karena WebRTC butuh waktu negoisasi IP
     setTimeout(() => {
         if (btn.textContent === "CONNECTING...") {
-            btn.disabled = false;
-            btn.textContent = originalText;
-            showNotify("Siswa tidak merespon (Request Timeout).", "info");
             stopActiveStream(safeId);
+            showNotify("Siswa tidak merespon (Mungkin kendala Firewall/Sinyal).", "info");
         }
-    }, 10000);
+    }, 15000);
 }
 
 // Fungsi pembantu untuk mematikan stream secara bersih

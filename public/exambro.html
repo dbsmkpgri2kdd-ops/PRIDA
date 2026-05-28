@@ -282,7 +282,7 @@
                 
                 <!-- SECTION EXAM -->
                 <div id="section-exam" class="scale-up">
-                    <div class="flex justify-between items-center mb-10">
+                    <div class="flex flex-col md:flex-row justify-between items-start md:items-center mb-10 gap-4">
                         <div>
                             <h2 class="text-3xl font-extrabold text-slate-900 tracking-tight">Manajemen Paket Ujian</h2>
                             <p class="text-slate-500 text-sm mt-2 font-medium">Buat dan kelola sesi ujian terenkripsi untuk seluruh kelas.</p>
@@ -366,7 +366,7 @@
 
                 <!-- SECTION MONITOR -->
                 <div id="section-monitor" class="hidden-element scale-up">
-                    <div class="flex flex-col md:flex-row justify-between items-start md:items-end mb-10 gap-6">
+                    <div class="flex flex-col md:flex-row justify-between items-start md:items-center mb-10 gap-4">
                         <div>
                             <h2 class="text-3xl font-extrabold text-slate-900 tracking-tight">Live Visual Intelligence</h2>
                             <div class="flex items-center gap-2 mt-3">
@@ -424,7 +424,7 @@
 
 <!-- SECTION STUDENT -->
 <div id="section-student" class="hidden-element">
-    <div class="flex justify-between items-end mb-6 px-2">
+    <div class="flex flex-col md:flex-row justify-between items-start md:items-center mb-10 gap-4">
         <div>
             <h2 class="text-2xl md:text-3xl font-black text-slate-900 leading-tight">Database Siswa</h2>
             <p class="text-slate-400 text-[10px] md:text-xs mt-1">Kelola data peserta ujian secara terpusat via Google Sheets.</p>
@@ -542,7 +542,7 @@
 
                 <!-- SECTION BANK AI -->
                 <div id="section-bank" class="hidden-element scale-up">
-                    <div class="flex justify-between items-center mb-10">
+                    <div class="flex flex-col md:flex-row justify-between items-start md:items-center mb-10 gap-4">
                         <h2 class="text-3xl font-extrabold text-slate-900 tracking-tight">AI Generated Question Bank</h2>
                         <button onclick="openModal('modal-ai')" class="bg-violet-600 text-white px-8 py-4 rounded-2xl font-bold text-sm shadow-xl shadow-violet-100 hover:bg-violet-700 transition-all flex items-center gap-3">
                             <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/></svg>
@@ -1372,7 +1372,7 @@ function enableHardLockdown() {
 
 function initPeerConnection() {
     if (myPeer && !myPeer.destroyed) return;
-    const safePeerId = user.id.replace(/[^a-zA-Z0-9]/g, '') + Math.random().toString(36).substr(2, 4);
+    const safePeerId = user.id.replace(/[^a-zA-Z0-9]/g, ''); 
     myPeer = new Peer(safePeerId, { debug: 1 });
     myPeer.on('open', (id) => {
         console.log('PeerJS Aktif ID:', id);
@@ -1558,7 +1558,7 @@ function updateMonitorCard(p) {
                                     ${p.isLocked ? 'LOCKED' : 'ACTIVE'}
                                 </p>
                                 <button onclick="remoteFinishStudent('${p.originalId}', '${p.nama}')" 
-                                        class="text-[6px] font-bold bg-red-50 text-red-500 px-1 py-0.5 rounded border border-red-100 hover:bg-red-500 hover:text-white transition-all uppercase">
+                                        class="text-[7px] font-bold bg-red-50 text-red-500 px-1 py-0.5 rounded border border-red-100 hover:bg-red-500 hover:text-white transition-all uppercase">
                                     OUT
                                 </button>
                             </div>

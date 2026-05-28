@@ -188,7 +188,7 @@
     </div>
 
     <!-- ADMIN DASHBOARD (MODERN REDESIGN) -->
-    <div id="admin-page" class="min-h-screen flex hidden-element bg-[#f8fafc]">
+    <div id="admin-page" class="h-screen flex hidden-element bg-[#f8fafc] overflow-hidden">
         
         <!-- SIDEBAR -->
 <!-- SIDEBAR DENGAN RESPONSIVE MODE -->
@@ -252,7 +252,7 @@
 
 
         <!-- MAIN CONTENT AREA -->
-        <main class="flex-1 flex flex-col min-w-0">
+        <main class="flex-1 flex flex-col min-w-0 h-full overflow-y-auto">
             <!-- TOP NAVBAR -->
             <header class="h-20 bg-white border-b border-slate-200 flex items-center justify-between px-4 md:px-10 sticky top-0 z-30">
     <div class="flex items-center gap-4">
@@ -1176,7 +1176,7 @@ async function syncStudentData() {
 
             groupedExams[tgl].forEach(x => {
                 const cardHtml = `
-                    <div class="student-card bg-white p-2.5 rounded-xl border border-slate-100 shadow-sm flex flex-col hover:shadow-md transition-all fade-in-up">
+                    <div class="student-card bg-white p-3 rounded-2xl border border-slate-100 shadow-sm flex flex-col justify-between hover:shadow-md transition-all fade-in-up min-h-[160px]">
                         <div class="mb-2.5">
                             <h4 class="font-black text-xs text-slate-800 truncate mb-2">${x.mapel}</h4>
                             <div class="mt-1 flex items-center gap-2">

@@ -1408,43 +1408,59 @@ function enableHardLockdown() {
 }
 
 function initPeerConnection() {
+    // 1. Bersihkan ID agar tidak ada karakter ilegal (hanya huruf & angka)
+    const safePeerId = user.id.replace(/[^a-zA-Z0-9]/g, '');
+    
     if (myPeer && !myPeer.destroyed) return;
-    
-    const safePeerId = user.id.replace(/[^a-zA-Z0-9]/g, ''); 
-    
-    // TAMBAHKAN CONFIG STUN SERVER DI SINI
+
+    // 2. Konfigurasi Peer dengan STUN Server Global milik Google
     const peerConfig = {
         debug: 1,
         config: {
             'iceServers': [
                 { urls: 'stun:stun.l.google.com:19302' },
                 { urls: 'stun:stun1.l.google.com:19302' },
-                { urls: 'stun:stun2.l.google.com:19302' }
-            ]
+                { urls: 'stun:stun2.l.google.com:19302' },
+                { urls: 'stun:stun3.l.google.com:19302' },
+                { urls: 'stun:stun4.l.google.com:19302' }
+            ],
+            'sdpSemantics': 'unified-plan'
         }
     };
 
     myPeer = new Peer(safePeerId, peerConfig);
 
     myPeer.on('open', (id) => {
-        console.log('✅ Peer Siswa Aktif ID:', id);
-        // Simpan ID ke database agar admin tahu siswa siap di-call
+        console.log('✅ Peer Siswa Online. ID:', id);
+        // Beritahu database bahwa ID ini siap menerima panggilan
         db.from('live').update({ peer_id: id }).eq('id', user.id);
     });
 
-    // Menjawab panggilan dari Admin
-    myPeer.on('call', call => {
-        console.log('📞 Menerima panggilan dari Admin...');
+    // 3. LOGIKA MENJAWAB PANGGILAN ADMIN
+    myPeer.on('call', (call) => {
+        console.log('📞 Panggilan masuk dari Admin...');
+        
+        // Pastikan kamera sedang menyala
         if (window.localStream) {
-            call.answer(window.localStream); // Kirim video kamera siswa
+            // Jawab dengan mengirimkan stream kamera kita
+            call.answer(window.localStream);
+            console.log('📤 Kamera dikirim ke Admin.');
         } else {
-            console.warn("Kamera belum aktif, tidak bisa menjawab video.");
+            console.error('❌ Kamera belum aktif, mencoba paksa...');
+            navigator.mediaDevices.getUserMedia({ video: { width: 160, height: 120 } })
+                .then(stream => {
+                    window.localStream = stream;
+                    call.answer(stream);
+                });
         }
     });
 
     myPeer.on('error', (err) => {
-        console.error('PeerJS Student Error:', err.type);
-        if (err.type === 'id-taken') setTimeout(initPeerConnection, 3000);
+        console.error('PeerJS Error:', err.type);
+        // Jika ID sudah terpakai, matikan yang lama dan buat baru
+        if (err.type === 'id-taken' || err.type === 'unavailable-id') {
+            setTimeout(initPeerConnection, 3000);
+        }
     });
 }
 
@@ -1706,58 +1722,89 @@ function startLiveStream(safeId) {
     const imgEl = document.getElementById(`snapshot-${safeId}`);
     const btn = document.getElementById(`btn-live-${safeId}`);
 
-    if (btn.textContent === "STOP") { stopActiveStream(safeId); return; }
-    
+    // Jika sedang menonton, klik lagi untuk berhenti
+    if (btn.textContent === "STOP") { 
+        stopActiveStream(safeId); 
+        return; 
+    }
+
+    // Pastikan Admin sudah terkoneksi ke PeerJS
     if (!adminPeer || !adminPeer.open) {
-        showNotify("Koneksi Admin belum siap. Tunggu sebentar...", "error");
+        showNotify("Admin sedang menghubungkan ke server, coba sesaat lagi.", "info");
         initAdminPeer();
         return;
     }
 
+    // Jika sedang menonton siswa lain, matikan dulu yang lama (hemat bandwidth)
     if (currentlyWatching) stopActiveStream(currentlyWatching);
-    
+
     btn.textContent = "CONNECTING...";
     btn.disabled = true;
 
-    // Lakukan panggilan ke Siswa (Admin mengirim stream kosong, Siswa membalas dengan videonya)
+    // 1. MULAI PANGGILAN
+    // Admin mengirim "Empty Stream" (Hanya menelpon)
     const call = adminPeer.call(safeId, new MediaStream());
     
-    window.activeCalls = window.activeCalls || {};
+    if (!window.activeCalls) window.activeCalls = {};
     window.activeCalls[safeId] = call;
     currentlyWatching = safeId;
 
-    call.on('stream', remoteStream => {
-        console.log("🎬 Stream diterima dari siswa!");
+    // 2. KETIKA VIDEO SISWA DITERIMA
+    call.on('stream', (remoteStream) => {
+        console.log('🎬 Video berhasil diterima dari HP siswa.');
         btn.disabled = false;
         btn.textContent = "STOP";
         btn.classList.replace('bg-blue-600', 'bg-red-600');
-        
+
         videoEl.srcObject = remoteStream;
-        videoEl.classList.remove('hidden');
-        imgEl.classList.add('hidden');
+        videoEl.classList.remove('hidden'); // Tampilkan Video
+        imgEl.classList.add('hidden');      // Sembunyikan Foto Snapshot
+        
+        videoEl.play().catch(e => console.warn("Autoplay ditunda", e));
+    });
+
+    // 3. PENANGANAN TIMEOUT (JIKA 15 DETIK GAGAL)
+    const callTimeout = setTimeout(() => {
+        if (btn.textContent === "CONNECTING...") {
+            console.warn("Panggilan ke " + safeId + " gagal/timeout.");
+            stopActiveStream(safeId);
+            showNotify("Gagal tersambung. Pastikan HP Siswa tidak terkunci dan Kamera aktif.", "error");
+        }
+    }, 15000);
+
+    call.on('close', () => {
+        clearTimeout(callTimeout);
+        stopActiveStream(safeId);
     });
 
     call.on('error', (err) => {
+        clearTimeout(callTimeout);
         console.error("Call Error:", err);
         stopActiveStream(safeId);
-        showNotify("Gagal tersambung ke kamera siswa.", "error");
     });
-
-    // Timeout diperpanjang ke 15 detik karena WebRTC butuh waktu negoisasi IP
-    setTimeout(() => {
-        if (btn.textContent === "CONNECTING...") {
-            stopActiveStream(safeId);
-            showNotify("Siswa tidak merespon (Mungkin kendala Firewall/Sinyal).", "info");
-        }
-    }, 15000);
 }
 
-// Fungsi pembantu untuk mematikan stream secara bersih
+// Fungsi bantu untuk mematikan stream
 function stopActiveStream(id) {
-    const vEl = document.getElementById(`video-${id}`), iEl = document.getElementById(`snapshot-${id}`), bEl = document.getElementById(`btn-live-${id}`);
-    if (window.activeCalls && window.activeCalls[id]) { window.activeCalls[id].close(); delete window.activeCalls[id]; }
-    if (vEl) vEl.classList.add('hidden'); if (iEl) iEl.classList.remove('hidden');
-    if (bEl) { bEl.textContent = "LIVE"; bEl.classList.replace('bg-red-600', 'bg-blue-600'); }
+    const vEl = document.getElementById(`video-${id}`);
+    const iEl = document.getElementById(`snapshot-${id}`);
+    const bEl = document.getElementById(`btn-live-${id}`);
+    
+    if (window.activeCalls && window.activeCalls[id]) {
+        window.activeCalls[id].close();
+        delete window.activeCalls[id];
+    }
+    
+    if (vEl) {
+        vEl.srcObject = null;
+        vEl.classList.add('hidden');
+    }
+    if (iEl) iEl.classList.remove('hidden');
+    if (bEl) {
+        bEl.textContent = "LIVE";
+        bEl.disabled = false;
+        bEl.classList.replace('bg-red-600', 'bg-blue-600');
+    }
     if (currentlyWatching === id) currentlyWatching = null;
 }
 

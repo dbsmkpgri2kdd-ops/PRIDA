@@ -1408,14 +1408,13 @@ function enableHardLockdown() {
 }
 
 function initPeerConnection() {
-    // Pastikan ID disanitasi sama persis dengan yang dicari Admin
+    // Pastikan ID Siswa hanya Alfanumerik (Penting untuk PeerJS)
     const safePeerId = user.id.replace(/[^a-zA-Z0-9]/g, '');
     
     if (myPeer && !myPeer.destroyed) return;
 
-    // Gunakan hanya 2 STUN Server agar discovery CEPAT (Sesuai peringatan log sebelumnya)
-    myPeer = new Peer(safePeerId, {
-        debug: 1,
+    const peerConfig = {
+        debug: 1, // Lihat log di console jika gagal
         config: {
             'iceServers': [
                 { urls: 'stun:stun.l.google.com:19302' },
@@ -1423,37 +1422,41 @@ function initPeerConnection() {
             ],
             'sdpSemantics': 'unified-plan'
         }
-    });
+    };
+
+    myPeer = new Peer(safePeerId, peerConfig);
 
     myPeer.on('open', (id) => {
-        console.log('✅ Peer Siswa Aktif:', id);
-        // Simpan ID yang sudah bersih ke database
+        console.log('✅ Peer Siswa Aktif dengan ID:', id);
+        // Update database agar Admin tahu ID yang tepat untuk ditelpon
         db.from('live').update({ peer_id: id }).eq('id', user.id);
     });
 
+    // LOGIKA MENJAWAB (DIPERKETAT)
     myPeer.on('call', (call) => {
-        console.log('📞 Panggilan masuk...');
+        console.log('📞 Ada Panggilan Masuk dari Admin...');
         
-        // Ambil stream terbaru
-        const currentStream = window.localStream || document.getElementById('self-video').srcObject;
+        // Ambil stream dari variabel global atau langsung dari elemen video
+        const streamToSend = window.localStream || document.getElementById('self-video').srcObject;
 
-        if (currentStream) {
-            call.answer(currentStream);
-            console.log('📤 Membalas dengan Video.');
+        if (streamToSend) {
+            call.answer(streamToSend);
+            console.log('📤 Menjawab panggilan: Stream terkirim!');
         } else {
-            console.log('⚠️ Stream kosong, mencoba akses kamera darurat...');
+            console.warn('⚠️ Kamera tidak aktif, mencoba akses paksa...');
             navigator.mediaDevices.getUserMedia({ video: { width: 160, height: 120 } })
-                .then(stream => {
-                    window.localStream = stream;
-                    call.answer(stream);
+                .then(s => {
+                    window.localStream = s;
+                    call.answer(s);
                 });
         }
     });
 
     myPeer.on('error', (err) => {
         console.error('PeerJS Student Error:', err.type);
-        if (err.type === 'id-taken' || err.type === 'network') {
-            setTimeout(initPeerConnection, 4000);
+        // Jika koneksi putus/error, coba sambung lagi otomatis setelah 5 detik
+        if (err.type === 'network' || err.type === 'disconnected') {
+            setTimeout(initPeerConnection, 5000);
         }
     });
 }
@@ -1715,19 +1718,22 @@ function startLiveStream(safeId) {
     const imgEl = document.getElementById(`snapshot-${safeId}`);
     const btn = document.getElementById(`btn-live-${safeId}`);
 
-    if (btn.textContent === "STOP") { stopActiveStream(safeId); return; }
-    
+    if (btn.textContent === "STOP") { 
+        stopActiveStream(safeId); 
+        return; 
+    }
+
     if (!adminPeer || !adminPeer.open) {
-        showNotify("Koneksi Admin belum siap. Menghubungkan ulang...", "info");
+        showNotify("Server Signaling Admin belum siap.", "error");
         initAdminPeer(); return;
     }
 
     if (currentlyWatching) stopActiveStream(currentlyWatching);
-    
+
     btn.textContent = "CONNECTING...";
     btn.disabled = true;
 
-    // Melakukan panggilan tanpa mengirim video (Admin cuma nonton)
+    // Mulai menelpon ID Siswa
     const call = adminPeer.call(safeId, new MediaStream());
     
     window.activeCalls = window.activeCalls || {};
@@ -1735,7 +1741,7 @@ function startLiveStream(safeId) {
     currentlyWatching = safeId;
 
     call.on('stream', (remoteStream) => {
-        console.log('🎬 Video Diterima!');
+        console.log('🎬 Stream Diterima! Menampilkan Video...');
         btn.disabled = false;
         btn.textContent = "STOP";
         btn.classList.replace('bg-blue-600', 'bg-red-600');
@@ -1744,25 +1750,28 @@ function startLiveStream(safeId) {
         videoEl.classList.remove('hidden');
         imgEl.classList.add('hidden');
         
+        // PAKSA PLAY DENGAN MUTED (Wajib untuk browser laptop)
         videoEl.muted = true;
-        videoEl.play().catch(e => {
-            console.log("Autoplay dicegah, mencoba play manual...");
-            videoEl.play();
-        });
+        const playPromise = videoEl.play();
+        if (playPromise !== undefined) {
+            playPromise.catch(e => {
+                console.warn("Autoplay dicegah, klik manual diperlukan.");
+                videoEl.play();
+            });
+        }
     });
 
-    // Durasi tunggu jabat tangan ditingkatkan ke 15 detik
+    // Timeout Panggilan (15 Detik)
     const callTimeout = setTimeout(() => {
         if (btn.textContent === "CONNECTING...") {
-            console.warn("Panggilan Gagal.");
             stopActiveStream(safeId);
-            showNotify("Siswa tidak merespon. Pastikan HP Siswa tidak terkunci dan layar sedang menyala.", "error");
+            showNotify("Gagal tersambung. Pastikan layar HP Siswa menyala & tidak sedang buka aplikasi lain.", "error");
         }
     }, 15000);
 
     call.on('error', (err) => {
-        console.error("Call Error:", err);
         clearTimeout(callTimeout);
+        console.error("Peer Call Error:", err);
         stopActiveStream(safeId);
     });
 }

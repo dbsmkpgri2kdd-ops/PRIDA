@@ -16,7 +16,7 @@
     <meta name="background-color" content="#001d3d">
 
 <script>
-    const APP_VERSION = '1.0.8';
+    const APP_VERSION = '1.1.1';
     async function initPWA() {
         const savedVersion = localStorage.getItem('app_version');
         if (savedVersion !== APP_VERSION) {
@@ -663,7 +663,7 @@ body{background:var(--bg);color:var(--text-dark);overflow-x:hidden;overscroll-be
 
 <body>
 
-    <button id="btnInstall">?? Install Aplikasi</button>
+    <button id="btnInstall">INSTAL APLIKASI</button>
     <div class="toast" id="toast"></div>
     <div id="login-screen">
         <div class="login-card">
@@ -1155,7 +1155,7 @@ body{background:var(--bg);color:var(--text-dark);overflow-x:hidden;overscroll-be
         </div>
     `);
 }
-	function cariKelulusan() {
+		function cariKelulusan() {
     const nama = document.getElementById('namaKelulusan').value;
     const kelas = document.getElementById('kelasKelulusan').value;
     const box = document.getElementById('hasilKelulusan');

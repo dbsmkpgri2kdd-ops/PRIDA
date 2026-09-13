@@ -16,7 +16,7 @@
     <meta name="background-color" content="#001d3d">
 
 <script>
-    const APP_VERSION = '1.0.7';
+    const APP_VERSION = '1.0.8';
     async function initPWA() {
         const savedVersion = localStorage.getItem('app_version');
         if (savedVersion !== APP_VERSION) {
@@ -44,7 +44,7 @@
 :root{--primary:#001d3d;--secondary:#007aff;--accent:rgba(255,255,255,0.1);--bg:#f8fbff;--white:#ffffff;--text-dark:#001d3d;--text-gray:#6c757d;--radius-lg:28px;--radius-md:12px;--shadow:0 8px 16px rgba(0,86,179,0.05);--blue-gradient:linear-gradient(135deg,#001d3d 0%,#003566 100%)}
 *{margin:0;padding:0;box-sizing:border-box;font-family:'Inter',-apple-system,sans-serif;-webkit-tap-highlight-color:transparent}
 body{background:var(--bg);color:var(--text-dark);overflow-x:hidden;overscroll-behavior-x:none;touch-action:pan-y;-webkit-user-select:none;user-select:none}
-#login-screen{position:fixed;top:0;left:0;width:100%;height:100%;background:var(--blue-gradient);z-index:5000;display:flex;align-items:center;justify-content:center;padding:24px}
+#login-screen{position:fixed;top:0;left:0;width:100%;height:100%;background:var(--blue-gradient);z-index:5000;display:none;align-items:center;justify-content:center;padding:24px}
 .login-card{width:100%;max-width:380px;background:rgba(255,255,255,0.95);backdrop-filter:blur(10px);border-radius:var(--radius-lg);padding:45px 35px;box-shadow:0 25px 50px rgba(0,0,0,0.2);text-align:center}
 .login-logo{width:85px;height:85px;background:var(--blue-gradient);color:white;border-radius:22px;display:flex;align-items:center;justify-content:center;margin:0 auto 24px;font-size:40px;box-shadow:0 10px 20px rgba(0,29,61,0.3)}
 .login-card h2{font-size:28px;font-weight:800;margin-bottom:8px;color:var(--primary);letter-spacing:-0.8px}
@@ -53,7 +53,7 @@ body{background:var(--bg);color:var(--text-dark);overflow-x:hidden;overscroll-be
 .input-group input{width:100%;padding:18px 18px 18px 52px;border-radius:var(--radius-md);border:1.5px solid #e9ecef;background:#f8f9fa;font-size:15px;outline:none;transition:0.3s}
 .input-group input:focus{border-color:var(--primary);background:#fff;box-shadow:0 0 0 4px rgba(0,86,179,0.1)}
 .login-btn{width:100%;padding:18px;border-radius:var(--radius-md);border:none;background:var(--blue-gradient);color:white;font-size:16px;font-weight:700;cursor:pointer;transition:0.3s;margin-top:10px;box-shadow:0 8px 15px rgba(0,29,61,0.2)}
-#main-app{display:none}.appbar{padding:10px 20px;position:sticky;top:0;z-index:1100;display:flex;align-items:center;justify-content:space-between;height:70px;background:var(--primary);box-shadow:0 2px 10px rgba(0,0,0,0.1)}
+#main-app{display:block}.appbar{padding:10px 20px;position:sticky;top:0;z-index:1100;display:flex;align-items:center;justify-content:space-between;height:70px;background:var(--primary);box-shadow:0 2px 10px rgba(0,0,0,0.1)}
 .appbar-left{display:flex;align-items:center;gap:15px}.appbar-left h3{color:var(--white);font-weight:800;font-size:13px;letter-spacing:-0.5px}.menu-toggle{font-size:22px;color:var(--white);cursor:pointer}
 .user-info-container{display:flex;align-items:center;gap:10px}.text-info{text-align:right}.text-info strong{display:block;color:white;font-size:12px;line-height:1}
 .profile-network{display:inline-flex;align-items:center;gap:4px;font-size:9px;margin-top:3px;font-weight:700;padding:2px 8px;border-radius:10px}.profile-network.online{background:rgba(74,222,128,0.2);color:#4ade80}.profile-network.offline{background:rgba(248,113,113,0.2);color:#f87171}
@@ -172,6 +172,492 @@ body{background:var(--bg);color:var(--text-dark);overflow-x:hidden;overscroll-be
 
 
 		   
+
+/* =========================================================
+   LANDING PAGE SEKOLAH + DESKTOP SIDEBAR NAVIGATION
+   ========================================================= */
+.school-hero{
+    margin:18px 16px 0;
+    min-height:310px;
+    border-radius:30px;
+    overflow:hidden;
+    position:relative;
+    background:
+        radial-gradient(circle at 85% 15%, rgba(0,122,255,.35), transparent 34%),
+        radial-gradient(circle at 15% 90%, rgba(255,255,255,.12), transparent 35%),
+        linear-gradient(135deg,#001d3d 0%,#003566 55%,#0056b3 100%);
+    color:#fff;
+    box-shadow:0 18px 45px rgba(0,29,61,.18);
+}
+.school-hero::before{
+    content:'';
+    position:absolute;
+    width:240px;height:240px;
+    right:-70px;bottom:-100px;
+    border:1px solid rgba(255,255,255,.18);
+    border-radius:50%;
+    box-shadow:0 0 0 35px rgba(255,255,255,.04),0 0 0 70px rgba(255,255,255,.025);
+}
+.school-hero-content{
+    position:relative;
+    z-index:1;
+    padding:34px 28px;
+    max-width:820px;
+}
+.hero-badge{
+    display:inline-flex;
+    align-items:center;
+    gap:7px;
+    padding:7px 12px;
+    border-radius:999px;
+    background:rgba(255,255,255,.12);
+    border:1px solid rgba(255,255,255,.16);
+    font-size:10px;
+    font-weight:800;
+    letter-spacing:.7px;
+    text-transform:uppercase;
+}
+.school-hero h1{
+    margin:17px 0 9px;
+    font-size:clamp(28px,5vw,48px);
+    line-height:1.04;
+    letter-spacing:-1.5px;
+    font-weight:900;
+}
+.school-hero h1 span{display:block;color:#9bd0ff}
+.school-hero p{
+    max-width:620px;
+    font-size:13px;
+    line-height:1.75;
+    color:rgba(255,255,255,.82);
+}
+.hero-actions{
+    display:flex;
+    flex-wrap:wrap;
+    gap:10px;
+    margin-top:22px;
+}
+.hero-btn{
+    display:inline-flex;
+    align-items:center;
+    justify-content:center;
+    gap:8px;
+    padding:12px 17px;
+    border-radius:13px;
+    border:1px solid rgba(255,255,255,.2);
+    color:#fff;
+    text-decoration:none;
+    font-size:11px;
+    font-weight:800;
+    cursor:pointer;
+    background:rgba(255,255,255,.11);
+    backdrop-filter:blur(8px);
+}
+.hero-btn.primary{background:#fff;color:#003566;border-color:#fff}
+.hero-btn:active{transform:scale(.97)}
+.landing-welcome{
+    padding:25px 18px 4px;
+}
+.landing-welcome h2{
+    font-size:21px;
+    letter-spacing:-.5px;
+    margin-bottom:7px;
+}
+.landing-welcome p{
+    color:var(--text-gray);
+    font-size:12px;
+    line-height:1.7;
+    max-width:760px;
+}
+.landing-features{
+    display:grid;
+    grid-template-columns:repeat(3,1fr);
+    gap:12px;
+    padding:16px 16px 0;
+}
+.landing-feature{
+    background:#fff;
+    border:1px solid rgba(0,86,179,.07);
+    border-radius:18px;
+    padding:17px;
+    box-shadow:var(--shadow);
+}
+.landing-feature i{
+    font-size:18px;
+    color:#0056b3;
+    margin-bottom:10px;
+}
+.landing-feature strong{
+    display:block;
+    font-size:12px;
+    margin-bottom:5px;
+}
+.landing-feature span{
+    display:block;
+    color:var(--text-gray);
+    font-size:10px;
+    line-height:1.55;
+}
+
+/* Desktop: empat navbar bawah menjadi menu utama di sidebar */
+@media (min-width: 901px){
+    body{background:#f4f8fc}
+    .menu-toggle{display:none}
+    .appbar{
+        margin-left:280px;
+        padding-left:28px;
+        height:76px;
+    }
+    .appbar-left h3{font-size:14px}
+    .sidebar{
+        left:0;
+        width:280px;
+        padding:28px 18px;
+        box-shadow:8px 0 30px rgba(0,29,61,.12);
+        overflow-y:auto;
+    }
+    .sidebar-overlay{display:none !important}
+    .sidebar .desktop-nav-title{
+        display:block;
+        padding:8px 15px 10px;
+        color:rgba(255,255,255,.4);
+        font-size:9px;
+        font-weight:800;
+        text-transform:uppercase;
+        letter-spacing:1.3px;
+    }
+    .desktop-nav-item{
+        display:flex !important;
+    }
+    .section{
+        top:76px;
+        left:280px;
+        width:calc(100% - 280px);
+        height:calc(100vh - 76px);
+        padding:0 12px 40px;
+    }
+    .section-title{max-width:1200px;margin-left:auto;margin-right:auto}
+    .nav-wrapper{display:none}
+    .swipe-indicator{display:none}
+    .school-hero{max-width:1200px;margin:24px auto 0;min-height:360px}
+    .landing-welcome{max-width:1200px;margin:0 auto}
+    .landing-features{max-width:1200px;margin:0 auto;grid-template-columns:repeat(3,1fr)}
+    #grid-lembaga{max-width:900px;margin-left:auto;margin-right:auto}
+    .menu-grid{max-width:1200px;margin-left:auto;margin-right:auto}
+}
+
+/* Mobile/tablet tetap memakai navbar bawah */
+@media (max-width: 900px){
+    .desktop-nav-title{display:none}
+    .desktop-nav-item{display:none !important}
+    .school-hero{min-height:340px}
+    .landing-features{grid-template-columns:1fr 1fr}
+}
+@media (max-width: 520px){
+    .school-hero{margin:12px 12px 0;min-height:365px;border-radius:26px}
+    .school-hero-content{padding:27px 22px}
+    .school-hero h1{font-size:31px}
+    .landing-features{grid-template-columns:1fr;padding:14px 14px 0}
+}
+
+
+/* =========================================================
+   PENYEMPURNAAN BERANDA + DESKTOP HAMBURGER DRAWER
+   ========================================================= */
+.school-majors{
+    width:100%;
+    max-width:1200px;
+    margin:28px auto 0;
+    padding:0 16px;
+}
+.school-majors .section-title{
+    margin:0 0 15px;
+}
+.school-majors-grid{
+    display:grid;
+    grid-template-columns:repeat(3,minmax(0,1fr));
+    gap:14px;
+}
+.school-major-card{
+    min-width:0;
+    display:flex;
+    align-items:center;
+    gap:13px;
+    padding:15px;
+    background:#fff;
+    border:1px solid rgba(0,86,179,.08);
+    border-radius:18px;
+    box-shadow:var(--shadow);
+    cursor:pointer;
+    transition:.2s ease;
+}
+.school-major-card:hover{
+    transform:translateY(-2px);
+    box-shadow:0 12px 24px rgba(0,86,179,.10);
+}
+.school-major-icon{
+    width:46px;
+    height:46px;
+    flex:0 0 46px;
+    border-radius:14px;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    background:#eef6ff;
+    color:#0056b3;
+    font-size:19px;
+}
+.school-major-card strong{
+    display:block;
+    font-size:12px;
+    color:var(--text-dark);
+    margin-bottom:4px;
+}
+.school-major-card span{
+    display:block;
+    font-size:10px;
+    line-height:1.45;
+    color:var(--text-gray);
+}
+
+.school-contact-footer{
+    width:100%;
+    max-width:1200px;
+    margin:30px auto 25px;
+    padding:24px 20px 26px;
+    border-radius:22px;
+    background:var(--blue-gradient);
+    color:#fff;
+    box-shadow:0 15px 35px rgba(0,29,61,.16);
+}
+.school-contact-footer h2{font-size:20px;margin-bottom:7px}
+.school-contact-footer>p{
+    font-size:11px;
+    line-height:1.7;
+    color:rgba(255,255,255,.78);
+    max-width:700px;
+}
+.contact-footer-grid{
+    display:grid;
+    grid-template-columns:minmax(0,1.35fr) minmax(280px,1fr);
+    gap:22px;
+    margin-top:18px;
+}
+.contact-info{
+    display:flex;
+    flex-direction:column;
+    gap:10px;
+    font-size:11px;
+    color:rgba(255,255,255,.88);
+}
+.contact-info div{
+    display:flex;
+    align-items:flex-start;
+    gap:9px;
+}
+.contact-info i{
+    width:18px;
+    flex:0 0 18px;
+    text-align:center;
+    color:#9bd0ff;
+    margin-top:2px;
+}
+.social-footer{
+    display:grid;
+    grid-template-columns:repeat(2,minmax(0,1fr));
+    gap:9px;
+    align-content:start;
+}
+.social-footer a{
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    gap:7px;
+    min-width:0;
+    padding:10px 9px;
+    border:1px solid rgba(255,255,255,.16);
+    border-radius:12px;
+    color:#fff;
+    text-decoration:none;
+    background:rgba(255,255,255,.10);
+    font-size:10px;
+    font-weight:800;
+    transition:.2s ease;
+}
+.social-footer a:hover{
+    background:rgba(255,255,255,.18);
+    transform:translateY(-1px);
+}
+.footer-bottom{
+    margin-top:20px;
+    padding-top:15px;
+    border-top:1px solid rgba(255,255,255,.13);
+    text-align:center;
+    font-size:9px;
+    line-height:1.5;
+    color:rgba(255,255,255,.58);
+}
+
+/* Desktop: content full width; sidebar is a closed drawer */
+@media (min-width:901px){
+    .menu-toggle{
+        display:flex !important;
+        align-items:center;
+        justify-content:center;
+        width:40px;
+        height:40px;
+        padding:0;
+        border-radius:10px;
+        cursor:pointer;
+    }
+    .appbar{
+        margin-left:0 !important;
+        padding-left:20px !important;
+        padding-right:20px !important;
+    }
+    .sidebar{
+        left:-300px !important;
+        width:280px;
+        box-shadow:none;
+    }
+    .sidebar.active{
+        left:0 !important;
+        box-shadow:15px 0 35px rgba(0,0,0,.30);
+    }
+    .sidebar-overlay{display:none !important}
+    .sidebar-overlay.drawer-open{display:block !important}
+    .section{
+        left:0 !important;
+        width:100% !important;
+        padding-left:18px;
+        padding-right:18px;
+        padding-bottom:45px;
+    }
+    .school-hero{
+        width:100%;
+        max-width:1200px;
+        margin:24px auto 0;
+        min-height:360px;
+    }
+    .landing-welcome{
+        width:100%;
+        max-width:1200px;
+        margin:0 auto;
+    }
+    .landing-features{
+        width:100%;
+        max-width:1200px;
+        margin:0 auto;
+        grid-template-columns:repeat(3,minmax(0,1fr));
+    }
+    #grid-lembaga{
+        width:100%;
+        max-width:1000px;
+        margin-left:auto;
+        margin-right:auto;
+    }
+    .school-majors,
+    .school-contact-footer{
+        margin-left:auto;
+        margin-right:auto;
+    }
+}
+
+/* Tablet / Android */
+@media (max-width:900px){
+    .section{
+        padding-left:0;
+        padding-right:0;
+        padding-bottom:105px;
+    }
+    .school-hero{
+        margin-left:14px;
+        margin-right:14px;
+        min-height:340px;
+    }
+    .landing-welcome{
+        padding-left:16px;
+        padding-right:16px;
+    }
+    .landing-features{
+        grid-template-columns:repeat(2,minmax(0,1fr));
+        padding-left:16px;
+        padding-right:16px;
+    }
+    .school-majors{
+        padding-left:16px;
+        padding-right:16px;
+    }
+    .school-majors-grid{
+        grid-template-columns:repeat(2,minmax(0,1fr));
+    }
+    .school-contact-footer{
+        margin-left:16px;
+        margin-right:16px;
+        width:calc(100% - 32px);
+    }
+    .contact-footer-grid{
+        grid-template-columns:1fr;
+    }
+}
+
+/* Small Android phones */
+@media (max-width:520px){
+    .section{
+        padding-bottom:110px;
+    }
+    .school-hero{
+        margin:12px 12px 0;
+        min-height:365px;
+        border-radius:26px;
+    }
+    .school-hero-content{
+        padding:27px 22px;
+    }
+    .school-hero h1{
+        font-size:31px;
+        line-height:1.12;
+    }
+    .hero-actions{
+        gap:8px;
+    }
+    .hero-btn{
+        min-height:42px;
+        padding:10px 11px;
+        font-size:10px;
+    }
+    .landing-welcome{
+        padding:22px 14px 4px;
+    }
+    .landing-welcome h2{
+        font-size:20px;
+    }
+    .landing-features{
+        grid-template-columns:1fr;
+        padding:14px 14px 0;
+    }
+    .school-majors{
+        padding:0 12px;
+        margin-top:24px;
+    }
+    .school-majors-grid{
+        grid-template-columns:1fr;
+        gap:11px;
+    }
+    .school-major-card{
+        padding:14px;
+    }
+    .school-contact-footer{
+        margin:25px 12px 20px;
+        width:calc(100% - 24px);
+        padding:21px 16px 24px;
+        border-radius:20px;
+    }
+    .social-footer{
+        grid-template-columns:repeat(2,minmax(0,1fr));
+    }
+}
+
 </style>
 </head>
 
@@ -210,15 +696,98 @@ body{background:var(--bg);color:var(--text-dark);overflow-x:hidden;overscroll-be
         <div style="margin-bottom: 25px; padding: 0 15px;"><h4 style="font-size: 16px; font-weight: 800; color: white; margin:0;">PRIDA SCHOOL</h4><p style="font-size: 10px; color: rgba(255,255,255,0.5);">Excellence in Technology</p></div>
 
         <div style="display: flex; flex-direction: column; gap: 4px; padding: 0 9px;">
-            <div class="sidebar-item active" onclick="showSection('profil', this); toggleSidebar()"><i class="fa-solid fa-house-user"></i> Beranda Utama</div>
-            <div class="sidebar-item" onclick="toggleSidebar()"><i class="fa-solid fa-user-gear"></i> Pengaturan</div>
-            <div class="sidebar-item" onclick="toggleSidebar()"><i class="fa-solid fa-bell"></i> Notifikasi</div>
-            <div class="sidebar-item" onclick="handleLogout()" style="color: #ff6b6b;"><i class="fa-solid fa-power-off"></i> Logout</div>
+            <div class="desktop-nav-title">Menu Utama</div>
+
+            <div class="sidebar-item desktop-nav-item active" data-section="profil"
+                 onclick="navigateFromSidebar('profil', this)">
+                <i class="fa-solid fa-house"></i> Beranda
+            </div>
+            <div class="sidebar-item desktop-nav-item" data-section="layanan"
+                 onclick="navigateFromSidebar('layanan', this)">
+                <i class="fa-solid fa-briefcase"></i> Layanan
+            </div>
+            <div class="sidebar-item desktop-nav-item" data-section="literasi"
+                 onclick="navigateFromSidebar('literasi', this)">
+                <i class="fa-solid fa-book-open"></i> Literasi
+            </div>
+            <div class="sidebar-item desktop-nav-item" data-section="media"
+                 onclick="navigateFromSidebar('media', this)">
+                <i class="fa-solid fa-clapperboard"></i> Media
+            </div>
+
+            <div style="height:1px;background:rgba(255,255,255,.08);margin:14px 6px;"></div>
+
+            <!-- LOGIN: hanya tampil saat belum login -->
+            <div class="sidebar-item" id="sidebarLoginBtn" onclick="openLogin()">
+                <i class="fa-solid fa-right-to-bracket"></i> Login
+            </div>
+
+            <!-- LOGOUT: hanya tampil saat sudah login -->
+            <div class="sidebar-item" id="sidebarLogoutBtn" onclick="handleLogout()" style="color: #ff6b6b; display:none;">
+                <i class="fa-solid fa-power-off"></i> Logout
+            </div>
         </div>
     </div>
 
         <!-- Content Sections -->
         <div class="section active" id="profil">
+            <div class="school-hero">
+                <div class="school-hero-content">
+                    <div class="hero-badge"><i class="fa-solid fa-graduation-cap"></i> Portal Digital Sekolah</div>
+                    <h1>SMK PGRI 2 <span>Kedondong</span></h1>
+                    <p>
+                        Selamat datang di portal digital sekolah. Temukan informasi kelembagaan,
+                        layanan akademik, literasi digital, serta media sekolah dalam satu tempat
+                        yang mudah diakses.
+                    </p>
+                    <div class="hero-actions">
+                        <button class="hero-btn primary" onclick="openDynamicContent('Identitas Sekolah')">
+                            <i class="fa-solid fa-school"></i> Profil Sekolah
+                        </button>
+                        <button class="hero-btn" onclick="openDynamicContent('Jurusan SMK')">
+                            <i class="fa-solid fa-microchip"></i> Program Keahlian
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <div class="landing-welcome">
+                <h2>Selamat Datang 👋</h2>
+                <p>
+                    Portal ini dirancang sebagai pintu masuk informasi dan layanan digital
+                    SMK PGRI 2 Kedondong. Gunakan menu utama di bawah untuk mengenal sekolah
+                    dan mengakses berbagai layanan yang tersedia.
+                </p>
+            </div>
+
+            <div class="landing-features">
+                <div class="landing-feature">
+                    <i class="fa-solid fa-building-columns"></i>
+                    <strong>Profil & Kelembagaan</strong>
+                    <span>Kenali sejarah, identitas, PTK, dan program keahlian sekolah.</span>
+                </div>
+                <div class="landing-feature">
+                    <i class="fa-solid fa-laptop-code"></i>
+                    <strong>Layanan Digital</strong>
+                    <span>Akses layanan akademik dan fitur digital sekolah dengan praktis.</span>
+                </div>
+                <div class="landing-feature">
+                    <i class="fa-solid fa-photo-film"></i>
+                    <strong>Informasi & Media</strong>
+                    <span>Ikuti informasi, literasi digital, media sosial, dan galeri sekolah.</span>
+                </div>
+            </div>
+
+            <div class="school-majors">
+                <div class="section-title" style="margin-left:0;margin-right:0;">Jurusan / Program Keahlian</div>
+                <div class="school-majors-grid">
+                    <div class="school-major-card" onclick="openDynamicContent('Jurusan SMK')"><div class="school-major-icon"><i class="fa-solid fa-car-side"></i></div><div><strong>TKR</strong><span>Teknik Kendaraan Ringan</span></div></div>
+                    <div class="school-major-card" onclick="openDynamicContent('Jurusan SMK')"><div class="school-major-icon"><i class="fa-solid fa-motorcycle"></i></div><div><strong>TSM</strong><span>Teknik Sepeda Motor</span></div></div>
+                    <div class="school-major-card" onclick="openDynamicContent('Jurusan SMK')"><div class="school-major-icon"><i class="fa-solid fa-network-wired"></i></div><div><strong>TKJ</strong><span>Teknik Komputer dan Jaringan</span></div></div>
+                    <div class="school-major-card" onclick="openDynamicContent('Jurusan SMK')"><div class="school-major-icon"><i class="fa-solid fa-tv"></i></div><div><strong>TAV</strong><span>Teknik Audio Video</span></div></div>
+                    </div>
+            </div>
+
             <div class="section-title">Kelembagaan</div>
             <div class="menu-grid" id="grid-lembaga">
                 <div class="menu-card static-item" onclick="openDynamicContent('Sejarah Lembaga')"><div class="icon-box" style="background: #eef2ff; color: #4338ca;"><i class="fa-solid fa-clock-rotate-left"></i></div><span>Sejarah Lembaga</span></div>
@@ -226,17 +795,45 @@ body{background:var(--bg);color:var(--text-dark);overflow-x:hidden;overscroll-be
                 <div class="menu-card static-item" onclick="fetchAndShowPTK()"><div class="icon-box" style="background: #ecfdf5; color: #047857;"><i class="fa-solid fa-chalkboard-user"></i></div><span>Daftar PTK</span></div>
                 <div class="menu-card static-item" onclick="openDynamicContent('Jurusan SMK')"><div class="icon-box" style="background: #fff7ed; color: #b45309;"><i class="fa-solid fa-microchip"></i></div><span>Jurusan SMK</span></div>
             </div>
-            <div class="section-title">Akademik & Siswa</div>
-            <div class="menu-grid" id="grid-profil">
+
+            <footer class="school-contact-footer">
+                <h2>Hubungi Kami</h2>
+                <p>Silakan hubungi dan ikuti media sosial sekolah untuk mendapatkan informasi terbaru SMK PGRI 2 Kedondong.</p>
+                <div class="contact-footer-grid">
+                    <div class="contact-info">
+                        <div><i class="fa-solid fa-school"></i><span><strong>SMK PGRI 2 Kedondong</strong></span></div>
+                        <div><i class="fa-solid fa-location-dot"></i><span>Jl. Tritura Kedondong, Kec. Kedondong, Kab. Pesawaran, Lampung 35381</span></div>
+                        <div><i class="fa-solid fa-envelope"></i><span>Hubungi sekolah melalui kanal resmi yang tersedia.</span></div>
+                    </div>
+                    <div class="social-footer" aria-label="Media sosial sekolah">
+                        <a href="https://www.instagram.com/smkpgri2kdd/" target="_blank" rel="noopener" aria-label="Instagram"><i class="fa-brands fa-instagram"></i> Instagram</a>
+                        <a href="https://www.facebook.com/" target="_blank" rel="noopener" aria-label="Facebook"><i class="fa-brands fa-facebook-f"></i> Facebook</a>
+                        <a href="https://whatsapp.com/channel/0029VbAdeE6AInPmCmeupj3Z" target="_blank" rel="noopener" aria-label="WhatsApp"><i class="fa-brands fa-whatsapp"></i> WhatsApp</a>
+			<a href="https://www.tiktok.com/@smkpgri2kdd?_r=1&_t=ZS-99hN2VYkopM" target="_blank" rel="noopener" aria-label="TikTok"><i class="fa-brands fa-tiktok"></i> TikTok</a>
+                    </div>
+                </div>
+                <div class="footer-bottom">© 2026 SMK PGRI 2 Kedondong · Portal Digital Sekolah</div>
+            </footer>
+            </div>
+        </div>
+
+        <div class="section" id="layanan">
+	<div class="section-title">Akademik & Siswa</div>
+	<div class="menu-grid" id="grid-profil">
                 <div class="menu-card static-item" onclick="window.location.href='exambro.html'"><div class="icon-box"><i class="fa-solid fa-laptop-code"></i></div><span>Ujian (Exambro)</span></div>
                 <div class="menu-card static-item" onclick="openDynamicContent('Tracer Alumni')"><div class="icon-box"><i class="fa-solid fa-location-dot"></i></div><span>Tracer Alumni</span></div>
                 <div class="menu-card static-item" onclick="openPengumuman()"><div class="icon-box"><i class="fa-solid fa-bullhorn"></i></div><span>Pengumuman</span></div>
             </div>
-            <div class="section-title">Game Edukasi</div><div class="menu-grid" id="grid-game"></div>
-        </div>
+	<div id="public-service-container" style="display:none;">
+        <div class="section-title">Layanan Publik</div>
+        <div class="menu-grid" id="grid-layanan"></div>
+    </div>
 
-        <div class="section" id="layanan"><div class="section-title">Layanan Publik</div><div class="menu-grid" id="grid-layanan"></div></div>
-        <div class="section" id="literasi"><div class="section-title">Literasi Digital</div><div class="menu-grid" id="grid-literasi"></div></div>
+	</div>
+
+
+
+        <div class="section" id="literasi"><div class="section-title">Literasi Digital</div><div class="menu-grid" id="grid-literasi"></div>	<div class="section-title">Game Edukasi</div><div class="menu-grid" id="grid-game"></div></div>
         <div class="section" id="media"><div class="section-title">Media Sosial</div><div class="menu-grid" id="grid-media"></div><div class="section-title">Galeri Video</div><div class="video-list" id="video-profil"></div></div>
         <div class="swipe-indicator" id="swipeIndicator"><div class="swipe-dot active"></div><div class="swipe-dot"></div><div class="swipe-dot"></div><div class="swipe-dot"></div></div>
         <div class="nav-wrapper">
@@ -307,35 +904,109 @@ body{background:var(--bg);color:var(--text-dark);overflow-x:hidden;overscroll-be
 
         // --- AUTH SYSTEM ---
         function handleLogin() {
-            const user = document.getElementById('usernameInput').value;
+            const user = document.getElementById('usernameInput').value.trim();
             const pass = document.getElementById('passwordInput').value;
-            if (user.trim() !== "" && pass === "12345") {
+
+            if (user !== "" && pass === "12345") {
                 localStorage.setItem('isLoggedIn', 'true');
                 localStorage.setItem('currentUserName', user);
-                initApp();
+
+                document.getElementById('login-screen').style.display = 'none';
+
+                updateLoginUI(true);
+                updatePublicServiceVisibility();
+
+                document.getElementById('displayUserName').innerText = user;
+
+                fetchSpreadsheetData();
+                updateNetwork();
+
+                showToast("Login berhasil");
             } else {
                 alert("Nama pengguna atau password salah");
             }
         }
 
-        function handleLogout() {
-            localStorage.removeItem('isLoggedIn');
-            localStorage.removeItem('currentUserName');
-            location.reload();
+        function openLogin() {
+            const loginScreen = document.getElementById('login-screen');
+
+            // Tutup sidebar jika masih terbuka
+            const sidebar = document.getElementById('sidebar');
+            const overlay = document.getElementById('sidebarOverlay');
+            if (sidebar) sidebar.classList.remove('active');
+            if (overlay) {
+                overlay.style.display = 'none';
+                overlay.classList.remove('drawer-open');
+            }
+
+            loginScreen.style.display = 'flex';
+
+            document.getElementById('usernameInput').value = '';
+            document.getElementById('passwordInput').value = '';
+
+            setTimeout(() => {
+                document.getElementById('usernameInput').focus();
+            }, 100);
         }
 
-        function initApp() {
-            if (localStorage.getItem('isLoggedIn') === 'true') {
-                document.getElementById('login-screen').style.display = 'none';
-                document.getElementById('main-app').style.display = 'block';
-                document.getElementById('displayUserName').innerText = localStorage.getItem('currentUserName');
-                const savedAvatar = localStorage.getItem('userProfileAvatar');
-                if (savedAvatar) updateAvatarUI(savedAvatar);
-                fetchSpreadsheetData();
-                updateNetwork();
+        function updateLoginUI(isLoggedIn) {
+            const loginBtn = document.getElementById('sidebarLoginBtn');
+            const logoutBtn = document.getElementById('sidebarLogoutBtn');
+            const userName = localStorage.getItem('currentUserName');
+
+            if (loginBtn) {
+                loginBtn.style.display = isLoggedIn ? 'none' : 'flex';
+            }
+
+            if (logoutBtn) {
+                logoutBtn.style.display = isLoggedIn ? 'flex' : 'none';
+            }
+
+            const displayName = document.getElementById('displayUserName');
+            if (displayName) {
+                displayName.innerText = userName || 'Pengunjung';
             }
         }
 
+        function updatePublicServiceVisibility() {
+            const container = document.getElementById('public-service-container');
+            if (!container) return;
+
+            const isLoggedIn = localStorage.getItem('isLoggedIn') === 'true';
+            container.style.display = isLoggedIn ? 'block' : 'none';
+        }
+
+        function handleLogout() {
+            localStorage.removeItem('isLoggedIn');
+            localStorage.removeItem('currentUserName');
+
+            // Tetap di aplikasi publik, tanpa kembali ke layar login.
+            document.getElementById('login-screen').style.display = 'none';
+
+            updateLoginUI(false);
+            updatePublicServiceVisibility();
+
+            showToast("Anda telah logout");
+        }
+
+        function initApp() {
+            document.getElementById('main-app').style.display = 'block';
+
+            const isLoggedIn = localStorage.getItem('isLoggedIn') === 'true';
+
+            document.getElementById('login-screen').style.display = 'none';
+
+            const savedAvatar = localStorage.getItem('userProfileAvatar');
+            if (savedAvatar) {
+                updateAvatarUI(savedAvatar);
+            }
+
+            updateLoginUI(isLoggedIn);
+            updatePublicServiceVisibility();
+
+            fetchSpreadsheetData();
+            updateNetwork();
+        }
 
         async function fetchAndShowPTK() {
             openModal('Daftar PTK', 'Memuat data guru...');
@@ -366,16 +1037,63 @@ body{background:var(--bg);color:var(--text-dark);overflow-x:hidden;overscroll-be
             }
             nextSection.classList.add('active');
             document.querySelectorAll('.nav-item').forEach(b => b.classList.remove('active'));
-            el.classList.add('active');
+            if (el) el.classList.add('active');
+
+            document.querySelectorAll('.desktop-nav-item').forEach(item => {
+                item.classList.toggle('active', item.dataset.section === id);
+            });
+
             document.querySelectorAll('.swipe-dot').forEach((dot, i) => dot.classList.toggle('active', i === newIndex));
             currentTabIndex = newIndex;
+        }
+
+        function navigateFromSidebar(id, el) {
+            const target = document.getElementById(id);
+            if (!target) return;
+
+            const navItems = document.querySelectorAll('.nav-item');
+            const index = sectionIds.indexOf(id);
+            const navTarget = navItems[index];
+
+            if (window.innerWidth <= 900) {
+                showSection(id, navTarget || el);
+                toggleSidebar();
+                return;
+            }
+
+            // Desktop: sidebar menjadi drawer; tutup setelah menu dipilih.
+            if (window.innerWidth > 900) {
+                const sidebar = document.getElementById('sidebar');
+                const overlay = document.getElementById('sidebarOverlay');
+                if (sidebar) sidebar.classList.remove('active');
+                if (overlay) overlay.classList.remove('drawer-open');
+            }
+            const currentSection = document.querySelector('.section.active');
+            if (currentSection && currentSection.id !== id) {
+                currentSection.classList.remove('active', 'exit-left', 'exit-right');
+            }
+            target.classList.add('active');
+            currentTabIndex = index >= 0 ? index : currentTabIndex;
+
+            document.querySelectorAll('.desktop-nav-item').forEach(item => item.classList.remove('active'));
+            if (el) el.classList.add('active');
+
+            document.querySelectorAll('.nav-item').forEach(item => item.classList.remove('active'));
+            if (navTarget) navTarget.classList.add('active');
+
+            document.querySelectorAll('.swipe-dot').forEach((dot, i) => dot.classList.toggle('active', i === currentTabIndex));
         }
 
         function toggleSidebar() {
             const s = document.getElementById('sidebar');
             const o = document.getElementById('sidebarOverlay');
+            if (!s || !o) return;
             const active = s.classList.toggle('active');
-            o.style.display = active ? 'block' : 'none';
+            if (window.innerWidth > 900) {
+                o.classList.toggle('drawer-open', active);
+            } else {
+                o.style.display = active ? 'block' : 'none';
+            }
         }
 
 
@@ -437,7 +1155,7 @@ body{background:var(--bg);color:var(--text-dark);overflow-x:hidden;overscroll-be
         </div>
     `);
 }
-		function cariKelulusan() {
+	function cariKelulusan() {
     const nama = document.getElementById('namaKelulusan').value;
     const kelas = document.getElementById('kelasKelulusan').value;
     const box = document.getElementById('hasilKelulusan');
@@ -564,11 +1282,9 @@ body{background:var(--bg);color:var(--text-dark);overflow-x:hidden;overscroll-be
 	document.getElementById('passwordInput').addEventListener('keypress', function (e) {if (e.key === 'Enter') handleLogin();});
 // Pastikan aplikasi langsung masuk jika sudah pernah login
 window.addEventListener('DOMContentLoaded', () => {
-    if (localStorage.getItem('isLoggedIn') === 'true') {
-        document.getElementById('login-screen').style.display = 'none';
-        document.getElementById('main-app').style.display = 'block';
-        initApp();
-    }
+    // Aplikasi selalu terbuka tanpa login.
+    // Login hanya diperlukan untuk Layanan Publik.
+    initApp();
 });
 
 
@@ -631,6 +1347,13 @@ function renderData(data) {
             const container = document.getElementById(sectionId);
 
             if (container) {
+
+                // Layanan Publik hanya boleh dibuat setelah login.
+                if (sectionId === 'grid-layanan' &&
+                    localStorage.getItem('isLoggedIn') !== 'true') {
+                    return;
+                }
+
                 const card = document.createElement('div');
                 card.className = 'menu-card';
                 card.innerHTML = `
@@ -639,6 +1362,14 @@ function renderData(data) {
                 `;
                 
                 card.onclick = () => {
+
+                    // Pengamanan tambahan: Layanan Publik hanya untuk pengguna login.
+                    if (sectionId === 'grid-layanan' &&
+                        localStorage.getItem('isLoggedIn') !== 'true') {
+                        showToast('Silakan login untuk mengakses Layanan Publik');
+                        return;
+                    }
+
                     if (targetUrl) {
                         openExternalLink(targetUrl);
                     } else {

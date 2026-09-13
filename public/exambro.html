@@ -497,7 +497,7 @@
         </div>
     </div>
 
-    <!-- Panel Sinkronisasi -->
+<!-- Panel Sinkronisasi -->
     <div class="bg-white p-6 md:p-8 rounded-[2rem] md:rounded-[2.5rem] border mb-8 shadow-sm">
         <div class="flex flex-col md:flex-row items-stretch md:items-end space-y-4 md:space-y-0 md:space-x-4">
             <div class="flex-grow">
@@ -508,15 +508,28 @@
                         placeholder="https://docs.google.com/spreadsheets/d/...">
                     <div class="absolute left-4 top-1/2 -translate-y-1/2 text-slate-300">
                         <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1" />
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 005.656-5.656l-1.1 1.1" />
                         </svg>
                     </div>
                 </div>
             </div>
-            <button id="btn-sync-sheet" onclick="saveAndSyncSheet()" 
-                class="bg-emerald-600 text-white px-8 py-4 rounded-2xl font-black text-xs shadow-xl shadow-emerald-100 flex items-center hover:bg-emerald-700 active:scale-95 transition-all justify-center">
-                <span id="sync-text">SIMPAN & SINKRON</span>
-            </button>
+
+            <!-- KELOMPOK TOMBOL (SIMPAN & SINKRON DAN HAPUS DATA) -->
+            <div class="flex flex-col sm:flex-row gap-3">
+                <button id="btn-sync-sheet" onclick="saveAndSyncSheet()" 
+                    class="bg-emerald-600 text-white px-8 py-4 rounded-2xl font-black text-xs shadow-xl shadow-emerald-100 flex items-center hover:bg-emerald-700 active:scale-95 transition-all justify-center whitespace-nowrap">
+                    <span id="sync-text">SIMPAN & SINKRON</span>
+                </button>
+
+                <!-- TOMBOL HAPUS DATA SISWA SEMENTARA/PERMANEN -->
+                <button id="btn-clear-students" onclick="clearStudentDatabase()" 
+                    class="bg-rose-600 text-white px-6 py-4 rounded-2xl font-black text-xs shadow-xl shadow-rose-100 flex items-center hover:bg-rose-700 active:scale-95 transition-all justify-center whitespace-nowrap">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                    </svg>
+                    <span>HAPUS DATA SISWA</span>
+                </button>
+            </div>
         </div>
     </div>
 
@@ -1049,6 +1062,47 @@ async function saveAndSyncSheet() {
         showNotify(`Sinkronisasi Berhasil! ${userRows.length} data siswa diperbarui.`, "success"); await syncAdminStudentData(); if (typeof loadKelas === "function") loadKelas();
     } catch (e) { console.error(e); showNotify("Gagal Sinkron: " + e.message, "error"); } finally { btn.disabled = false; btnText.textContent = "SIMPAN & SINKRON"; }
 }
+
+async function clearStudentDatabase() {
+    // 1. Konfirmasi Keamanan Pertama
+    const confirmFirst = confirm("Apakah Anda yakin ingin MENGHAPUS SELURUH data siswa di database?");
+    if (!confirmFirst) return;
+
+    // 2. Konfirmasi Keamanan Kedua
+    const confirmSecond = confirm("Tindakan ini tidak bisa dibatalkan! Semua akun siswa akan terhapus. Lanjutkan?");
+    if (!confirmSecond) return;
+
+    const btn = document.getElementById('btn-clear-students');
+    btn.disabled = true;
+    btn.innerHTML = "MENGHAPUS...";
+
+    try {
+        // 3. Eksekusi Hapus Semua Baris dari Tabel 'users' Supabase
+        const { error } = await db.from('users').delete().neq('nis', '000000'); // Menghapus semua data yang memilik NIS
+
+        if (error) throw error;
+
+        // 4. Reset Cache & Refresh UI
+        localStorage.removeItem('admin_student_count');
+        showNotify("Seluruh data siswa berhasil dihapus dari database!", "success");
+
+        await syncAdminStudentData();
+        if (typeof loadKelas === "function") loadKelas();
+
+    } catch (e) {
+        console.error(e);
+        showNotify("Gagal menghapus data siswa: " + e.message, "error");
+    } finally {
+        btn.disabled = false;
+        btn.innerHTML = `
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+            </svg>
+            <span>HAPUS DATA SISWA</span>`;
+    }
+}
+
+
 
 async function saveExam() {
     const id = document.getElementById('edit-exam-id').value, nodes = document.querySelectorAll('input[name="target-kelas"]:checked'), selectedClasses = Array.from(nodes).map(node => node.value).join(', ');

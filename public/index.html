@@ -16,7 +16,7 @@
     <meta name="background-color" content="#001d3d">
 
 <script>
-    const APP_VERSION = '1.1.1';
+    const APP_VERSION = '1.1.2';
     async function initPWA() {
         const savedVersion = localStorage.getItem('app_version');
         if (savedVersion !== APP_VERSION) {
@@ -669,7 +669,7 @@ body{background:var(--bg);color:var(--text-dark);overflow-x:hidden;overscroll-be
         <div class="login-card">
             <div class="login-logo"><i class="fa-solid fa-graduation-cap"></i></div><h2>PRIDA Mobile</h2><p>Solusi Akademik Digital Terpadu</p>
             <div class="input-group"><i class="fa-solid fa-circle-user"></i><input type="text" id="usernameInput" placeholder="Nama Pengguna" autocomplete="off"></div>
-            <div class="input-group"><i class="fa-solid fa-shield-halved"></i><input type="password" id="passwordInput" placeholder="Password (12345)"></div>
+            <div class="input-group"><i class="fa-solid fa-shield-halved"></i><input type="password" id="passwordInput" placeholder="Password"></div>
             <button class="login-btn" onclick="handleLogin()">MASUK SEKARANG</button>
         </div>
     </div>
@@ -907,7 +907,7 @@ body{background:var(--bg);color:var(--text-dark);overflow-x:hidden;overscroll-be
             const user = document.getElementById('usernameInput').value.trim();
             const pass = document.getElementById('passwordInput').value;
 
-            if (user !== "" && pass === "12345") {
+            if (user !== "" && pass === "stm2kdd") {
                 localStorage.setItem('isLoggedIn', 'true');
                 localStorage.setItem('currentUserName', user);
 

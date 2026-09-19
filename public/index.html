@@ -16,7 +16,7 @@
     <meta name="background-color" content="#001d3d">
 
 <script>
-    const APP_VERSION = '1.1.4';
+    const APP_VERSION = '1.1.5';
     async function initPWA() {
         const savedVersion = localStorage.getItem('app_version');
         if (savedVersion !== APP_VERSION) {
@@ -1284,25 +1284,32 @@ body{background:var(--bg);color:var(--text-dark);overflow-x:hidden;overscroll-be
 
 // Pastikan aplikasi langsung masuk jika sudah pernah login
 window.addEventListener('DOMContentLoaded', () => {
-    // Aplikasi selalu terbuka tanpa login.
-    // Login hanya diperlukan untuk Layanan Publik.
     initApp();
 
-    // TAMBAHAN: Kembalikan ke menu terakhir setelah refresh
+    // 1. Mengembalikan menu navigasi yang aktif (Jawaban sebelumnya)
     const savedMenu = localStorage.getItem('activeMenuSection');
     if (savedMenu && savedMenu !== 'profil') {
-        // Cari elemen nav bawah yang sesuai dengan ID menu
         const targetNavElement = document.querySelector(`.nav-item[onclick*="'${savedMenu}'"]`);
-        // Buka menu tersebut
         showSection(savedMenu, targetNavElement);
-        
-        // Khusus Desktop: Sesuaikan indikator sidebar
         document.querySelectorAll('.desktop-nav-item').forEach(item => {
             item.classList.toggle('active', item.dataset.section === savedMenu);
         });
     }
-});
 
+    // 2. TAMBAHAN BARU: Mengembalikan Link / Konten Modal yang sedang terbuka
+    const savedModal = sessionStorage.getItem('savedModalState');
+    if (savedModal) {
+        const state = JSON.parse(savedModal);
+        // Hapus history sementara agar tombol back hp tidak error jika di refresh berulang kali
+        sessionStorage.removeItem('savedModalState'); 
+        
+        if (state.type === 'iframe') {
+            openExternalLink(state.url);
+        } else if (state.type === 'html') {
+            openModal(state.title, state.content);
+        }
+    }
+});
 
 function playInPlace(container, url) {
     const videoId = url.match(/(?:youtu\.be\/|youtube\.com\/(?:embed\/|v\/|watch\?v=|watch\?.+&v=))([^#&?]*)/)?.[1];
@@ -1421,7 +1428,6 @@ function renderData(data) {
 
 // 2. Fungsi Khusus Membuka Link (Full Layar & Iframe)
 function openExternalLink(url) {
-    // Daftar website yang HARAM dibuka di Iframe (pasti putih/error)
     const blockedSites = [
         'facebook.com', 'instagram.com', 'youtube.com', 'google.com', 
         'twitter.com', 'shopee', 'tokopedia', 'tiktok.com', 'wa.me', 't.me'
@@ -1430,13 +1436,8 @@ function openExternalLink(url) {
     const isBlocked = blockedSites.some(site => url.toLowerCase().includes(site));
 
     if (isBlocked) {
-        // JIKA LINK MEMBLOKIR IFRAME:
-        // Langsung pindah halaman di jendela yang sama.
-        // Pada PWA yang sudah di-install, ini akan tetap Full Screen tanpa bar URL.
         window.location.href = url;
     } else {
-        // JIKA LINK AMAN (Web Sekolah/Lainnya):
-        // Buka di dalam Modal Full Screen aplikasi
         const modalBody = document.getElementById('modalBody');
         modalBody.classList.add('no-padding');
         modalBody.innerHTML = `
@@ -1450,18 +1451,19 @@ function openExternalLink(url) {
             </iframe>`;
         
         document.getElementById('contentModal').style.display = 'flex';
-        // Simpan state agar tombol back HP bisa menutup modal
         history.pushState({ modalOpen: true }, "");
+        sessionStorage.setItem('savedModalState', JSON.stringify({ type: 'iframe', url: url }));
     }
 }
 
 // 3. Update fungsi openModal standar agar mengembalikan padding
 function openModal(title, content) {
     const modalBody = document.getElementById('modalBody');
-    modalBody.classList.remove('no-padding'); // Kembalikan padding untuk teks biasa
+    modalBody.classList.remove('no-padding'); 
     modalBody.innerHTML = content;
     document.getElementById('contentModal').style.display = 'flex';
     history.pushState({ modalOpen: true }, "");
+    sessionStorage.setItem('savedModalState', JSON.stringify({ type: 'html', title: title, content: content }));
 }
 		
 function closeModal() {
@@ -1469,6 +1471,7 @@ function closeModal() {
     if (modal.style.display === 'flex') {
         modal.style.display = 'none';
         document.getElementById('modalBody').innerHTML = '';
+        sessionStorage.removeItem('savedModalState');
     }
 }
 

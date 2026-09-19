@@ -1586,7 +1586,7 @@ async function startStudentBroadcast() {
 function captureSnapshot() {
     const video = document.getElementById('self-video'); if (!video || video.readyState < 2) return null;
     try { sharedCanvas.width = 160; sharedCanvas.height = 120; sharedCtx.drawImage(video, 0, 0, sharedCanvas.width, sharedCanvas.height); // Tetap di resolusi rendah untuk efisiensi bandwidth
-        return sharedCanvas.toDataURL('image/jpeg', 0.5); // Kualitas 0.5 sangat kecil ukurannya (sekitar 3-5 KB per gambar)
+        return sharedCanvas.toDataURL('image/jpeg', 0.2); // Kualitas 0.2 sangat kecil ukurannya (sekitar 3-5 KB per gambar)
     } catch (e) { return null; }
 }
 

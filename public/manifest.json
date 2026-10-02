@@ -1,7 +1,7 @@
 {
   "name": "PRIDA Mobile",
   "short_name": "STM2KDD",
-  "start_url": "/index.html",
+  "start_url": "/notife.html",
   "scope": "/",
   "display": "standalone",
   "background_color": "#001d3d",

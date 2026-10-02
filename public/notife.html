@@ -1,0 +1,400 @@
+﻿<!DOCTYPE html>
+<html lang="id" class="h-full bg-slate-100">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Firebase Console - Quota Exceeded (429 RESOURCE_EXHAUSTED)</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Google+Sans:wght@400;500;700&family=Roboto+Mono:wght@400;500&family=Roboto:wght@300;400;500;700&display=swap" rel="stylesheet">
+    <script src="https://unpkg.com/@phosphor-icons/web"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Google Sans', 'Roboto', 'Inter', 'sans-serif'],
+                        mono: ['Roboto Mono', 'monospace'],
+                    },
+                    colors: {
+                        google: {
+                            blue: '#1a73e8',
+                            hoverBlue: '#1557b0',
+                            red: '#d93025',
+                            redLight: '#fce8e6',
+                            yellow: '#f9ab00',
+                            green: '#1e8e3e',
+                            gray: '#5f6368',
+                            lightBg: '#f8f9fa',
+                            border: '#dadce0',
+                            sidebar: '#202124'
+                        },
+                        firebase: {
+                            amber: '#FFCA28',
+                            orange: '#FFA000',
+                            navy: '#1A73E8',
+                            dark: '#051E34'
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        body { font-family: 'Roboto', 'Google Sans', sans-serif; }
+        .google-card {
+            background: #ffffff;
+            border: 1px solid #dadce0;
+            border-radius: 8px;
+        }
+        .code-block {
+            font-family: 'Roboto Mono', monospace;
+            background-color: #282c34;
+            color: #abb2bf;
+        }
+    </style>
+</head>
+<body class="h-full text-slate-800 bg-[#f8f9fa] flex flex-col justify-between antialiased selection:bg-blue-100 selection:text-blue-900">
+
+    <!-- Top Navigation Bar (Official Firebase Console Style) -->
+    <header class="w-full bg-[#1a73e8] text-white px-4 py-2.5 shadow-sm flex items-center justify-between sticky top-0 z-30">
+        <div class="flex items-center space-x-3">
+            <button class="p-1.5 hover:bg-white/10 rounded-full transition-colors text-white" title="Main Menu">
+                <i class="ph-bold ph-list text-xl"></i>
+            </button>
+            <div class="flex items-center space-x-2">
+                <!-- Firebase Flame SVG -->
+                <svg class="w-6 h-6" viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <path d="M5.83 23.36L13.1 3.22C13.37 2.47 14.43 2.47 14.7 3.22L17.2 10.12L5.83 23.36Z" fill="#FFC107"/>
+                    <path d="M17.15 10.16L19.98 2.23C20.24 1.5 21.26 1.51 21.51 2.25L26.17 15.35L17.15 10.16Z" fill="#FF3D00"/>
+                    <path d="M5.83 23.36L16.27 12.19C16.63 11.8 17.25 11.95 17.41 12.46L20.08 21.05L16.67 28.67C16.3 29.5 15.11 29.47 14.78 28.62L5.83 23.36Z" fill="#4CAF50" class="hidden"/>
+                    <path d="M16.52 29.52C16.14 29.9 15.52 29.87 15.18 29.46L4.82 17.06C4.46 16.63 4.79 15.98 5.35 16.02L26.17 17.51L16.52 29.52Z" fill="#FFCA28"/>
+                    <path d="M26.17 15.35L20.35 22.09L17.15 10.16L26.17 15.35Z" fill="#FFA000"/>
+                </svg>
+                <span class="font-medium text-lg tracking-tight font-sans">Firebase</span>
+                <span class="text-xs bg-white/20 text-white px-2 py-0.5 rounded font-mono font-normal">Console Notice</span>
+            </div>
+        </div>
+
+        <!-- Project Selector Badge -->
+        <div class="flex items-center space-x-3 text-xs sm:text-sm">
+            <div class="hidden sm:flex items-center bg-black/20 hover:bg-black/30 px-3 py-1.5 rounded-md border border-white/10 text-white cursor-pointer transition-colors">
+                <i class="ph-bold ph-folder-open text-amber-300 mr-2"></i>
+                <span class="font-medium font-mono" id="displayProjectId">prida-27118-v3</span>
+                <i class="ph-bold ph-caret-down text-xs ml-2 text-white/70"></i>
+            </div>
+            <div class="flex items-center space-x-2">
+                <span class="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-semibold bg-rose-500 text-white shadow-sm animate-pulse">
+                    <i class="ph-bold ph-warning-circle mr-1"></i> Quota Exceeded
+                </span>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Content Container -->
+    <main class="max-w-5xl mx-auto w-full px-4 sm:px-6 py-6 sm:py-10 flex-grow">
+        
+        <!-- Official Critical Error Alert Card -->
+        <div class="google-card p-5 sm:p-6 mb-6 border-l-8 border-l-rose-600 bg-white shadow-sm">
+            <div class="flex items-start space-x-4">
+                <div class="w-12 h-12 rounded-full bg-rose-100 flex-shrink-0 flex items-center justify-center text-rose-600">
+                    <i class="ph-bold ph-warning text-2xl"></i>
+                </div>
+                <div class="flex-1">
+                    <div class="flex flex-wrap items-center justify-between gap-2 mb-1">
+                        <h1 class="text-xl sm:text-2xl font-bold text-slate-900 tracking-tight font-sans">
+                            Resource Limit Reached / Batas Kuota Terlampaui
+                        </h1>
+                        <span class="text-xs font-mono bg-rose-100 text-rose-800 font-semibold px-2.5 py-1 rounded border border-rose-200">
+                            HTTP 429 RESOURCE_EXHAUSTED
+                        </span>
+                    </div>
+                    <p class="text-slate-600 text-sm sm:text-base leading-relaxed mt-1">
+                        Akses ke backend dan database Firebase dihentikan sementara oleh sistem karena proyek ini telah melampaui alokasi kuota gratis harian/bulanan (**Spark Plan**). Silakan hubungi administrator atau perbarui paket ke **Blaze Plan** untuk mengaktifkan kembali seluruh fungsi aplikasi.
+                    </p>
+                    
+                    <div class="mt-4 pt-3 border-t border-slate-200 text-xs text-slate-500 flex flex-wrap gap-y-2 gap-x-6 font-mono">
+                        <div><span class="text-slate-400">Project ID:</span> <strong class="text-slate-700">prida-27118-v3</strong></div>
+                        <div><span class="text-slate-400">Error Code:</span> <strong class="text-rose-600">PERMISSION_DENIED_QUOTA_EXCEEDED</strong></div>
+                        <div><span class="text-slate-400">Timestamp:</span> <strong class="text-slate-700" id="currentTimestamp">2026-10-02T23:59:59Z</strong></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Quota Diagnostic Grid -->
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+            
+            <!-- Resource Usage Details -->
+            <div class="md:col-span-2 google-card p-5 sm:p-6 bg-white shadow-sm">
+                <div class="flex items-center justify-between pb-4 mb-4 border-b border-slate-200">
+                    <div class="flex items-center space-x-2">
+                        <i class="ph-bold ph-chart-line-up text-google-blue text-xl"></i>
+                        <h2 class="font-bold text-slate-900 text-base">Status Penggunaan Kuota Layanan</h2>
+                    </div>
+                    <span class="text-xs text-slate-500">Batas Kuota Spark Tier</span>
+                </div>
+
+                <div class="space-y-5 text-sm">
+                    <!-- Progress Item 1: Firestore Reads -->
+                    <div>
+                        <div class="flex justify-between items-center mb-1.5">
+                            <span class="font-medium text-slate-700 flex items-center">
+                                <i class="ph-bold ph-database mr-2 text-slate-400"></i> Cloud Firestore Reads/Writes
+                            </span>
+                            <span class="text-xs font-mono font-bold text-rose-600 bg-rose-50 px-2 py-0.5 rounded border border-rose-100">50,000 / 50,000 (100%)</span>
+                        </div>
+                        <div class="w-full bg-slate-100 rounded-full h-2.5 overflow-hidden">
+                            <div class="bg-rose-600 h-2.5 rounded-full w-full"></div>
+                        </div>
+                        <span class="text-xs text-slate-500 mt-1 block">Batas kuota membaca/menulis database telah tercapai.</span>
+                    </div>
+
+                    <!-- Progress Item 2: Hosting & Bandwidth -->
+                    <div>
+                        <div class="flex justify-between items-center mb-1.5">
+                            <span class="font-medium text-slate-700 flex items-center">
+                                <i class="ph-bold ph-globe-hemisphere-west mr-2 text-slate-400"></i> Hosting Bandwidth
+                            </span>
+                            <span class="text-xs font-mono font-bold text-amber-600 bg-amber-50 px-2 py-0.5 rounded border border-amber-100">7.3 GB / 1.0 GB (73%)</span>
+                        </div>
+                        <div class="w-full bg-slate-100 rounded-full h-2.5 overflow-hidden">
+                            <div class="bg-green-400 h-2.5 rounded-full w-full"></div>
+                        </div>
+                        <span class="text-xs text-slate-500 mt-1 block">Transfer data lalu lintas jaringan.</span>
+                    </div>
+
+                    <!-- Progress Item 3: Storage Download -->
+                    <div>
+                        <div class="flex justify-between items-center mb-1.5">
+                            <span class="font-medium text-slate-700 flex items-center">
+                                <i class="ph-bold ph-cloud-arrow-down mr-2 text-slate-400"></i> Storage Download Bandwidth
+                            </span>
+                            <span class="text-xs font-mono font-bold text-amber-600 bg-amber-50 px-2 py-0.5 rounded border border-amber-100">0.9 GB / 1.0 GB (92%)</span>
+                        </div>
+                        <div class="w-full bg-slate-100 rounded-full h-2.5 overflow-hidden">
+                            <div class="bg-amber-500 h-2.5 rounded-full w-full"></div>
+                        </div>
+                        <span class="text-xs text-slate-500 mt-1 block">Penyimpanan berkas gambar & dokumen terjangkau maksimum.</span>
+                    </div>
+                </div>
+
+                <!-- Technical SDK Error Code Snippet -->
+                <div class="mt-6 pt-4 border-t border-slate-200">
+                    <label class="text-xs font-semibold text-slate-500 uppercase tracking-wider block mb-2">Respon Console Firebase API</label>
+                    <div class="code-block p-3 rounded-lg text-xs leading-relaxed overflow-x-auto">
+<pre><code>{
+  <span class="text-red-400">"error"</span>: {
+    <span class="text-red-400">"code"</span>: <span class="text-amber-300">429</span>,
+    <span class="text-red-400">"message"</span>: <span class="text-emerald-300">"Quota exceeded for quota metric 'cloudfirestore.googleapis.com/read_requests' and limit 'Read requests per day'."</span>,
+    <span class="text-red-400">"status"</span>: <span class="text-amber-300">"RESOURCE_EXHAUSTED"</span>,
+    <span class="text-red-400">"details"</span>: [<span class="text-purple-300">"Upgrade your plan to Blaze (Pay as you go) to extend limits."</span>]
+  }
+}</code></pre>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Billing Action & Upgrade Box -->
+            <div class="google-card p-5 sm:p-6 bg-white shadow-sm flex flex-col justify-between">
+                <div>
+                    <div class="flex items-center space-x-2 pb-3 mb-4 border-b border-slate-200">
+                        <i class="ph-bold ph-credit-card text-google-blue text-xl"></i>
+                        <h2 class="font-bold text-slate-900 text-base">Rencana Langganan</h2>
+                    </div>
+
+                    <div class="mb-5 bg-amber-50 border border-amber-200 rounded-lg p-3.5">
+                        <div class="text-xs text-amber-800 font-medium uppercase tracking-wide">Status Paket Saat Ini</div>
+                        <div class="text-lg font-bold text-slate-900 mt-0.5 flex items-center">
+                            Spark Plan <span class="ml-2 text-xs font-normal text-amber-800 bg-amber-200/60 px-2 py-0.5 rounded">(Free / Gratis)</span>
+                        </div>
+                        <p class="text-xs text-slate-600 mt-1">Kuota gratis harian/bulanan direset otomatis pada pukul 23:59 PST, atau dapat di-upgrade ke ketersediaan tak terbatas.</p>
+                    </div>
+
+                    <h3 class="text-xs font-bold text-slate-700 uppercase tracking-wider mb-2">Solusi Perbaikan / Upgrade:</h3>
+                    <ul class="text-xs text-slate-600 space-y-2 mb-6">
+                        <li class="flex items-start">
+                            <i class="ph-bold ph-check-circle text-google-green text-sm mr-2 mt-0.5"></i>
+                            <span>Beralih ke **Blaze Plan** (Pay as you go) tanpa hambatan kuota harian/bulanan.</span>
+                        </li>
+  <li class="flex items-start">
+                            <i class="ph-bold ph-check-circle text-google-green text-sm mr-2 mt-0.5"></i>
+                            <span>Hapus data log reads/writes firestore.</span>
+                        </li>                        <li class="flex items-start">
+                            <i class="ph-bold ph-check-circle text-google-green text-sm mr-2 mt-0.5"></i>
+                            <span>Pemulihan otomatis akses Firebase Realtime Database.</span>
+                        </li>
+                        <li class="flex items-start">
+                            <i class="ph-bold ph-check-circle text-google-green text-sm mr-2 mt-0.5"></i>
+                            <span>Dukungan teknis prioritas tinggi dari pengembang/admin.</span>
+                        </li>
+                    </ul>
+                </div>
+
+                <!-- Primary Action Buttons -->
+                <div class="space-y-2 pt-4 border-t border-slate-200">
+                    <button onclick="openModal()" class="w-full py-2.5 px-4 bg-google-blue hover:bg-google-hoverBlue text-white font-medium text-sm rounded-md shadow-sm transition-colors flex items-center justify-center">
+                        <i class="ph-bold ph-whatsapp-logo text-lg mr-2"></i>
+                        Hubungi Admin / Upgrade Server
+                    </button>
+                    
+                    <button onclick="checkStatus()" class="w-full py-2 px-4 bg-white hover:bg-slate-50 border border-slate-300 text-slate-700 font-medium text-xs rounded-md transition-colors flex items-center justify-center">
+                        <i id="refreshIcon" class="ph-bold ph-arrows-clockwise text-sm mr-1.5"></i>
+                        Periksa Status Server Lagi
+                    </button>
+                </div>
+            </div>
+
+        </div>
+
+        <!-- Official Help / FAQ Accordion Card -->
+        <div class="google-card p-5 sm:p-6 bg-white shadow-sm mb-6">
+            <h3 class="font-bold text-slate-900 text-sm mb-3 flex items-center">
+                <i class="ph-bold ph-question text-slate-500 mr-2"></i> Pertanyaan Umum Mengenai Kuota Firebase
+            </h3>
+            
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4 text-xs text-slate-600">
+                <div class="p-3 bg-slate-50 rounded-lg border border-slate-200">
+                    <strong class="text-slate-800 block mb-1">Kapan kuota gratis akan direset?</strong>
+                    Kuota gratis harian/bulanan Firebase Spark Plan direset secara otomatis oleh sistem 23:59 Waktu Pasifik (PST).
+                </div>
+                <div class="p-3 bg-slate-50 rounded-lg border border-slate-200">
+                    <strong class="text-slate-800 block mb-1">Apakah data aplikasi saya aman?</strong>
+                    Ya, seluruh data, skema database, dan akun pengguna tersimpan dengan aman di server Firebase Google Cloud dan tidak akan hilang.
+                </div>
+            </div>
+        </div>
+
+    </main>
+
+    <!-- Official Google Material Modal Dialog for Contacting Admin -->
+    <div id="contactModal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4 hidden">
+        <div class="bg-white rounded-xl shadow-2xl max-w-md w-full overflow-hidden border border-slate-200 transform transition-all">
+            <!-- Modal Header -->
+            <div class="bg-slate-900 text-white p-4 flex justify-between items-center">
+                <div class="flex items-center space-x-2">
+                    <i class="ph-bold ph-shield-check text-amber-400 text-xl"></i>
+                    <span class="font-medium text-sm font-sans">Firebase Billing Administrator</span>
+                </div>
+                <button onclick="closeModal()" class="text-slate-400 hover:text-white p-1 rounded-lg">
+                    <i class="ph-bold ph-x text-lg"></i>
+                </button>
+            </div>
+
+            <!-- Modal Content -->
+            <div class="p-6">
+                <div class="text-center mb-6">
+                    <div class="w-14 h-14 bg-amber-100 text-amber-600 rounded-full flex items-center justify-center mx-auto mb-3">
+                        <i class="ph-bold ph-lightning text-2xl"></i>
+                    </div>
+                    <h3 class="text-lg font-bold text-slate-900">Konfirmasi Langganan Server</h3>
+                    <p class="text-xs text-slate-500 mt-1">
+                        Sampaikan kebutuhan aktivasi perpanjangan atau upgrade kuota ke administrator Firebase project ini.
+                    </p>
+                </div>
+
+                <div class="space-y-3 mb-6">
+                    <a href="https://wa.me/62812300000?text=Halo%20Admin%20Firebase,%20proyek%20prida-27118-v3%20mengalami%20Resource%20Quota%20Exceeded.%20Saya%20ingin%20mengajukan%20perpanjangan/upgrade%20layanan." 
+                       target="_blank" 
+                       class="flex items-center justify-between p-3.5 border border-emerald-300 bg-emerald-50 hover:bg-emerald-100 rounded-lg text-emerald-900 font-medium text-sm transition-colors">
+                        <span class="flex items-center">
+                            <i class="ph-bold ph-whatsapp-logo text-xl text-emerald-600 mr-2.5"></i>
+                            Chat Admin via WhatsApp
+                        </span>
+                        <i class="ph-bold ph-arrow-right text-xs"></i>
+                    </a>
+
+                    <a href="mailto:support@firebase.com?subject=Perpanjangan%20Kuota%20Firebase%20Project&body=Halo%20Admin,%20mohon%20proses%20upgrade%20kuota%20proyek%20prida-27118-v3." 
+                       class="flex items-center justify-between p-3.5 border border-slate-200 bg-slate-50 hover:bg-slate-100 rounded-lg text-slate-800 font-medium text-sm transition-colors">
+                        <span class="flex items-center">
+                            <i class="ph-bold ph-envelope-simple text-xl text-slate-600 mr-2.5"></i>
+                            Kirim Email Billing
+                        </span>
+                        <i class="ph-bold ph-arrow-right text-xs"></i>
+                    </a>
+                </div>
+
+                <p class="text-[11px] text-center text-slate-400">
+                    Proses aktivasi akun pascabayar umumnya memakan waktu 5-15 menit setelah pembayaran dikonfirmasi.
+                </p>
+            </div>
+
+            <!-- Modal Footer -->
+            <div class="bg-slate-50 px-6 py-3 border-t border-slate-200 text-right">
+                <button onclick="closeModal()" class="px-4 py-2 bg-slate-200 hover:bg-slate-300 text-slate-700 text-xs font-semibold rounded-md transition-colors">
+                    Tutup
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Status Toast Notification -->
+    <div id="statusToast" class="fixed bottom-5 right-5 z-40 max-w-sm bg-slate-900 text-white p-4 rounded-lg shadow-xl border border-slate-700 hidden transform transition-all">
+        <div class="flex items-center space-x-3">
+            <i id="toastSpinner" class="ph-bold ph-spinner animate-spin text-amber-400 text-xl"></i>
+            <div class="text-xs">
+                <div class="font-bold text-slate-100" id="toastTitle">Memeriksa Kuota Firebase...</div>
+                <div class="text-slate-300 mt-0.5" id="toastMessage">Menghubungkan ke server Google Cloud API...</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Official Google / Firebase Footer -->
+    <footer class="w-full bg-white border-t border-slate-200 py-4 px-6 text-xs text-slate-500 mt-auto">
+        <div class="max-w-5xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-3">
+            <div class="flex items-center space-x-4">
+                <span class="font-medium text-slate-600">Google Cloud / Firebase System Notice</span>
+                <span>&bull;</span>
+                <a href="https://firebase.google.com/docs/projects/billing/faq" target="_blank" class="text-google-blue hover:underline">Firebase Pricing & Quotas</a>
+                <span>&bull;</span>
+                <a href="https://status.firebase.google.com/" target="_blank" class="text-google-blue hover:underline">System Status</a>
+            </div>
+            <div>
+                &copy; <span id="currentYear"></span> Google LLC & Firebase. All rights reserved.
+            </div>
+        </div>
+    </footer>
+
+    <script>
+        // Set real-time dynamic dates
+        document.getElementById('currentYear').textContent = new Date().getFullYear();
+        document.getElementById('currentTimestamp').textContent = new Date().toISOString();
+
+        // Modal Controls
+        function openModal() {
+            document.getElementById('contactModal').classList.remove('hidden');
+        }
+
+        function closeModal() {
+            document.getElementById('contactModal').classList.add('hidden');
+        }
+
+        // Simulate Status Refresh
+        function checkStatus() {
+            const refreshIcon = document.getElementById('refreshIcon');
+            const toast = document.getElementById('statusToast');
+            const toastTitle = document.getElementById('toastTitle');
+            const toastMessage = document.getElementById('toastMessage');
+            const toastSpinner = document.getElementById('toastSpinner');
+
+            refreshIcon.classList.add('animate-spin');
+            toast.classList.remove('hidden');
+            toastTitle.textContent = "Menghubungkan ke API Firebase...";
+            toastMessage.textContent = "Memeriksa ulang limit kuota project prida-27118-v3...";
+            toastSpinner.className = "ph-bold ph-spinner animate-spin text-amber-400 text-xl";
+
+            setTimeout(() => {
+                refreshIcon.classList.remove('animate-spin');
+                toastTitle.textContent = "Kuota Masih Terlampaui (429)";
+                toastMessage.textContent = "Status: RESOURCE_EXHAUSTED. Silakan perbarui paket langganan Anda.";
+                toastSpinner.className = "ph-bold ph-x-circle text-rose-500 text-xl";
+
+                setTimeout(() => {
+                    toast.classList.add('hidden');
+                }, 4000);
+            }, 1800);
+        }
+    </script>
+</body>
+</html>

@@ -1,4 +1,4 @@
-const CACHE_NAME = 'prida-shell-v4';
+const CACHE_NAME = 'prida-shell-v6';
 
 const APP_SHELL = [
   '/',

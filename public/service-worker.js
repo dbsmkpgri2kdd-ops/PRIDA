@@ -1,39 +1,72 @@
-const CACHE_NAME = 'prida-v3';
-const ASSETS = [
+const CACHE_NAME = 'prida-shell-v4';
+
+const APP_SHELL = [
   '/',
   '/index.html',
   '/manifest.json',
   '/icon-192.png',
   '/icon-512.png',
-  // Tambahkan CDN agar bisa diakses offline jika pernah dimuat sebelumnya
-  'https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css',
-  'https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js'
+  '/Logo%20Sekolah.png',
+  '/offline.html'
 ];
 
-// ... (Bagian Install & Activate tetap sama)
+self.addEventListener('install', (event) => {
+  event.waitUntil(
+    caches.open(CACHE_NAME)
+      .then((cache) => cache.addAll(APP_SHELL))
+      .then(() => self.skipWaiting())
+  );
+});
 
-self.addEventListener('fetch', event => {
-  const url = new URL(event.request.url);
+self.addEventListener('activate', (event) => {
+  event.waitUntil(
+    caches.keys()
+      .then((cacheNames) =>
+        Promise.all(
+          cacheNames
+            .filter((name) => name.startsWith('prida-shell-') && name !== CACHE_NAME)
+            .map((name) => caches.delete(name))
+        )
+      )
+      .then(() => self.clients.claim())
+  );
+});
 
-  // 1. Strategi: Network First (Khusus Data Dinamis)
-  if (url.pathname.endsWith('.html') || url.href.includes('script.google.com')) {
-    event.respondWith(
-      fetch(event.request)
-        .then(response => {
-          // Opsional: Simpan hasil terbaru ke cache sebagai cadangan
-          const resClone = response.clone();
-          caches.open(CACHE_NAME).then(cache => cache.put(event.request, resClone));
-          return response;
-        })
-        .catch(() => caches.match(event.request))
-    );
+self.addEventListener('fetch', (event) => {
+  const request = event.request;
+  const url = new URL(request.url);
+
+  if (request.method !== 'GET' || url.origin !== self.location.origin) {
     return;
   }
 
-  // 2. Strategi: Cache First (Aset Statis & Library)
+  // Selalu ambil ads.txt dari server supaya tidak menggunakan versi cache.
+  if (url.pathname === '/ads.txt') {
+    return;
+  }
+
   event.respondWith(
-    caches.match(event.request).then(res => {
-      return res || fetch(event.request);
-    })
+    fetch(request)
+      .then((response) => {
+        if (response.ok) {
+          const responseCopy = response.clone();
+          event.waitUntil(
+            caches.open(CACHE_NAME).then((cache) => cache.put(request, responseCopy))
+          );
+        }
+        return response;
+      })
+      .catch(async () => {
+        const cached = await caches.match(request);
+        if (cached) return cached;
+
+        if (request.mode === 'navigate') {
+          return (await caches.match('/index.html')) ||
+                 (await caches.match('/offline.html')) ||
+                 Response.error();
+        }
+
+        return Response.error();
+      })
   );
 });
